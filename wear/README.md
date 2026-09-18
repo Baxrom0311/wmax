@@ -122,3 +122,21 @@ python3 scripts/watch_sim.py --test-offline
 # Jonli oqim (har 2 soniyada 5 minutlik o'lchov yuborish)
 python3 scripts/watch_sim.py --interval 2.0 --profile worsening
 ```
+
+---
+
+## 6. Dasturchi yordamchi vositalari (`wear/tools/`)
+
+- **`wear/tools/pair_emulators.sh`**:
+  Ishga tushirilgan soat va telefon emulyatorlarini avtomatik topadi, `tcp:5601` port forwarding'ini yoqadi va datchik ruxsatlarini (`BODY_SENSORS`, `ACTIVITY_RECOGNITION`) beradi:
+  ```bash
+  ./wear/tools/pair_emulators.sh
+  ```
+
+- **`wear/tools/simulate_vitals.sh`**:
+  Simulyatorni turli profillar bilan tezkor ishga tushirish qobig'i:
+  ```bash
+  ./wear/tools/simulate_vitals.sh healthy 2.0 11111111-1111-1111-1111-111111111111
+  ./wear/tools/simulate_vitals.sh worsening 1.5 11111111-1111-1111-1111-111111111111
+  ```
+
