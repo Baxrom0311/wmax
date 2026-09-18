@@ -1,0 +1,25 @@
+# Bitta domen, uchta yo'l. Cloudflare DNS-only (kulrang bulut) bo'lishi shart —
+# proxy yoqiq bo'lsa HTTP-01 challenge to'xtaydi va TLS olinmaydi.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# ---- API (A1 backend-core, A6 auth) ----
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	# ---- Yaqin kishi ekrani (A4) ----
+	handle /r/* {
+		header X-Robots-Tag "noindex, nofollow"
+		reverse_proxy web-relative:80
+	}
+
+	# ---- Shifokor/hamshira paneli (A3) ----
+	handle {
+		reverse_proxy web-doctor:80
+	}
+}
