@@ -101,22 +101,72 @@ export interface Alert {
   reason: string;
 }
 
+export interface ProblemItem {
+  param: string;
+  label: string;
+  deviation: string;
+  current_value: number;
+  baseline_range: string;
+  severity: "mild" | "moderate" | "severe";
+  explanation: string;
+}
+
+export interface PrognosisInfo {
+  risk_level: "low" | "moderate" | "high";
+  risk_probability_pct: number;
+  early_warning_hours: number;
+  summary: string;
+  recommendation: string;
+}
+
+export interface RelativePatientItem {
+  id: string;
+  full_name: string;
+  relationship: string;
+  access_token: string;
+  level: AlertLevel;
+  diagnosis: string;
+  age: number;
+  last_reading_at: string | null;
+}
+
 export interface PatientDetail extends PatientSummary {
   series: ParamSeries[];
   alerts: Alert[];
   tasks: Task[];
   baseline_approved: boolean;
+  prognosis?: PrognosisInfo;
+  problems?: ProblemItem[];
 }
 
 export interface RelativeView {
+  patient_id: string;
   patient_name: string;
+  relationship?: string;
   level: AlertLevel;
   level_word_key: I18nKey;
+  composite_score: number;
   last_reading_at: string | null;
   trend: Trend;
+  prognosis: PrognosisInfo;
+  problems: ProblemItem[];
+  series: ParamSeries[];
+  alerts: Alert[];
+  tasks: Task[];
   /** 7 daily values normalised 0..1 — a shape, not a chart. */
   sparkline: number[];
-  vitals: { hr: number | null; spo2: number | null; sleep_hours: number | null };
+  vitals: {
+    hr: number | null;
+    spo2: number | null;
+    sleep_hours: number | null;
+    skin_temp?: number | null;
+    rr?: number | null;
+    steps?: number | null;
+  };
+  doctor_contact?: {
+    name: string;
+    phone: string;
+  } | null;
 }
 
 export interface TokenPair {
@@ -125,6 +175,10 @@ export interface TokenPair {
   expires_in: number;
   role: Role;
   full_name: string;
+}
+
+export interface RelativeLoginResponse extends TokenPair {
+  patients: RelativePatientItem[];
 }
 
 export const API_BASE = "/api/v1";

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { PatientSummary } from "../lib/types";
@@ -14,16 +14,36 @@ export const PatientsList: React.FC<PatientsListProps> = ({
   onSelectPatient,
   lang,
 }) => {
+  const [districtFilter, setDistrictFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
   const attentionPatients = patients.filter(
     (p) => p.level === "red" || p.level === "amber"
   );
 
+  const districts = Array.from(new Set(patients.map((p) => p.district)));
+
+  const LEVEL_PRIORITY: Record<string, number> = {
+    red: 0,
+    no_data: 1,
+    amber: 2,
+    green: 3,
+  };
+
+  const filteredPatients = patients
+    .filter((p) => {
+      if (districtFilter !== "all" && p.district !== districtFilter) return false;
+      if (statusFilter !== "all" && p.level !== statusFilter) return false;
+      return true;
+    })
+    .sort((a, b) => (LEVEL_PRIORITY[a.level] ?? 99) - (LEVEL_PRIORITY[b.level] ?? 99));
+
   const formatHoursLeft = (dueAtIso: string) => {
-    const diffHours = Math.round(
-      (new Date(dueAtIso).getTime() - Date.now()) / (3600 * 1000)
-    );
-    if (diffHours <= 0) return t("patients.overdue", lang);
-    return t("patients.hours_left", lang, { h: diffHours });
+    const diffMs = new Date(dueAtIso).getTime() - Date.now();
+    if (diffMs <= 0) return t("patients.overdue", lang);
+    const hours = Math.floor(diffMs / (3600 * 1000));
+    const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
+    return t("patients.hours_left", lang, { h: hours, m: mins });
   };
 
   return (
@@ -37,7 +57,43 @@ export const PatientsList: React.FC<PatientsListProps> = ({
         </div>
       )}
 
-      {/* 2. High Density Worklist Table */}
+      {/* 2. Filters Row */}
+      <div className="filters-control-bar">
+        <div className="filter-group">
+          <label htmlFor="filter-district-select" className="filter-label">{t("patients.filter_district", lang)}</label>
+          <select
+            id="filter-district-select"
+            className="filter-select"
+            value={districtFilter}
+            onChange={(e) => setDistrictFilter(e.target.value)}
+          >
+            <option value="all">{t("patients.all_districts", lang)}</option>
+            {districts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="filter-status-select" className="filter-label">{t("patients.filter_status", lang)}</label>
+          <select
+            id="filter-status-select"
+            className="filter-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">{t("patients.all_statuses", lang)}</option>
+            <option value="red">{t("state.risk", lang)}</option>
+            <option value="no_data">{t("state.no_data", lang)}</option>
+            <option value="amber">{t("state.attention", lang)}</option>
+            <option value="green">{t("state.good", lang)}</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 3. High Density Worklist Table */}
       <div className="table-wrapper">
         <table className="patients-table">
           <thead>
@@ -54,18 +110,18 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             </tr>
           </thead>
           <tbody>
-            {patients.map((p) => {
+            {filteredPatients.map((p) => {
               const trendArrow =
                 p.trend.direction === "worsening"
-                  ? "↘"
-                  : p.trend.direction === "improving"
                   ? "↗"
+                  : p.trend.direction === "improving"
+                  ? "↘"
                   : "→";
 
               const isUrgent =
                 p.level === "red" ||
                 (p.open_task &&
-                  new Date(p.open_task.due_at).getTime() - Date.now() < 6 * 3600 * 1000);
+                  new Date(p.open_task.due_at).getTime() - Date.now() < 4 * 3600 * 1000);
 
               return (
                 <tr key={p.id}>
@@ -84,7 +140,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                       {p.full_name}
                     </span>
                   </td>
-                  <td>{p.age}y</td>
+                  <td>
+                    {p.age}y / {p.sex === "m" ? "Erkak" : "Ayol"}
+                  </td>
                   <td>{p.district}</td>
                   <td className="diagnosis-cell" title={p.diagnosis}>
                     {p.diagnosis}

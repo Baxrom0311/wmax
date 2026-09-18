@@ -34,6 +34,13 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
     return `${hours} soat ${mins} daqiqa qoldi`;
   };
 
+  const isUrgent =
+    activeTask &&
+    new Date(activeTask.due_at).getTime() - Date.now() < 4 * 3600 * 1000;
+
+  const isOverdue =
+    activeTask && new Date(activeTask.due_at).getTime() - Date.now() <= 0;
+
   const handleApproveBaseline = async () => {
     setApproving(true);
     try {
@@ -57,14 +64,14 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         {t("detail.back", lang)}
       </button>
 
-      {/* 2. Title & Clinical Profile Bar */}
+      {/* 2. Clinical Passport Header */}
       <div className="detail-title-bar">
         <div className="patient-main-info">
           <h1>
             <span className={`status-dot ${patient.level}`} style={{ width: "14px", height: "14px" }} />
             {patient.full_name}
             <span style={{ fontSize: "14px", fontWeight: 400, color: "var(--color-muted)" }}>
-              ({patient.age} yosh, {patient.district})
+              ({patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}, {patient.district})
             </span>
           </h1>
           <div className="patient-sub-info">
@@ -94,11 +101,20 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       </div>
 
-      {/* 3. Active Call Card (Problem 11) */}
+      {/* 3. 24-Hour Active Call Card (Problem 11) */}
       {activeTask && (
-        <div className="active-call-widget">
+        <div
+          className="active-call-widget"
+          style={{
+            borderColor: isOverdue ? "var(--color-risk)" : isUrgent ? "var(--color-attention)" : "var(--color-good)",
+            backgroundColor: isOverdue ? "#FDF2F2" : "#FFFDF9",
+          }}
+        >
           <div className="active-call-left">
-            <h3>{t("detail.active_call_card", lang)}</h3>
+            <h3 style={{ color: isOverdue ? "var(--color-risk)" : "var(--color-attention)" }}>
+              {t("detail.active_call_card", lang)}
+              {isOverdue && <span style={{ marginLeft: "8px", fontSize: "12px", color: "var(--color-risk)" }}>(MUDDATI O'TGAN)</span>}
+            </h3>
             <p style={{ fontSize: "13px", color: "var(--color-muted)" }}>
               {t("detail.active_call_desc", lang)}
             </p>
@@ -117,9 +133,47 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       )}
 
-      {/* 4. Multi-Row 7-Day Physiological Charts with Baseline Corridors */}
+      {/* 4. AI 72-Hour Prognosis & Problem Breakdown */}
+      {patient.prognosis && (
+        <div className="doc-ai-prognosis-card">
+          <div className="prognosis-header-line">
+            <span className="ai-engine-tag">AI CLINICAL ENGINE</span>
+            <span
+              className="risk-pct-pill"
+              style={{
+                color: patient.prognosis.risk_level === "high" ? "var(--color-risk)" : "var(--color-attention)",
+              }}
+            >
+              {t("detail.risk_prob", lang)}: {patient.prognosis.risk_probability_pct}%
+            </span>
+          </div>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "8px 0 4px" }}>
+            {t("detail.prognosis_header", lang)}
+          </h3>
+          <p style={{ fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>
+            {patient.prognosis.summary}
+          </p>
+          <p style={{ fontSize: "13px", color: "var(--color-muted)", marginTop: "6px" }}>
+            💡 <strong>Tavsiya:</strong> {patient.prognosis.recommendation}
+          </p>
+
+          {/* Root-cause problems */}
+          {patient.problems && patient.problems.length > 0 && (
+            <div className="doc-problems-list">
+              {patient.problems.map((pr, i) => (
+                <div key={i} className="doc-problem-chip">
+                  <strong>{pr.label}:</strong> {pr.deviation} ({pr.current_value} vs {pr.baseline_range}) —{" "}
+                  <span style={{ color: "var(--color-muted)" }}>{pr.explanation}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. Multi-Row 7-Day Physiological Charts with Baseline Corridors */}
       <div className="charts-grid">
-        <h3 style={{ fontSize: "17px", fontWeight: 600, marginTop: "8px" }}>
+        <h3 style={{ fontSize: "17px", fontWeight: 700, marginTop: "12px" }}>
           {t("detail.vitals_history", lang)}
         </h3>
 
@@ -128,7 +182,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         ))}
       </div>
 
-      {/* 5. Alerts History & Isolation Forest AI Advisory */}
+      {/* 6. Alerts History & Isolation Forest AI Advisory */}
       {patient.alerts && patient.alerts.length > 0 && (
         <div className="alerts-card">
           <h3 className="alerts-title">{t("detail.alerts_history", lang)}</h3>
@@ -148,7 +202,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                       borderRadius: "3px",
                     }}
                   >
-                    AI anomaly score: {Math.round(a.anomaly_score * 100)}% (advisory)
+                    IsolationForest: {Math.round(a.anomaly_score * 100)}% (advisory)
                   </span>
                 )}
               </div>

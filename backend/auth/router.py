@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from .security import (
@@ -38,7 +39,21 @@ class TokenPair(BaseModel):
     full_name: str
 
 
-# Demo accounts according to AGENTS.md and seed
+class RelativePatientItem(BaseModel):
+    id: str
+    full_name: str
+    relationship: str
+    access_token: str
+    level: Literal["green", "amber", "red", "no_data"]
+    diagnosis: str
+    age: int
+    last_reading_at: str | None = None
+
+
+class RelativeLoginResponse(TokenPair):
+    patients: list[RelativePatientItem]
+
+
 DEMO_USERS = {
     "+998901234567": {
         "id": UUID("00000000-0000-0000-0000-000000000001"),
@@ -72,6 +87,29 @@ DEMO_USERS = {
 
 DEMO_RELATIVE_PIN = "112233"
 
+DEMO_RELATIVE_PATIENTS: list[RelativePatientItem] = [
+    RelativePatientItem(
+        id="p-001-red",
+        full_name="Otabek Rahimov",
+        relationship="Otam",
+        access_token="token_otabek_123",
+        level="red",
+        diagnosis="Surunkali yurak yetishmovchiligi (IIIB)",
+        age=68,
+        last_reading_at=datetime.now(timezone.utc).isoformat(),
+    ),
+    RelativePatientItem(
+        id="p-002-amber",
+        full_name="Gulnora Matyoqubova",
+        relationship="Onam",
+        access_token="token_gulnora_456",
+        level="amber",
+        diagnosis="Arterial gipertenziya III, diabet",
+        age=72,
+        last_reading_at=datetime.now(timezone.utc).isoformat(),
+    ),
+]
+
 
 @router.post("/login", response_model=TokenPair)
 async def login(req: LoginRequest):
@@ -100,7 +138,7 @@ async def login(req: LoginRequest):
     )
 
 
-@router.post("/relative/login", response_model=TokenPair)
+@router.post("/relative/login", response_model=RelativeLoginResponse)
 async def relative_login(req: RelativeLoginRequest):
     if req.pin != DEMO_RELATIVE_PIN:
         raise HTTPException(
@@ -110,19 +148,20 @@ async def relative_login(req: RelativeLoginRequest):
 
     token_data = {
         "sub": "00000000-0000-0000-0000-000000000099",
-        "full_name": "Yaqin qarindosh",
+        "full_name": "Farzand (Qarovchi)",
         "role": "doctor",  # Access relative endpoints
         "district": "Urganch",
     }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
-    return TokenPair(
+    return RelativeLoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=ACCESS_TOKEN_TTL_MIN * 60,
         role="doctor",
-        full_name="Yaqin qarindosh",
+        full_name="Farzand (Qarovchi)",
+        patients=DEMO_RELATIVE_PATIENTS,
     )
 
 
@@ -132,7 +171,7 @@ async def refresh(req: RefreshRequest):
         payload = decode_token(req.refresh_token)
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Noto'g'ri refresh token")
-        
+
         token_data = {
             "sub": payload["sub"],
             "full_name": payload.get("full_name", ""),
