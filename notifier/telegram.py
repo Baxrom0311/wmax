@@ -12,6 +12,8 @@ load_dotenv()
 
 logger = logging.getLogger("nazorat.notifier.telegram")
 
+from .ai_assistant import handle_user_query
+
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:5174").rstrip("/")
 
@@ -335,14 +337,14 @@ async def poll_telegram_messages() -> None:
                             "Ish vaqti: 08:00 \u2014 17:00 (Du-Ju)",
                         )
                     else:
-                        # Unknown text — show help hint
-                        await send_telegram_message(
-                            chat_id,
-                            f"\U0001f916 Buyruq tushunilmadi.\n\n"
-                            f"Pastdagi tugmalardan foydalaning yoki:\n"
-                            f"/status \u2014 Joriy ko'rsatkichlar\n"
-                            f"/help \u2014 Yordam",
+                        # Process natural query via Hybrid AI (Gemini) + Algorithmic Triage
+                        raw_text = msg.get("text") or ""
+                        ai_reply = await handle_user_query(
+                            text=raw_text,
+                            patient_name="Otabek Rahimov",
+                            vitals=DEMO_VITALS,
                         )
+                        await send_telegram_message(chat_id, ai_reply)
 
             except Exception as err:
                 logger.debug("Telegram polling transient error: %s", err)
