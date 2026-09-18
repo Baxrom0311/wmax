@@ -16,11 +16,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 }) => {
   const [districtFilter, setDistrictFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [taskFilterOnly, setTaskFilterOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-
-  const attentionPatients = patients.filter(
-    (p) => p.level === "red" || p.level === "amber"
-  );
 
   const districts = Array.from(new Set(patients.map((p) => p.district)));
 
@@ -35,6 +32,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     .filter((p) => {
       if (districtFilter !== "all" && p.district !== districtFilter) return false;
       if (statusFilter !== "all" && p.level !== statusFilter) return false;
+      if (taskFilterOnly && (!p.open_task || p.open_task.status === "done")) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = p.full_name.toLowerCase().includes(q);
@@ -53,21 +51,116 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     return t("patients.hours_left", lang, { h: hours, m: mins });
   };
 
+  const redCount = patients.filter((p) => p.level === "red").length;
+  const activeCallCount = patients.filter(
+    (p) => p.open_task && p.open_task.status !== "done"
+  ).length;
+  const amberCount = patients.filter((p) => p.level === "amber").length;
+  const greenCount = patients.filter((p) => p.level === "green").length;
+  const noDataCount = patients.filter((p) => p.level === "no_data").length;
+
+  const isFiltering = districtFilter !== "all" || statusFilter !== "all" || taskFilterOnly || searchQuery.trim().length > 0;
+
+  const resetAllFilters = () => {
+    setDistrictFilter("all");
+    setStatusFilter("all");
+    setTaskFilterOnly(false);
+    setSearchQuery("");
+  };
+
   return (
     <div className="doc-container">
-      {/* 1. Attention Banner */}
-      {attentionPatients.length > 0 && (
-        <div className="attention-banner">
-          <span className="attention-banner-title">
-            ⚠️ {t("patients.attention_count", lang, { n: attentionPatients.length })}
-          </span>
+      {/* 1. Interactive Clinical Triage Stat Bar */}
+      <div className="triage-cards-grid">
+        <div
+          className={`triage-stat-card card-all ${statusFilter === "all" && !taskFilterOnly ? "active" : ""}`}
+          onClick={() => {
+            setStatusFilter("all");
+            setTaskFilterOnly(false);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-stat-icon">🏥</span>
+            <span className="triage-stat-num">{patients.length}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.all_count", lang)}</div>
         </div>
-      )}
 
-      {/* 2. Filters & Search Row */}
+        <div
+          className={`triage-stat-card card-red ${statusFilter === "red" ? "active" : ""}`}
+          onClick={() => {
+            setStatusFilter(statusFilter === "red" ? "all" : "red");
+            setTaskFilterOnly(false);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-pulse-ring red" />
+            <span className="triage-stat-num text-risk">{redCount}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.red_title", lang)}</div>
+        </div>
+
+        <div
+          className={`triage-stat-card card-task ${taskFilterOnly ? "active" : ""} ${activeCallCount > 0 ? "has-tasks" : ""}`}
+          onClick={() => {
+            setTaskFilterOnly((prev) => !prev);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-stat-icon">⏳</span>
+            <span className="triage-stat-num text-attention">{activeCallCount}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.active_call_title", lang)}</div>
+        </div>
+
+        <div
+          className={`triage-stat-card card-amber ${statusFilter === "amber" && !taskFilterOnly ? "active" : ""}`}
+          onClick={() => {
+            setStatusFilter(statusFilter === "amber" ? "all" : "amber");
+            setTaskFilterOnly(false);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-stat-icon">🟡</span>
+            <span className="triage-stat-num text-attention">{amberCount}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.amber_title", lang)}</div>
+        </div>
+
+        <div
+          className={`triage-stat-card card-green ${statusFilter === "green" && !taskFilterOnly ? "active" : ""}`}
+          onClick={() => {
+            setStatusFilter(statusFilter === "green" ? "all" : "green");
+            setTaskFilterOnly(false);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-stat-icon">🟢</span>
+            <span className="triage-stat-num text-good">{greenCount}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.green_title", lang)}</div>
+        </div>
+
+        <div
+          className={`triage-stat-card card-nodata ${statusFilter === "no_data" && !taskFilterOnly ? "active" : ""}`}
+          onClick={() => {
+            setStatusFilter(statusFilter === "no_data" ? "all" : "no_data");
+            setTaskFilterOnly(false);
+          }}
+        >
+          <div className="triage-stat-top">
+            <span className="triage-stat-icon">⚪</span>
+            <span className="triage-stat-num text-muted">{noDataCount}</span>
+          </div>
+          <div className="triage-stat-label">{t("triage.nodata_title", lang)}</div>
+        </div>
+      </div>
+
+      {/* 2. Search & Filter Bar */}
       <div className="filters-control-bar">
-        {/* Search input */}
+        {/* Search input with icon */}
         <div className="filter-group filter-search-group">
+          <span className="search-icon-decor">🔍</span>
           <input
             type="text"
             className="filter-search-input"
@@ -87,7 +180,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
         </div>
 
         <div className="filter-group">
-          <label htmlFor="filter-district-select" className="filter-label">{t("patients.filter_district", lang)}</label>
+          <label htmlFor="filter-district-select" className="filter-label">
+            {t("patients.filter_district", lang)}
+          </label>
           <select
             id="filter-district-select"
             className="filter-select"
@@ -104,7 +199,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
         </div>
 
         <div className="filter-group">
-          <label htmlFor="filter-status-select" className="filter-label">{t("patients.filter_status", lang)}</label>
+          <label htmlFor="filter-status-select" className="filter-label">
+            {t("patients.filter_status", lang)}
+          </label>
           <select
             id="filter-status-select"
             className="filter-select"
@@ -118,6 +215,16 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             <option value="green">{t("state.good", lang)}</option>
           </select>
         </div>
+
+        {isFiltering && (
+          <button
+            type="button"
+            className="btn btn-outline reset-filters-btn"
+            onClick={resetAllFilters}
+          >
+            {t("patients.reset_filters", lang)} ({filteredPatients.length})
+          </button>
+        )}
       </div>
 
       {/* 3. High Density Worklist Table */}
@@ -133,7 +240,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <th>{t("patients.th_trend", lang)}</th>
               <th>{t("patients.th_deviations", lang)}</th>
               <th>{t("patients.th_task", lang)}</th>
-              <th>{t("patients.th_action", lang)}</th>
+              <th style={{ textAlign: "right" }}>{t("patients.th_action", lang)}</th>
             </tr>
           </thead>
           <tbody>
@@ -150,59 +257,70 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                 (p.open_task &&
                   new Date(p.open_task.due_at).getTime() - Date.now() < 4 * 3600 * 1000);
 
+              const patientInitials = p.full_name
+                .split(" ")
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("");
+
               return (
-                <tr key={p.id}>
+                <tr key={p.id} className={`patient-row level-${p.level}`}>
                   <td>
-                    <span className={`status-dot ${p.level}`} />
-                    <span style={{ fontSize: "12px", textTransform: "capitalize" }}>
-                      {t(`state.${p.level}`, lang)}
+                    <div className="status-pill-cell">
+                      <span className={`status-dot ${p.level}`} />
+                      <span className={`status-text-pill ${p.level}`}>
+                        {t(`state.${p.level}`, lang)}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="patient-name-wrap">
+                      <div className="patient-mini-avatar">{patientInitials}</div>
+                      <div>
+                        <span
+                          className="fio-cell"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => onSelectPatient(p.id)}
+                        >
+                          {p.full_name}
+                        </span>
+                        <div className="patient-phase-sub">
+                          {t(`detail.phase_${p.phase}`, lang)}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="age-sex-badge">
+                      {p.age}y · {p.sex === "m" ? "Erkak" : "Ayol"}
                     </span>
                   </td>
                   <td>
-                    <span
-                      className="fio-cell"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => onSelectPatient(p.id)}
-                    >
-                      {p.full_name}
-                    </span>
+                    <span className="district-tag">{p.district}</span>
                   </td>
-                  <td>
-                    {p.age}y / {p.sex === "m" ? "Erkak" : "Ayol"}
-                  </td>
-                  <td>{p.district}</td>
                   <td className="diagnosis-cell" title={p.diagnosis}>
                     {p.diagnosis}
                   </td>
                   <td>
                     <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "15px",
-                        color:
-                          p.trend.direction === "worsening"
-                            ? "var(--color-risk)"
-                            : p.trend.direction === "improving"
-                            ? "var(--color-good)"
-                            : "var(--color-muted)",
-                      }}
+                      className={`trend-indicator-badge trend-${p.trend.direction}`}
                     >
-                      {trendArrow}
-                    </span>{" "}
-                    <span style={{ fontSize: "12px" }}>
-                      {t(`trend.${p.trend.direction}`, lang)}
+                      <span className="trend-arrow">{trendArrow}</span>
+                      <span>{t(`trend.${p.trend.direction}`, lang)}</span>
                     </span>
                   </td>
                   <td>
                     {Object.entries(p.triggered_params).length > 0 ? (
-                      Object.entries(p.triggered_params).map(([param, val]) => (
-                        <span
-                          key={param}
-                          className={`deviations-tag ${p.level === "amber" ? "amber" : ""}`}
-                        >
-                          {param}: {val}
-                        </span>
-                      ))
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {Object.entries(p.triggered_params).map(([param, val]) => (
+                          <span
+                            key={param}
+                            className={`deviations-tag ${p.level === "amber" ? "amber" : ""}`}
+                          >
+                            <strong>{param}:</strong> {val}
+                          </span>
+                        ))}
+                      </div>
                     ) : (
                       <span style={{ color: "var(--color-muted)", fontSize: "12px" }}>
                         —
@@ -212,8 +330,11 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   <td>
                     {p.open_task ? (
                       <span className={`task-tag ${isUrgent ? "urgent" : ""}`}>
-                        {t(`patients.task_${p.open_task.type}`, lang)} ·{" "}
-                        {formatHoursLeft(p.open_task.due_at)}
+                        <span className="task-icon">⏳</span>
+                        <span>
+                          {t(`patients.task_${p.open_task.type}`, lang)} ·{" "}
+                          <strong>{formatHoursLeft(p.open_task.due_at)}</strong>
+                        </span>
                       </span>
                     ) : (
                       <span style={{ color: "var(--color-muted)", fontSize: "12px" }}>
@@ -221,13 +342,14 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td style={{ textAlign: "right" }}>
                     <button
                       type="button"
-                      className="btn btn-outline"
+                      className="btn btn-view-patient"
                       onClick={() => onSelectPatient(p.id)}
                     >
-                      {t("patients.btn_view", lang)}
+                      <span>{t("patients.btn_view", lang)}</span>
+                      <span className="btn-arrow">→</span>
                     </button>
                   </td>
                 </tr>

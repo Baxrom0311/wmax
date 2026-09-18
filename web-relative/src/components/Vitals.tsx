@@ -68,7 +68,13 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
   return (
     <div className="vitals-section">
       <div className="vitals-header">
-        <h3 className="vitals-title">{t("vitals.title", lang)}</h3>
+        <div className="vitals-header-left">
+          <span className="vitals-header-icon">🩺</span>
+          <h3 className="vitals-title">{t("vitals.title", lang)}</h3>
+        </div>
+        <span className="vitals-live-pill">
+          <span className="live-pill-dot" /> LIVE
+        </span>
       </div>
 
       <div className="vitals-grid">
@@ -87,6 +93,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-number">{hr !== null ? hr : "—"}</span>
             <span className="vital-unit">{t("vitals.bpm", lang)}</span>
           </div>
+          <div className="vital-sub-note">
+            <span>Me'yor: 60 – 90 bpm</span>
+          </div>
         </div>
 
         {/* 2. SpO2 */}
@@ -103,6 +112,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{spo2 !== null ? spo2 : "—"}</span>
             <span className="vital-unit">%</span>
+          </div>
+          <div className="vital-sub-note">
+            <span>Me'yor: 95% – 100%</span>
           </div>
         </div>
 
@@ -121,6 +133,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-number">{temp !== null && temp !== undefined ? temp : "36.6"}</span>
             <span className="vital-unit">°C</span>
           </div>
+          <div className="vital-sub-note">
+            <span>Me'yor: 36.0 – 37.2 °C</span>
+          </div>
         </div>
 
         {/* 4. Respiratory Rate */}
@@ -137,6 +152,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{rr !== null && rr !== undefined ? rr : "16"}</span>
             <span className="vital-unit">{t("vitals.breaths", lang)}</span>
+          </div>
+          <div className="vital-sub-note">
+            <span>Me'yor: 12 – 20 /daq</span>
           </div>
         </div>
 
@@ -155,6 +173,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-number">{sleep !== null ? sleep : "7.2"}</span>
             <span className="vital-unit">{t("vitals.hours", lang)}</span>
           </div>
+          <div className="vital-sub-note">
+            <span>Me'yor: 7 – 9 soat</span>
+          </div>
         </div>
 
         {/* 6. Steps */}
@@ -170,6 +191,10 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           </div>
           <div className="vital-val-row">
             <span className="vital-number">{steps !== null && steps !== undefined ? steps.toLocaleString() : "4,250"}</span>
+            <span className="vital-unit">qadam</span>
+          </div>
+          <div className="vital-sub-note">
+            <span>Kunlik reja: 5,000</span>
           </div>
         </div>
       </div>

@@ -22,12 +22,18 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
   return (
     <div className="patient-switcher-container">
       <div className="switcher-header">
-        <span className="switcher-title">{t("patients.title", lang)}:</span>
+        <span className="switcher-icon">👥</span>
+        <span className="switcher-title">{t("patients.title", lang)}</span>
       </div>
       <div className="patient-cards-row">
         {patients.map((p) => {
           const isActive = p.id === activePatientId;
           const statusColor = LEVEL_COLOR[p.level];
+          const initials = p.full_name
+            .split(" ")
+            .map((w) => w[0])
+            .slice(0, 2)
+            .join("");
 
           return (
             <button
@@ -35,15 +41,26 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
               type="button"
               className={`patient-card-btn ${isActive ? "active" : ""}`}
               onClick={() => onSelect(p)}
+              style={isActive ? { borderColor: statusColor, boxShadow: `0 4px 14px ${statusColor}22` } : undefined}
             >
-              <span
-                className="patient-status-indicator"
-                style={{ backgroundColor: statusColor }}
-              />
+              <div
+                className="patient-btn-avatar"
+                style={{
+                  backgroundColor: `${statusColor}18`,
+                  color: statusColor,
+                  border: `1.5px solid ${statusColor}40`,
+                }}
+              >
+                {initials}
+              </div>
               <div className="patient-btn-info">
                 <span className="patient-rel-tag">{p.relationship || t("patients.select", lang)}</span>
                 <span className="patient-btn-name">{p.full_name}</span>
               </div>
+              <span
+                className={`patient-status-indicator pulse-${p.level}`}
+                style={{ backgroundColor: statusColor }}
+              />
             </button>
           );
         })}

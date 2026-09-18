@@ -79,53 +79,80 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
   return (
     <div className="doc-container">
-      {/* 1. Back link */}
-      <button type="button" className="back-link" onClick={onBack}>
-        {t("detail.back", lang)}
-      </button>
+      {/* 1. Breadcrumbs Navigation */}
+      <div className="detail-breadcrumb">
+        <button type="button" className="back-link" onClick={onBack}>
+          <span className="back-arrow">←</span>
+          <span>{t("detail.back", lang)}</span>
+        </button>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{patient.full_name}</span>
+      </div>
 
       {/* 2. Clinical Passport Header */}
       <div className="detail-title-bar">
-        <div className="patient-main-info">
-          <h1>
-            <span className={`status-dot ${patient.level}`} style={{ width: "14px", height: "14px" }} />
-            {patient.full_name}
-            <span style={{ fontSize: "14px", fontWeight: 400, color: "var(--color-muted)" }}>
-              ({patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}, {patient.district})
-            </span>
-          </h1>
-          <div className="patient-sub-info">
-            <span><strong>Tashxis:</strong> {patient.diagnosis}</span>
-            <span>
-              <strong>Bosqich:</strong> {t(`detail.phase_${patient.phase}`, lang)}
-            </span>
+        <div className="patient-passport-left">
+          <div className="patient-lg-avatar">
+            {patient.full_name
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")}
+          </div>
+          <div className="patient-main-info">
+            <div className="patient-name-title-row">
+              <h1>{patient.full_name}</h1>
+              <span className={`status-pill ${patient.level}`}>
+                <span className={`status-dot ${patient.level}`} />
+                {t(`state.${patient.level}`, lang)}
+              </span>
+            </div>
+            <div className="patient-sub-info">
+              <span className="passport-meta-item">
+                <strong>Yosh / Jins:</strong> {patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}
+              </span>
+              <span className="passport-meta-item">
+                <strong>Tuman:</strong> {patient.district}
+              </span>
+              <span className="passport-meta-item">
+                <strong>Tashxis:</strong> <span className="diagnosis-highlight">{patient.diagnosis}</span>
+              </span>
+              <span className="passport-meta-item">
+                <strong>Bosqich:</strong>{" "}
+                <span className={`phase-tag ${patient.phase}`}>
+                  {t(`detail.phase_${patient.phase}`, lang)}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div className="passport-actions-right">
           {!activeTask && (
             <button
               type="button"
-              className="btn btn-outline"
-              style={{ borderColor: "var(--color-attention)", color: "var(--color-attention)" }}
+              className="btn btn-discharge"
               onClick={() => setIsDischargeModalOpen(true)}
             >
-              {t("detail.discharge_btn", lang)}
+              <span className="btn-icon">📋</span>
+              <span>{t("detail.discharge_btn", lang)}</span>
             </button>
           )}
           {patient.phase === "learning" && (
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-approve-baseline"
               onClick={handleApproveBaseline}
               disabled={approving}
             >
-              {approving ? "..." : t("detail.approve_baseline", lang)}
+              <span className="btn-icon">✓</span>
+              <span>{approving ? "..." : t("detail.approve_baseline", lang)}</span>
             </button>
           )}
           {patient.baseline_approved && (
-            <span className="task-tag" style={{ color: "var(--color-good)" }}>
-              ✓ {t("detail.baseline_approved", lang)}
+            <span className="baseline-approved-badge">
+              <span className="check-icon">✓</span>
+              <span>{t("detail.baseline_approved", lang)}</span>
             </span>
           )}
         </div>
@@ -134,31 +161,33 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {/* 3. 24-Hour Active Call Card (Problem 11) */}
       {activeTask && (
         <div
-          className="active-call-widget"
-          style={{
-            borderColor: isOverdue ? "var(--color-risk)" : isUrgent ? "var(--color-attention)" : "var(--color-good)",
-            backgroundColor: isOverdue ? "#FDF2F2" : "#FFFDF9",
-          }}
+          className={`active-call-widget ${isOverdue ? "overdue" : isUrgent ? "urgent" : "normal"}`}
         >
           <div className="active-call-left">
-            <h3 style={{ color: isOverdue ? "var(--color-risk)" : "var(--color-attention)" }}>
-              {t("detail.active_call_card", lang)}
-              {isOverdue && <span style={{ marginLeft: "8px", fontSize: "12px", color: "var(--color-risk)" }}>(MUDDATI O'TGAN)</span>}
-            </h3>
-            <p style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+            <div className="active-call-title-row">
+              <span className="active-call-pulse-icon">⏳</span>
+              <h3>
+                {t("detail.active_call_card", lang)}
+                {isOverdue && <span className="overdue-pill">MUDDATI O'TGAN</span>}
+                {isUrgent && !isOverdue && <span className="urgent-pill">SHOSHILINCH (&lt; 4 soat)</span>}
+              </h3>
+            </div>
+            <p className="active-call-desc">
               {t("detail.active_call_desc", lang)}
             </p>
-            <div className="active-call-timer" style={{ marginTop: "6px" }}>
-              ⏳ {formatCountdown(activeTask.due_at)}
+            <div className="active-call-timer">
+              <span className="timer-icon">🕒</span>
+              <span className="timer-val">{formatCountdown(activeTask.due_at)}</span>
             </div>
           </div>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary btn-confirm-visit"
             onClick={() => setIsConfirmModalOpen(true)}
           >
-            {t("detail.confirm_visit", lang)}
+            <span>{t("detail.confirm_visit", lang)}</span>
+            <span className="btn-arrow">✓</span>
           </button>
         </div>
       )}
@@ -167,25 +196,37 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {patient.prognosis && (
         <div className="doc-ai-prognosis-card">
           <div className="prognosis-header-line">
-            <span className="ai-engine-tag">AI CLINICAL ENGINE</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="ai-engine-tag">AI CLINICAL ENGINE (XORAZM WMAX)</span>
+              <span className="ai-model-tag">CIRCADIAN 72H</span>
+            </div>
             <span
-              className="risk-pct-pill"
-              style={{
-                color: patient.prognosis.risk_level === "high" ? "var(--color-risk)" : "var(--color-attention)",
-              }}
+              className={`risk-pct-pill ${patient.prognosis.risk_level}`}
             >
-              {t("detail.risk_prob", lang)}: {patient.prognosis.risk_probability_pct}%
+              {t("detail.risk_prob", lang)}: <strong>{patient.prognosis.risk_probability_pct}%</strong>
             </span>
           </div>
-          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "8px 0 4px" }}>
+
+          {/* Visual Risk Meter */}
+          <div className="risk-meter-bar">
+            <div
+              className={`risk-meter-fill ${patient.prognosis.risk_level}`}
+              style={{ width: `${patient.prognosis.risk_probability_pct}%` }}
+            />
+          </div>
+
+          <h3 className="prognosis-title-text">
             {t("detail.prognosis_header", lang)}
           </h3>
-          <p style={{ fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>
+          <p className="prognosis-summary-text">
             {patient.prognosis.summary}
           </p>
-          <p style={{ fontSize: "13px", color: "var(--color-muted)", marginTop: "6px" }}>
-            💡 <strong>Tavsiya:</strong> {patient.prognosis.recommendation}
-          </p>
+          <div className="prognosis-recommendation-box">
+            <span className="rec-bulb-icon">💡</span>
+            <div>
+              <strong>Klinik tavsiya:</strong> {patient.prognosis.recommendation}
+            </div>
+          </div>
 
           {/* Root-cause problems */}
           {patient.problems && patient.problems.length > 0 && (

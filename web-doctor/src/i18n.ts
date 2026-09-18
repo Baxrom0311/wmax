@@ -54,6 +54,16 @@ const translations: Record<Lang, Record<string, string>> = {
     "patients.overdue": "Muddati o'tdi",
     "patients.done": "Bajarildi",
 
+    // Triage Counter Cards
+    "triage.red_title": "Qizil Xavf",
+    "triage.active_call_title": "24h Aktiv Chaqiruv",
+    "triage.amber_title": "Diqqat Talab",
+    "triage.green_title": "Barqaror",
+    "triage.nodata_title": "Ma'lumot Yo'q",
+    "triage.all_count": "Jami Bemorlar",
+    "app.monitoring_active": "Real-time Monitoring Faol",
+    "patients.reset_filters": "Filtrni tozalash",
+
     // Detail UI
     "detail.back": "← Bemorlar ish ro'yxatiga qaytish",
     "detail.clinical_summary": "Klinik pasport",
@@ -135,6 +145,16 @@ const translations: Record<Lang, Record<string, string>> = {
     "patients.hours_left": "осталось {h}ч {m}м",
     "patients.overdue": "Просрочено",
     "patients.done": "Выполнено",
+
+    // Triage Counter Cards
+    "triage.red_title": "Красный Риск",
+    "triage.active_call_title": "24ч Активный Вызов",
+    "triage.amber_title": "Требует Внимания",
+    "triage.green_title": "Стабильные",
+    "triage.nodata_title": "Нет Данных",
+    "triage.all_count": "Всего Пациентов",
+    "app.monitoring_active": "Мониторинг в Реальном Времени",
+    "patients.reset_filters": "Сбросить фильтры",
 
     // Detail UI
     "detail.back": "← Назад к рабочему списку",

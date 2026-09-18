@@ -25,6 +25,7 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   // Login form state
+  const [selectedRole, setSelectedRole] = useState<"doctor" | "nurse">("doctor");
   const [phone, setPhone] = useState<string>("+998901234567");
   const [password, setPassword] = useState<string>("nazorat123");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -99,114 +100,127 @@ export const App: React.FC = () => {
       {!token ? (
         <div className="doctor-login-wrapper">
           <div className="doctor-login-box">
-            <h1 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
-              {t("login.title", lang)}
-            </h1>
-            <p style={{ fontSize: "13px", color: "var(--color-muted)", marginBottom: "20px" }}>
-              {t("login.desc", lang)}
-            </p>
+            {/* Hospital & Department Tag */}
+            <div className="login-hospital-badge">
+              <span className="hospital-dot" />
+              <span>Xorazm viloyati Kardiologiya Dispanseri</span>
+            </div>
 
-            {loginError && (
+            <div className="login-brand-header">
+              <div className="medical-pulse-logo">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="ecg-svg"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="login-title">
+                  {t("login.title", lang)}
+                </h1>
+                <p className="login-desc">
+                  {t("login.desc", lang)}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Role Selection Cards */}
+            <div className="login-role-selector">
               <div
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#FDF2F2",
-                  color: "var(--color-risk)",
-                  borderRadius: "4px",
-                  fontSize: "13px",
-                  marginBottom: "14px",
+                className={`login-role-card ${selectedRole === "doctor" ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedRole("doctor");
+                  setPhone("+998901234567");
+                  setPassword("nazorat123");
                 }}
               >
-                {loginError}
+                <span className="role-card-icon">👨‍⚕️</span>
+                <div className="role-card-info">
+                  <span className="role-card-title">{t("login.quick_doc", lang)}</span>
+                  <span className="role-card-sub">Dr. B. Alimov</span>
+                </div>
+                {selectedRole === "doctor" && <span className="role-active-check">✓</span>}
+              </div>
+
+              <div
+                className={`login-role-card ${selectedRole === "nurse" ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedRole("nurse");
+                  setPhone("+998901234568");
+                  setPassword("nazorat123");
+                }}
+              >
+                <span className="role-card-icon">👩‍⚕️</span>
+                <div className="role-card-info">
+                  <span className="role-card-title">{t("login.quick_nurse", lang)}</span>
+                  <span className="role-card-sub">Hamshira N. Rahimova</span>
+                </div>
+                {selectedRole === "nurse" && <span className="role-active-check">✓</span>}
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="login-error-banner">
+                <span>⚠️ {loginError}</span>
               </div>
             )}
 
-            <form onSubmit={handleLogin}>
-              <div style={{ marginBottom: "14px" }}>
-                <label
-                  htmlFor="doctor-phone-input"
-                  style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}
-                >
+            <form onSubmit={handleLogin} className="login-form">
+              <div className="login-field-group">
+                <label htmlFor="doctor-phone-input" className="login-field-label">
                   {t("login.phone_label", lang)}
                 </label>
-                <input
-                  id="doctor-phone-input"
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: "40px",
-                    border: "1px solid var(--color-line)",
-                    borderRadius: "4px",
-                    padding: "0 10px",
-                    fontSize: "14px",
-                  }}
-                  required
-                />
+                <div className="input-with-icon">
+                  <span className="input-decor-icon">📞</span>
+                  <input
+                    id="doctor-phone-input"
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="doctor-text-input"
+                    placeholder="+998901234567"
+                    required
+                  />
+                </div>
               </div>
 
-              <div style={{ marginBottom: "18px" }}>
-                <label
-                  htmlFor="doctor-password-input"
-                  style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}
-                >
+              <div className="login-field-group">
+                <label htmlFor="doctor-password-input" className="login-field-label">
                   {t("login.password_label", lang)}
                 </label>
-                <input
-                  id="doctor-password-input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: "40px",
-                    border: "1px solid var(--color-line)",
-                    borderRadius: "4px",
-                    padding: "0 10px",
-                    fontSize: "14px",
-                  }}
-                  required
-                />
+                <div className="input-with-icon">
+                  <span className="input-decor-icon">🔒</span>
+                  <input
+                    id="doctor-password-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="doctor-text-input"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="btn btn-primary"
-                style={{ width: "100%", height: "42px" }}
+                className="btn btn-primary login-submit-btn"
                 disabled={loggingIn}
               >
-                {loggingIn ? "..." : t("login.submit", lang)}
+                {loggingIn ? "Kirilmoqda..." : t("login.submit", lang)}
               </button>
 
-              <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ width: "100%", height: "36px", fontSize: "12px" }}
-                  onClick={() => {
-                    setPhone("+998901234567");
-                    setPassword("nazorat123");
-                  }}
-                >
-                  👨‍⚕️ {t("login.quick_doc", lang)}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ width: "100%", height: "36px", fontSize: "12px" }}
-                  onClick={() => {
-                    setPhone("+998901234568");
-                    setPassword("nazorat123");
-                  }}
-                >
-                  👩‍⚕️ {t("login.quick_nurse", lang)}
-                </button>
+              <div className="login-compliance-footer">
+                <span>🔒 O'zbekiston Respublikasi SSV standartlariga muvofiq shifrlangan</span>
               </div>
-
-              <p style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "10px", textAlign: "center" }}>
-                {t("login.demo", lang)}
-              </p>
             </form>
           </div>
         </div>

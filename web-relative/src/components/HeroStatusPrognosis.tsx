@@ -39,25 +39,42 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
     return "var(--color-good)";
   };
 
+  const getStatusIcon = (lvl: AlertLevel) => {
+    if (lvl === "green") return "🛡️";
+    if (lvl === "amber") return "⚠️";
+    if (lvl === "red") return "🚨";
+    return "📡";
+  };
+
   return (
     <div className="hero-prognosis-wrapper">
       {/* 1. Katta Doira / Status Hub */}
       <div className="status-hub-card">
-        <div
-          className="main-orb"
-          style={{
-            backgroundColor: color,
-            boxShadow: `0 14px 45px ${color}40`,
-          }}
-        >
-          <span className="orb-status-text">{word}</span>
+        <div className="orb-outer-halo">
+          <div
+            className={`main-orb orb-${level}`}
+            style={{
+              backgroundColor: color,
+            }}
+          >
+            <div className="orb-inner-content">
+              <span className="orb-icon">{getStatusIcon(level)}</span>
+              <span className="orb-status-text">{word}</span>
+            </div>
+          </div>
         </div>
 
         <div className="status-hub-meta">
-          <span className="composite-badge">
-            {t("hero.composite_deviation", lang)}: <strong>{compositeScore.toFixed(1)}σ</strong>
+          <div className="composite-badge">
+            <span className="composite-dot" style={{ backgroundColor: color }} />
+            <span>
+              {t("hero.composite_deviation", lang)}:{" "}
+              <strong>{compositeScore > 0 ? `+${compositeScore.toFixed(1)}` : compositeScore.toFixed(1)}σ</strong>
+            </span>
+          </div>
+          <span className="time-ago-text">
+            <span className="time-icon">🕒</span> {formatLastUpdated(lastReadingAt)}
           </span>
-          <span className="time-ago-text">{formatLastUpdated(lastReadingAt)}</span>
         </div>
       </div>
 
@@ -65,13 +82,16 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
       {level !== "no_data" && prognosis && (
         <div className="ai-prognosis-card">
           <div className="prognosis-header">
-            <span className="prognosis-ai-tag">AI CLINICAL ENGINE</span>
+            <div className="prognosis-badge-group">
+              <span className="prognosis-ai-tag">✨ AI CLINICAL ENGINE</span>
+              <span className="prognosis-sub-tag">CIRCADIAN 72H</span>
+            </div>
             <span
               className="prognosis-risk-badge"
               style={{
-                backgroundColor: `${getRiskColor(prognosis.risk_level)}20`,
+                backgroundColor: `${getRiskColor(prognosis.risk_level)}15`,
                 color: getRiskColor(prognosis.risk_level),
-                borderColor: getRiskColor(prognosis.risk_level),
+                borderColor: `${getRiskColor(prognosis.risk_level)}35`,
               }}
             >
               {t(`hero.risk_${prognosis.risk_level}`, lang)}: {prognosis.risk_probability_pct}%
@@ -80,15 +100,29 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
 
           <h3 className="prognosis-title">{t("hero.prognosis_title", lang)}</h3>
 
+          {/* Visual Risk Meter */}
+          <div className="prognosis-meter-track">
+            <div
+              className={`prognosis-meter-fill risk-${prognosis.risk_level}`}
+              style={{
+                width: `${prognosis.risk_probability_pct}%`,
+                backgroundColor: getRiskColor(prognosis.risk_level),
+              }}
+            />
+          </div>
+
           <p className="prognosis-summary">{prognosis.summary}</p>
 
           <div className="prognosis-footer">
             <div className="early-warning-tag">
               ⏱ {t("hero.early_warning", lang, { h: prognosis.early_warning_hours || 48 })}
             </div>
-            <p className="prognosis-rec">
-              💡 <strong>Tavsiya:</strong> {prognosis.recommendation}
-            </p>
+            <div className="prognosis-rec-box">
+              <span className="prognosis-rec-icon">💡</span>
+              <p className="prognosis-rec">
+                <strong>Tavsiya:</strong> {prognosis.recommendation}
+              </p>
+            </div>
           </div>
         </div>
       )}
