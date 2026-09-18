@@ -100,8 +100,8 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {/* 2. Official Clinical Case File Header (Bemorning kasallik varaqasi) */}
       <div className="clinical-passport-card">
         <div className="passport-institution-line">
-          <span>O'ZBEKISTON RESPUBLIKASI SSV · XORAZM VILOYATI KARDIOLOGIYA DISPANSERI</span>
-          <span className="passport-card-no">TIBBIY KARTA № {patientCode}</span>
+          <span>O'zbekiston Respublikasi SSV · Xorazm viloyati kardiologiya dispanseri</span>
+          <span className="passport-card-no">Tibbiy karta № {patientCode}</span>
         </div>
 
         <div className="passport-body">
@@ -110,7 +110,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               <h1 className="patient-name-heading">{patient.full_name}</h1>
               <span className={`status-badge-official large ${patient.level}`}>
                 <span className={`status-badge-dot ${patient.level}`} />
-                {t(`state.${patient.level}`, lang).toUpperCase()}
+                {t(`state.${patient.level}`, lang)}
               </span>
             </div>
 
@@ -171,7 +171,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
             {patient.baseline_approved && (
               <span className="badge-baseline-confirmed">
-                <span>Normativ baza tasdiqlangan</span>
+                <span>{t("detail.baseline_approved", lang)}</span>
               </span>
             )}
           </div>
@@ -183,17 +183,16 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         <div className={`clinical-protocol-alert ${isOverdue ? "overdue" : isUrgent ? "urgent" : "active"}`}>
           <div className="protocol-alert-left">
             <div className="protocol-header-tag">
-              <span className="protocol-badge">PROTOKOL #CP-24H</span>
-              <span className="protocol-type">SHOSHILINCH PATRONAJ CHAQUROVI</span>
-              {isOverdue && <span className="tag-overdue">MUDDATI O'TGAN</span>}
-              {isUrgent && !isOverdue && <span className="tag-urgent">DIQQAT (&lt; 4 soat)</span>}
+              <span className="protocol-badge">{t("detail.protocol_title", lang)}</span>
+              <span className="protocol-type">{t("detail.emergency_patrol_call", lang)}</span>
+              {isOverdue && <span className="tag-overdue">{t("detail.overdue", lang)}</span>}
+              {isUrgent && !isOverdue && <span className="tag-urgent">{t("detail.urgent_sub_4h", lang)}</span>}
             </div>
             <p className="protocol-desc">
-              Kardiologiya dispanseri shifokori tomonidan 24 soat ichida bemor bilan bevosita
-              yoki masofaviy klinik ko'rik o'tkazilishi va xulosa kiritilishi shart.
+              {t("detail.protocol_desc", lang)}
             </p>
             <div className="protocol-timer">
-              <span className="timer-label">Qolgan muddat:</span>
+              <span className="timer-label">{t("detail.remaining_time", lang)}</span>
               <span className="timer-countdown">{formatCountdown(activeTask.due_at)}</span>
             </div>
           </div>
@@ -204,7 +203,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               className="btn-confirm-protocol"
               onClick={() => setIsConfirmModalOpen(true)}
             >
-              Ko'rik hisobotini kiritish (Tasdiqlash)
+              {t("detail.submit_report_btn", lang)}
             </button>
           </div>
         </div>
@@ -215,11 +214,11 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         <div className="cdss-prognosis-panel">
           <div className="cdss-header">
             <div className="cdss-title-group">
-              <span className="cdss-badge">CDSS KLINIK QAROR TIZIMI</span>
-              <span className="cdss-model">CIRCADIAN-72H MULTI-PARAMETRIC ENGINE</span>
+              <span className="cdss-badge">{t("detail.cdss_badge", lang)}</span>
+              <span className="cdss-model">{t("detail.cdss_model", lang)}</span>
             </div>
             <div className="cdss-risk-indicator">
-              <span className="risk-label">Dekommutatsiya xavfi ehtimoli:</span>
+              <span className="risk-label">{t("detail.decomp_risk_prob", lang)}</span>
               <span className={`risk-probability-val ${patient.prognosis.risk_level}`}>
                 {patient.prognosis.risk_probability_pct}%
               </span>
@@ -236,12 +235,12 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
           <div className="cdss-content-grid">
             <div className="cdss-summary-box">
-              <span className="box-title">KLINIK TAHLIL VA XULOSA:</span>
+              <span className="box-title">{t("detail.clinical_analysis_summary", lang)}</span>
               <p className="cdss-summary-text">{patient.prognosis.summary}</p>
             </div>
 
             <div className="cdss-rec-box">
-              <span className="box-title">TAVSIYA ETILADIGAN CHORALAR:</span>
+              <span className="box-title">{t("detail.recommended_actions", lang)}</span>
               <p className="cdss-rec-text">{patient.prognosis.recommendation}</p>
             </div>
           </div>
@@ -249,13 +248,15 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
           {/* Root-cause problems */}
           {patient.problems && patient.problems.length > 0 && (
             <div className="cdss-problems-section">
-              <span className="problems-header-title">Aniqlangan patologik chetlanishlar:</span>
+              <span className="problems-header-title">{t("detail.deviations_detected", lang)}</span>
               <div className="problems-table-official">
                 {patient.problems.map((pr, i) => (
                   <div key={i} className="problem-row-official">
                     <span className="pr-param">{pr.label}</span>
                     <span className="pr-deviation">{pr.deviation}</span>
-                    <span className="pr-values">O'lchangan: <strong>{pr.current_value}</strong> / Baza: {pr.baseline_range}</span>
+                    <span className="pr-values">
+                      {t("detail.measured_vs_baseline", lang, { curr: pr.current_value, base: pr.baseline_range })}
+                    </span>
                     <span className="pr-desc">{pr.explanation}</span>
                   </div>
                 ))}
@@ -268,9 +269,9 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {/* 5. Telemetric Physiological Charts with Shaded Baseline Corridors */}
       <div className="telemetry-section">
         <div className="telemetry-header">
-          <h3 className="section-heading">UZLUKSIZ FIZIOLOGIK TELEMETRIYA GRAFIKLARI (OXIRGI 7 KUN)</h3>
+          <h3 className="section-heading">{t("detail.vitals_heading", lang)}</h3>
           <span className="telemetry-sub-note">
-            Soyalangan soha: bemorning shaxsiy normativ koridori (Median ± 2σ)
+            {t("detail.vitals_shaded_note", lang)}
           </span>
         </div>
 
@@ -284,24 +285,24 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {/* 6. Alerts & Anomaly Audit Trail */}
       {patient.alerts && patient.alerts.length > 0 && (
         <div className="alerts-audit-panel">
-          <h3 className="section-heading">KUZATUV PROTOKOLI VA SIGNALLAR TARIXI</h3>
+          <h3 className="section-heading">{t("detail.alerts_heading", lang)}</h3>
           <div className="alerts-table">
             {patient.alerts.map((a) => (
               <div key={a.id} className="alert-row-official">
                 <div className="alert-time-cell">
                   <span className={`status-badge-dot ${a.level}`} />
-                  <code>{new Date(a.ts).toLocaleString("uz-UZ")}</code>
+                  <code>{new Date(a.ts).toLocaleString(lang === "ru" ? "ru-RU" : lang === "en" ? "en-US" : "uz-UZ")}</code>
                 </div>
                 <div className="alert-reason-cell">
                   <span>{a.reason}</span>
                   {a.anomaly_score !== null && (
                     <span className="advisory-score-tag">
-                      IsolationForest indeksi: {Math.round(a.anomaly_score * 100)}% (advisory)
+                      {t("detail.isolation_forest_idx", lang, { score: Math.round(a.anomaly_score * 100) })}
                     </span>
                   )}
                 </div>
                 <div className="alert-score-cell">
-                  Kompozit Z: <strong>{a.composite_score}</strong>
+                  {t("detail.composite_z", lang)} <strong>{a.composite_score}</strong>
                 </div>
               </div>
             ))}
@@ -321,10 +322,9 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {isDischargeModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsDischargeModalOpen(false)}>
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">Bemor monitoringini yakunlash (Chiqarish)</h2>
+            <h2 className="modal-title">{t("detail.discharge_modal_title", lang)}</h2>
             <p className="modal-desc">
-              Bemor <strong>{patient.full_name}</strong> bo'yicha masofaviy telemetrik
-              monitoring yakunlanadi va bemor reabilitatsiya rejasiga o'tkaziladi.
+              {t("detail.discharge_modal_desc", lang, { name: patient.full_name })}
             </p>
             <div className="modal-actions">
               <button
@@ -333,7 +333,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 onClick={() => setIsDischargeModalOpen(false)}
                 disabled={discharging}
               >
-                Bekor qilish
+                {t("detail.discharge_modal_cancel", lang)}
               </button>
               <button
                 type="button"
@@ -341,7 +341,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 onClick={handleDischargePatient}
                 disabled={discharging}
               >
-                {discharging ? "Bajarilmoqda..." : "Tasdiqlash va chiqarish"}
+                {discharging ? t("detail.discharging", lang) : t("detail.discharge_modal_submit", lang)}
               </button>
             </div>
           </div>

@@ -186,8 +186,7 @@ code, .code-font, .tabular {
   border: 1px solid #bae6fd;
   padding: 2px 8px;
   border-radius: 9999px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
 
 .brand-sub-line {
@@ -339,9 +338,8 @@ code, .code-font, .tabular {
 .panel-title {
   font-size: 14.5px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
   color: #0f172a;
-  text-transform: uppercase;
 }
 
 .panel-date {
@@ -475,9 +473,8 @@ code, .code-font, .tabular {
 .kpi-tag {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
   color: var(--text-muted);
-  text-transform: uppercase;
 }
 
 .kpi-value {
@@ -659,11 +656,10 @@ code, .code-font, .tabular {
 
 .patients-table-official th {
   padding: 14px 16px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   color: var(--text-secondary);
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -1296,9 +1292,8 @@ code, .code-font, .tabular {
 
 .problems-header-title {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-secondary);
-  text-transform: uppercase;
 }
 
 .problems-table-official {
@@ -1360,10 +1355,9 @@ code, .code-font, .tabular {
 
 .section-heading {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
 }
 
 .telemetry-sub-note {

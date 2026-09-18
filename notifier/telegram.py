@@ -184,7 +184,7 @@ def format_daily_summary(patient_name: str, vitals: dict) -> str:
 
 
 def format_status_response(patient_name: str, vitals: dict) -> str:
-    """Inline status response for /status command."""
+    """Inline clinical status response with medical terms and Sentence case."""
     hr = vitals.get("hr", "—")
     spo2 = vitals.get("spo2", "—")
     temp = vitals.get("skin_temp", "—")
@@ -193,47 +193,47 @@ def format_status_response(patient_name: str, vitals: dict) -> str:
     steps = vitals.get("steps", "—")
 
     return (
-        f"\U0001f4cb <b>{patient_name} — Joriy Ko'rsatkichlar</b>\n\n"
-        f"\u2764\ufe0f Puls: <b>{hr} bpm</b>  (me'yor: 60-90)\n"
-        f"\U0001f9ec SpO\u2082: <b>{spo2}%</b>  (me'yor: 95-100)\n"
-        f"\U0001f321 Harorat: <b>{temp}\u00b0C</b>  (me'yor: 36.0-37.2)\n"
-        f"\U0001f32c Nafas: <b>{rr}/daq</b>  (me'yor: 12-20)\n"
-        f"\U0001f319 Uyqu: <b>{sleep} soat</b>\n"
-        f"\U0001f45f Qadamlar: <b>{steps}</b>\n\n"
-        f"\U0001f552 Yangilangan: hozir"
+        f"📋 <b>{patient_name} — Hozirgi klinik ko'rsatkichlar</b>\n\n"
+        f"❤️ Yurak urishi (ChSS / Puls): <b>{hr} bpm</b> (fiziologik me'yor: 60-90)\n"
+        f"🫁 Qondagi kislorod (SpO₂): <b>{spo2}%</b> (klinik me'yor: 95-100%)\n"
+        f"🌡 Tana harorati: <b>{temp}°C</b> (me'yor: 36.0-37.2)\n"
+        f"🌬 Nafas chastotasi (ChDD): <b>{rr}/daq</b> (me'yor: 12-20)\n"
+        f"🌙 Tungi uyqu: <b>{sleep} soat</b> (klinik norma: 7-8 soat)\n"
+        f"👟 Kunlik harakat: <b>{steps} qadam</b>\n\n"
+        f"🕒 Yangilangan: hozir"
     )
 
 
 # ---- WELCOME & HELP MESSAGES ----
 
 WELCOME_TEXT = (
-    "Assalomu alaykum, <b>{user_name}</b>! \U0001f3e5\n\n"
-    "Bu <b>NAZORAT (WMAX)</b> \u2014 Masofaviy klinik monitoring va erta ogohlantirish tizimining rasmiy boti.\n\n"
-    "\U0001f4f1 <b>Imkoniyatlar:</b>\n"
-    "\u2022 Bemor portalini to'g'ridan-to'g'ri Telegram ichida ochish\n"
-    "\u2022 Real-time ogohlantirish xabarlari\n"
-    "\u2022 Joriy ko'rsatkichlarni so'rash\n"
-    "\u2022 Shifokor bilan tezkor aloqa\n\n"
-    "\U0001f4ac <b>Buyruqlar:</b>\n"
-    "/status \u2014 Joriy ko'rsatkichlar\n"
-    "/help \u2014 Yordam va imkoniyatlar\n\n"
-    "\U0001f194 Sizning Telegram Chat ID: <code>{chat_id}</code>"
+    "Assalomu alaykum, <b>{user_name}</b>! 🏥\n\n"
+    "Bu <b>NAZORAT (WMAX)</b> — Masofaviy klinik telemonitoring va erta ogohlantirish tizimining rasmiy boti.\n\n"
+    "📱 <b>Imkoniyatlar:</b>\n"
+    "• Bemor portalini to'g'ridan-to'g'ri Telegram ichida ochish\n"
+    "• Real vaqt klinik ogohlantirishlari\n"
+    "• AI assistenti orqali 3 tilda (Uz/Ru/En) savol-javob\n"
+    "• Shifokor bilan tezkor aloqa\n\n"
+    "💬 <b>Buyruqlar:</b>\n"
+    "/status — Joriy klinik ko'rsatkichlar\n"
+    "/help — Yordam va qo'llanma\n\n"
+    "🆔 Sizning Telegram Chat ID: <code>{chat_id}</code>"
 )
 
 HELP_TEXT = (
-    "\u2753 <b>NAZORAT Bot Yordam</b>\n\n"
-    "<b>Buyruqlar:</b>\n"
-    "/start \u2014 Botni ishga tushirish\n"
-    "/status \u2014 Bemorning joriy ko'rsatkichlari\n"
-    "/help \u2014 Ushbu yordam sahifasi\n\n"
-    "<b>Avtomatik xabarlar:</b>\n"
-    "\U0001f6a8 Qizil signal \u2014 zudlik bilan e'tibor\n"
-    "\u26a0\ufe0f Sariq signal \u2014 kuzatish talab etiladi\n"
-    "\u2139\ufe0f Soat aloqasi yo'q \u2014 45 daqiqa\n"
-    "\U0001f305 Kundalik ertalabki hisobot\n\n"
+    "❓ <b>NAZORAT Bot — Yordam va imkoniyatlar</b>\n\n"
+    "<b>Asosiy buyruqlar:</b>\n"
+    "/start — Botni ishga tushirish\n"
+    "/status — Bemorning joriy klinik ko'rsatkichlari\n"
+    "/help — Ushbu yordam sahifasi\n\n"
+    "<b>3 tilda erkin muloqot (AI assistenti):</b>\n"
+    "Botga O'zbekcha, Ruscha yoki Inglizcha savollaringizni erkin yozishingiz mumkin (masalan: <i>«Dadamning pulsi yaxshimi?»</i> yoki <i>«How is the patient?»</i>).\n\n"
+    "<b>Klinik signallar:</b>\n"
+    "🚨 Qizil signal — o'tkir dekompensatsiya xavfi\n"
+    "⚠️ Sariq signal — subkompensatsiya, dinamik kuzatuv\n"
+    "ℹ️ Telemetriya uzilgan — 45 daqiqadan ortiq\n\n"
     "<b>Mini App:</b>\n"
-    "Pastki chap burchakdagi <b>\U0001f4f1 Bemor Portali</b> tugmasini bosing \u2014 "
-    "barcha ko'rsatkichlar, grafiklar va shifokor tavsiyalari to'g'ridan-to'g'ri Telegram ichida ochiladi."
+    "Pastki chap burchakdagi <b>📱 Bemor portali</b> tugmasini bosing — barcha grafiklar va kardiolog tavsiyalari ochiladi."
 )
 
 

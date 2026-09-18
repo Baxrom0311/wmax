@@ -72,19 +72,21 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     setSearchQuery("");
   };
 
+  const localeMap: Record<Lang, string> = { uz: "uz-UZ", ru: "ru-RU", en: "en-US" };
+
   return (
     <div className="doc-container">
       {/* 1. Institutional Clinical Triage Bar */}
       <div className="clinical-triage-panel">
         <div className="triage-panel-header">
           <div className="panel-title-left">
-            <span className="panel-title">BEMORLAR DISPANSER RO'YXATI VA TRIAGE TAHLILI</span>
+            <span className="panel-title">{t("triage.panel_title", lang)}</span>
             <span className="panel-date">
-              Sana: {new Date().toLocaleDateString("uz-UZ", { year: "numeric", month: "long", day: "numeric" })}
+              {t("triage.date_label", lang)}: {new Date().toLocaleDateString(localeMap[lang] || "uz-UZ", { year: "numeric", month: "long", day: "numeric" })}
             </span>
           </div>
           <span className="triage-summary-count">
-            Jami qamrov: <strong>{patients.length} nafar bemor</strong>
+            {t("triage.total_coverage", lang, { n: patients.length })}
           </span>
         </div>
 
@@ -97,9 +99,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               setTaskFilterOnly(false);
             }}
           >
-            <span className="kpi-tag">BARCHA BEMORLAR</span>
+            <span className="kpi-tag">{t("triage.all_count", lang)}</span>
             <span className="kpi-value">{patients.length}</span>
-            <span className="kpi-meta">100% monitoring</span>
+            <span className="kpi-meta">{t("triage.meta_all", lang)}</span>
           </button>
 
           <button
@@ -112,10 +114,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           >
             <div className="kpi-top-tag">
               <span className="kpi-dot red" />
-              <span className="kpi-tag text-risk">I DARAJA (KRITIK)</span>
+              <span className="kpi-tag text-risk">{t("triage.red_title", lang)}</span>
             </div>
             <span className="kpi-value text-risk">{redCount}</span>
-            <span className="kpi-meta">Shoshilinch ko'rik</span>
+            <span className="kpi-meta">{t("triage.meta_red", lang)}</span>
           </button>
 
           <button
@@ -127,10 +129,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           >
             <div className="kpi-top-tag">
               <span className="kpi-dot amber" />
-              <span className="kpi-tag text-attention">24s PATRONAJ</span>
+              <span className="kpi-tag text-attention">{t("triage.active_call_title", lang)}</span>
             </div>
             <span className="kpi-value text-attention">{activeCallCount}</span>
-            <span className="kpi-meta">Aktiv chaqiruv</span>
+            <span className="kpi-meta">{t("triage.meta_active_call", lang)}</span>
           </button>
 
           <button
@@ -143,10 +145,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           >
             <div className="kpi-top-tag">
               <span className="kpi-dot amber" />
-              <span className="kpi-tag text-attention">II DARAJA (KUZATUV)</span>
+              <span className="kpi-tag text-attention">{t("triage.amber_title", lang)}</span>
             </div>
             <span className="kpi-value text-attention">{amberCount}</span>
-            <span className="kpi-meta">E'tibor talab</span>
+            <span className="kpi-meta">{t("triage.meta_amber", lang)}</span>
           </button>
 
           <button
@@ -159,10 +161,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           >
             <div className="kpi-top-tag">
               <span className="kpi-dot green" />
-              <span className="kpi-tag text-good">III DARAJA (BARQAROR)</span>
+              <span className="kpi-tag text-good">{t("triage.green_title", lang)}</span>
             </div>
             <span className="kpi-value text-good">{greenCount}</span>
-            <span className="kpi-meta">Me'yorda</span>
+            <span className="kpi-meta">{t("triage.meta_green", lang)}</span>
           </button>
 
           <button
@@ -175,10 +177,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           >
             <div className="kpi-top-tag">
               <span className="kpi-dot nodata" />
-              <span className="kpi-tag text-muted">ALOQA YO'Q</span>
+              <span className="kpi-tag text-muted">{t("triage.nodata_title", lang)}</span>
             </div>
             <span className="kpi-value text-muted">{noDataCount}</span>
-            <span className="kpi-meta">&gt; 45 min uzilgan</span>
+            <span className="kpi-meta">{t("triage.meta_nodata", lang)}</span>
           </button>
         </div>
       </div>
@@ -210,7 +212,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 
         <div className="filter-select-group">
           <label htmlFor="filter-district-select" className="filter-label-official">
-            Tuman:
+            {t("patients.filter_district_short", lang)}
           </label>
           <select
             id="filter-district-select"
@@ -229,7 +231,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 
         <div className="filter-select-group">
           <label htmlFor="filter-status-select" className="filter-label-official">
-            Klinik status:
+            {t("patients.filter_status_short", lang)}
           </label>
           <select
             id="filter-status-select"
@@ -238,10 +240,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">{t("patients.all_statuses", lang)}</option>
-            <option value="red">I Daraja (Kritik xavf)</option>
-            <option value="no_data">Aloqa uzilgan (No Data)</option>
-            <option value="amber">II Daraja (Kuzatuv/Diqqat)</option>
-            <option value="green">III Daraja (Barqaror)</option>
+            <option value="red">{t("state.red", lang)}</option>
+            <option value="no_data">{t("state.no_data", lang)}</option>
+            <option value="amber">{t("state.amber", lang)}</option>
+            <option value="green">{t("state.green", lang)}</option>
           </select>
         </div>
 
@@ -251,7 +253,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             className="btn-official-reset"
             onClick={resetAllFilters}
           >
-            Filtrni tozalash ({filteredPatients.length})
+            {t("patients.reset_filters", lang)} ({filteredPatients.length})
           </button>
         )}
       </div>
@@ -318,7 +320,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   </td>
                   <td>
                     <span className="age-sex-cell">
-                      {p.age} yosh · {p.sex === "m" ? "Erkak" : "Ayol"}
+                      {t("patients.age_years", lang, { age: p.age })} · {p.sex === "m" ? t("patients.sex_male", lang) : t("patients.sex_female", lang)}
                     </span>
                   </td>
                   <td>
@@ -349,7 +351,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                               : param === "skin_temp"
                               ? `T ${val}°C ↑`
                               : param === "rr"
-                              ? `Nafas ${val}/daq ↑`
+                              ? `${lang === "ru" ? "ЧДД" : lang === "en" ? "RR" : "Nafas"} ${val}/${lang === "ru" ? "мин" : lang === "en" ? "min" : "daq"} ↑`
                               : `${param}: ${val}`;
 
                           return (
@@ -369,7 +371,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   <td>
                     {p.open_task ? (
                       <span className={`task-badge-official ${isUrgent ? "urgent" : ""}`}>
-                        <span className="task-type-sub">24s Patronaj:</span>
+                        <span className="task-type-sub">
+                          {lang === "ru" ? "24ч Патронаж:" : lang === "en" ? "24h Patrol:" : "24s Patronaj:"}
+                        </span>
                         <strong>{formatHoursLeft(p.open_task.due_at)}</strong>
                       </span>
                     ) : (
@@ -382,7 +386,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                       className="btn-view-official"
                       onClick={() => onSelectPatient(p.id)}
                     >
-                      <span>Varaqa</span>
+                      <span>{t("patients.btn_chart", lang)}</span>
                       <span className="arrow-sym">→</span>
                     </button>
                   </td>

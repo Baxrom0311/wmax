@@ -1,14 +1,14 @@
 import type { I18nKey } from "./lib/types";
 
-export type Lang = "uz" | "ru";
+export type Lang = "uz" | "ru" | "en";
 
 const translations: Record<Lang, Record<string, string>> = {
   uz: {
     // Backend emitted keys
-    "state.good": "YAXSHI",
-    "state.attention": "E'TIBOR TALAB",
-    "state.risk": "YUQORI XAVF",
-    "state.no_data": "MA'LUMOT YO'Q",
+    "state.good": "Barqaror",
+    "state.attention": "Diqqat talab",
+    "state.risk": "Yuqori xavf",
+    "state.no_data": "Ma'lumot yo'q",
     "rec.contact_today": "Bugun shifokor bilan bog'laning",
     "rec.visit_within_3_days": "3 kun ichida ko'rik tavsiya etiladi",
     "rec.routine_followup": "Reja bo'yicha kuzatuv",
@@ -19,14 +19,14 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Header & Login
     "app.title": "NAZORAT",
-    "app.subtitle": "Qarovchi Portali (Pro)",
-    "login.title": "Qarovchi Portali",
+    "app.subtitle": "Qarovchi portali (Pro)",
+    "login.title": "Qarovchi portali",
     "login.desc": "Bemorlaringiz salomatligini masofadan nazorat qiling",
     "login.phone_label": "Telefon raqamingiz",
     "login.phone_placeholder": "+998 90 123 45 67",
     "login.pin_label": "6 xonali PIN kod",
     "login.pin_placeholder": "112233",
-    "login.submit": "KIRISH",
+    "login.submit": "Kirish",
     "login.error": "Telefon yoki PIN noto'g'ri",
     "login.hint": "Demo kirish: PIN 112233",
     "logout": "Chiqish",
@@ -37,7 +37,7 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Hero & AI Prognosis
     "hero.composite_deviation": "Kompozit og'ish",
-    "hero.prognosis_title": "AI 72-soatlik Erta Ogohlantirish Prognozi",
+    "hero.prognosis_title": "AI 72-soatlik Erta ogohlantirish prognozi",
     "hero.risk_prob": "Dekommutatsiya xavfi",
     "hero.early_warning": "{h} soat oldin ogohlantirish",
     "hero.risk_low": "Past",
@@ -45,14 +45,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.risk_high": "Yuqori",
 
     // Root-Cause Problems
-    "problems.title": "Aniqlangan Asosiy Muammolar Tahlili",
+    "problems.title": "Aniqlangan asosiy muammolar tahlili",
     "problems.none": "Hozirda shaxsiy me'yordan sezilarli og'ishlar yo'q",
     "problems.current": "Joriy qiymat",
     "problems.baseline": "Shaxsiy me'yor",
     "problems.deviation": "Og'ish",
 
     // Interactive Metrics & Corridors
-    "metrics.title": "Shaxsiy Me'yor Koridorlari Dinamikasi",
+    "metrics.title": "Shaxsiy me'yor koridorlari dinamikasi",
     "metrics.range_24h": "24 soat",
     "metrics.range_3d": "3 kun",
     "metrics.range_7d": "7 kun",
@@ -67,7 +67,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "metrics.deviation_zone": "Og'ish zonasi",
 
     // Doctor Contact & Actions
-    "actions.title": "Shifokor Tavsiyalari va Aloqa",
+    "actions.title": "Shifokor tavsiyalari va aloqa",
     "actions.doctor_name": "Biriktirilgan shifokor",
     "actions.call_doctor": "Qo'ng'iroq qilish",
     "actions.telegram": "Telegram",
@@ -80,7 +80,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "no_data.desc": "Aqlli soat 45 daqiqadan beri ma'lumot uzatmayapti. Soat yechilgan yoki batareya quvvati tugagan bo'lishi mumkin. Iltimos, bemor bilan bog'lanib, soatni taqishini iltimos qiling.",
 
     // Vitals Section (Apple Health / Oura Ring style)
-    "vitals.title": "Joriy Fiziologik Ko'rsatkichlar",
+    "vitals.title": "Joriy fiziologik ko'rsatkichlar",
     "vitals.hr": "Yurak urishi (Puls)",
     "vitals.spo2": "Kislorod (SpO₂)",
     "vitals.temp": "Teri harorati",
@@ -102,39 +102,39 @@ const translations: Record<Lang, Record<string, string>> = {
   },
   ru: {
     // Backend emitted keys
-    "state.good": "В НОРМЕ",
-    "state.attention": "ТРЕБУЕТ ВНИМАНИЯ",
-    "state.risk": "ВЫСОКИЙ РИСК",
-    "state.no_data": "НЕТ ДАННЫХ",
+    "state.good": "В норме",
+    "state.attention": "Требует внимания",
+    "state.risk": "Высокий риск",
+    "state.no_data": "Нет данных",
     "rec.contact_today": "Свяжитесь с врачом сегодня",
     "rec.visit_within_3_days": "Рекомендован осмотр в течение 3 дней",
     "rec.routine_followup": "Плановое наблюдение",
     "rec.continue_monitoring": "Продолжать мониторинг",
-    "trend.improving": "Улучшается три дня подряд",
-    "trend.stable": "Состояние стабильное",
-    "trend.worsening": "Отрицательная динамика",
+    "trend.improving": "Улучшается в течение 3 дней",
+    "trend.stable": "Состояние стабильно",
+    "trend.worsening": "Наблюдается отрицательный тренд",
 
     // Header & Login
     "app.title": "НАЗОРАТ",
-    "app.subtitle": "Портал Близких (Pro)",
-    "login.title": "Портал Близких",
-    "login.desc": "Дистанционный мониторинг здоровья близких",
-    "login.phone_label": "Номер телефона",
+    "app.subtitle": "Портал близких (Pro)",
+    "login.title": "Портал близких",
+    "login.desc": "Дистанционный мониторинг здоровья ваших близких",
+    "login.phone_label": "Ваш номер телефона",
     "login.phone_placeholder": "+998 90 123 45 67",
-    "login.pin_label": "6-значный PIN",
+    "login.pin_label": "6-значный PIN-код",
     "login.pin_placeholder": "112233",
-    "login.submit": "ВОЙТИ",
+    "login.submit": "Войти",
     "login.error": "Неверный телефон или PIN",
-    "login.hint": "Демо: PIN 112233",
+    "login.hint": "Демо вход: PIN 112233",
     "logout": "Выйти",
 
     // Multi-Patient Switcher
-    "patients.title": "Наблюдаемые близкие",
+    "patients.title": "Ваши подопечные",
     "patients.select": "Пациент",
 
     // Hero & AI Prognosis
-    "hero.composite_deviation": "Композитное отклонение",
-    "hero.prognosis_title": "AI Прогноз раннего предупреждения на 72ч",
+    "hero.composite_deviation": "Совокупное отклонение",
+    "hero.prognosis_title": "AI 72-часовой Прогноз раннего предупреждения",
     "hero.risk_prob": "Риск декомпенсации",
     "hero.early_warning": "Предупреждение за {h} часов",
     "hero.risk_low": "Низкий",
@@ -142,14 +142,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.risk_high": "Высокий",
 
     // Root-Cause Problems
-    "problems.title": "Анализ выявленных ключевых проблем",
-    "problems.none": "Значительных отклонений от нормы не зафиксировано",
+    "problems.title": "Анализ выявленных ключевых отклонений",
+    "problems.none": "На данный момент существенных отклонений от нормы нет",
     "problems.current": "Текущее значение",
-    "problems.baseline": "Личная норма",
+    "problems.baseline": "Индивидуальная норма",
     "problems.deviation": "Отклонение",
 
     // Interactive Metrics & Corridors
-    "metrics.title": "Динамика с индивидуальным коридором нормы",
+    "metrics.title": "Динамика индивидуальных коридоров нормы",
     "metrics.range_24h": "24 часа",
     "metrics.range_3d": "3 дня",
     "metrics.range_7d": "7 дней",
@@ -159,43 +159,140 @@ const translations: Record<Lang, Record<string, string>> = {
     "metrics.tab_temp": "Температура",
     "metrics.tab_rr": "Дыхание",
     "metrics.tab_sleep": "Сон",
-    "metrics.baseline_corridor": "Индивидуальный коридор нормы",
+    "metrics.baseline_corridor": "Коридор нормы",
     "metrics.reading": "Измерение",
     "metrics.deviation_zone": "Зона отклонения",
 
     // Doctor Contact & Actions
-    "actions.title": "Рекомендации врача и связь",
-    "actions.doctor_name": "Прикрепленный врач",
+    "actions.title": "Рекомендации врача и экстренная связь",
+    "actions.doctor_name": "Лечащий врач-кардиолог",
     "actions.call_doctor": "Позвонить врачу",
     "actions.telegram": "Telegram",
     "actions.emergency": "Скорая помощь (103)",
-    "actions.active_call_status": "Статус активного вызова",
-    "actions.active_call_scheduled": "Запланирован патронажный осмотр",
+    "actions.active_call_status": "Статус активного патронажа",
+    "actions.active_call_scheduled": "Запланирован патронажный визит",
 
     // No Data Protection
-    "no_data.title": "Часы не передают данные",
-    "no_data.desc": "Часы не передают данные более 45 минут. Возможно, они сняты или разряжены. Пожалуйста, свяжитесь с близким и попросите надеть часы.",
+    "no_data.title": "Нет данных с умных часов",
+    "no_data.desc": "Умные часы не передают данные более 45 минут. Часы сняты или разрядились. Пожалуйста, свяжитесь с близким и попросите надеть часы.",
 
     // Vitals Section (Apple Health / Oura Ring style)
-    "vitals.title": "Текущие Физиологические Показатели",
-    "vitals.hr": "Пульс в покое",
-    "vitals.spo2": "Кислород (SpO₂)",
+    "vitals.title": "Текущие физиологические показатели",
+    "vitals.hr": "Частота пульса (ЧСС)",
+    "vitals.spo2": "Кислород в крови (SpO₂)",
     "vitals.temp": "Температура кожи",
-    "vitals.rr": "Частота дыхания",
+    "vitals.rr": "Частота дыхания (ЧДД)",
     "vitals.sleep": "Ночной сон",
-    "vitals.steps": "Шаги за сегодня",
+    "vitals.steps": "Шаги за день",
     "vitals.bpm": "уд/мин",
-    "vitals.hours": "ч",
+    "vitals.hours": "часов",
     "vitals.breaths": "/мин",
     "vitals.normal": "В норме",
     "vitals.attention": "Внимание",
     "vitals.risk": "Отклонение",
-    "login.quick_demo": "Быстрый вход с демо-данными (112233)",
+    "login.quick_demo": "Быстрый вход с демо-кодом (112233)",
 
     // Time Formatting
     "updated.just_now": "Обновлено только что",
-    "updated.mins_ago": "{m} минут назад",
-    "updated.hours_ago": "{h} часов назад",
+    "updated.mins_ago": "{m} мин. назад",
+    "updated.hours_ago": "{h} ч. назад",
+  },
+  en: {
+    // Backend emitted keys
+    "state.good": "Stable",
+    "state.attention": "Attention",
+    "state.risk": "High risk",
+    "state.no_data": "No telemetry",
+    "rec.contact_today": "Contact attending physician today",
+    "rec.visit_within_3_days": "Clinical review recommended within 3 days",
+    "rec.routine_followup": "Routine cardiology monitoring",
+    "rec.continue_monitoring": "Continue continuous telemonitoring",
+    "trend.improving": "Positive trend over past 3 days",
+    "trend.stable": "Physiological status remains stable",
+    "trend.worsening": "Adverse hemodynamic shift observed",
+
+    // Header & Login
+    "app.title": "NAZORAT",
+    "app.subtitle": "Caregiver portal (Pro)",
+    "login.title": "Caregiver portal",
+    "login.desc": "Remote telemonitoring and decompensation early warning for family members",
+    "login.phone_label": "Your telephone number",
+    "login.phone_placeholder": "+998 90 123 45 67",
+    "login.pin_label": "6-digit access PIN",
+    "login.pin_placeholder": "112233",
+    "login.submit": "Sign in",
+    "login.error": "Incorrect telephone number or PIN",
+    "login.hint": "Demo sign-in: PIN 112233",
+    "logout": "Sign out",
+
+    // Multi-Patient Switcher
+    "patients.title": "Monitored family members",
+    "patients.select": "Patient",
+
+    // Hero & AI Prognosis
+    "hero.composite_deviation": "Composite deviation",
+    "hero.prognosis_title": "AI 72-hour Early warning prognosis",
+    "hero.risk_prob": "Decompensation risk",
+    "hero.early_warning": "{h} hours early alert",
+    "hero.risk_low": "Low",
+    "hero.risk_moderate": "Moderate",
+    "hero.risk_high": "Elevated",
+
+    // Root-Cause Problems
+    "problems.title": "Identified physiological deviations",
+    "problems.none": "No significant baseline deviations detected at present",
+    "problems.current": "Current value",
+    "problems.baseline": "Individual baseline",
+    "problems.deviation": "Deviation",
+
+    // Interactive Metrics & Corridors
+    "metrics.title": "Physiological baseline corridor dynamics",
+    "metrics.range_24h": "24 hours",
+    "metrics.range_3d": "3 days",
+    "metrics.range_7d": "7 days",
+    "metrics.tab_hr": "Heart rate",
+    "metrics.tab_spo2": "SpO₂",
+    "metrics.tab_rmssd": "HRV Stress",
+    "metrics.tab_temp": "Temperature",
+    "metrics.tab_rr": "Respiration",
+    "metrics.tab_sleep": "Sleep",
+    "metrics.baseline_corridor": "Normal baseline corridor",
+    "metrics.reading": "Measurement",
+    "metrics.deviation_zone": "Deviation zone",
+
+    // Doctor Contact & Actions
+    "actions.title": "Physician recommendations & direct contact",
+    "actions.doctor_name": "Attending cardiologist",
+    "actions.call_doctor": "Call physician",
+    "actions.telegram": "Telegram",
+    "actions.emergency": "Ambulance (103)",
+    "actions.active_call_status": "Active patrol status",
+    "actions.active_call_scheduled": "Home cardiopatrol visit scheduled",
+
+    // No Data Protection
+    "no_data.title": "Smartwatch telemetry disconnected",
+    "no_data.desc": "The wearable device has not transmitted data for over 45 minutes. The watch may be unclasped or battery depleted. Please verify device placement on the patient.",
+
+    // Vitals Section (Apple Health / Oura Ring style)
+    "vitals.title": "Current physiological parameters",
+    "vitals.hr": "Heart rate (Pulse)",
+    "vitals.spo2": "Blood oxygen (SpO₂)",
+    "vitals.temp": "Skin temperature",
+    "vitals.rr": "Respiratory rate",
+    "vitals.sleep": "Nocturnal sleep",
+    "vitals.steps": "Daily steps",
+    "vitals.bpm": "bpm",
+    "vitals.hours": "hours",
+    "vitals.breaths": "/min",
+    "vitals.normal": "Normal",
+    "vitals.attention": "Attention",
+    "vitals.risk": "Deviation",
+    "login.quick_demo": "Quick sign-in with demo account (112233)",
+
+    // Time Formatting
+    "updated.just_now": "Updated just now",
+    "updated.mins_ago": "{m} minutes ago",
+    "updated.hours_ago": "{h} hours ago",
   },
 };
 

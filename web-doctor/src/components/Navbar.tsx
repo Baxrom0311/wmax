@@ -48,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="brand-name">NAZORAT</span>
             <span className="brand-divider">/</span>
             <span className="brand-dept">Kardiologiya Dispanseri</span>
-            <span className="brand-badge-official">KLINIK STANSIYA</span>
+            <span className="brand-badge-official">Klinik stansiya</span>
           </div>
           <div className="brand-sub-line">
             <span className="telemetry-live-dot" />
@@ -83,6 +83,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => onLangChange("ru")}
           >
             РУС
+          </button>
+          <span className="lang-sep">|</span>
+          <button
+            type="button"
+            className={`lang-opt ${lang === "en" ? "active" : ""}`}
+            onClick={() => onLangChange("en")}
+          >
+            ENG
           </button>
         </div>
 

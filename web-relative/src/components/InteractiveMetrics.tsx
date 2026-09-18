@@ -37,6 +37,10 @@ const RU_DAYS_SHORT: Record<number, string> = {
   0: "Вс", 1: "Пн", 2: "Вт", 3: "Ср", 4: "Чт", 5: "Пт", 6: "Сб",
 };
 
+const EN_DAYS_SHORT: Record<number, string> = {
+  0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat",
+};
+
 export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, lang }) => {
   const [activeParam, setActiveParam] = useState<string>("spo2");
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
@@ -54,7 +58,7 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
   const pointLimit = timeRange === "24h" ? 6 : timeRange === "3d" ? 18 : 42;
   const filteredPoints = currentSeries.points.slice(-pointLimit);
 
-  const daysMap = lang === "uz" ? UZ_DAYS_SHORT : RU_DAYS_SHORT;
+  const daysMap = lang === "uz" ? UZ_DAYS_SHORT : lang === "ru" ? RU_DAYS_SHORT : EN_DAYS_SHORT;
 
   const chartData = filteredPoints.map((p) => {
     const d = new Date(p.ts);

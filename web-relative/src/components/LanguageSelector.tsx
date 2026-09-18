@@ -24,6 +24,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ lang, onChan
       >
         RU
       </button>
+      <span className="lang-sep">|</span>
+      <button
+        type="button"
+        className={`lang-btn ${lang === "en" ? "active" : ""}`}
+        onClick={() => onChange("en")}
+      >
+        EN
+      </button>
     </div>
   );
 };
