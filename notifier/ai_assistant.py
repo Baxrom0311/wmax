@@ -8,12 +8,11 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
+from .api_manager import get_active_api_key, get_model, get_system_mode
+
 load_dotenv()
 
 logger = logging.getLogger("nazorat.notifier.ai")
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
 
 EMERGENCY_KEYWORDS = [
     # Uzbek
@@ -133,11 +132,13 @@ def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
 
 async def ask_gemini(user_message: str, patient_name: str, vitals: dict[str, Any]) -> str | None:
     """Call Google Gemini Flash REST API with grounded patient context."""
-    if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY is not set.")
+    api_key = get_active_api_key()
+    if not api_key:
+        logger.warning("Active Gemini API key is not configured.")
         return None
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    model = get_model()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     system_prompt = build_system_prompt(patient_name, vitals)
 
     payload = {
@@ -288,9 +289,10 @@ async def handle_user_query(text: str, patient_name: str, vitals: dict[str, Any]
         return format_gibberish_response(patient_name)
 
     # 3. Gemini AI
-    ai_answer = await ask_gemini(text, patient_name, vitals)
-    if ai_answer:
-        return ai_answer
+    if get_system_mode() != "offline":
+        ai_answer = await ask_gemini(text, patient_name, vitals)
+        if ai_answer:
+            return ai_answer
 
     # 4. Fallback
     return rule_based_fallback(text, patient_name, vitals)
