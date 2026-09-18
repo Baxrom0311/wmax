@@ -53,13 +53,16 @@ CREATE TABLE relatives (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id       UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     full_name        TEXT NOT NULL,
-    phone            TEXT NOT NULL UNIQUE,       -- login: telefon + PIN
-    pin_hash         TEXT,                       -- bcrypt(6 xonali PIN)
+    relationship     TEXT NOT NULL DEFAULT 'qarindoshi', -- otasi, onasi, turmush o'rtog'i
+    phone            TEXT NOT NULL,                      -- login: telefon + PIN
+    pin_hash         TEXT,                               -- bcrypt(6 xonali PIN)
     telegram_chat_id BIGINT,
-    access_token     TEXT NOT NULL UNIQUE,       -- /r/{token} manzili uchun (>=32 bayt)
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    access_token     TEXT NOT NULL UNIQUE,               -- /r/{token} manzili uchun (>=32 bayt)
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_relative_patient UNIQUE (phone, patient_id)
 );
 CREATE INDEX idx_relatives_patient ON relatives(patient_id);
+CREATE INDEX idx_relatives_phone ON relatives(phone);
 
 -- ---------- o'lchovlar (5 daqiqalik agregat) ----------
 -- ts ALWAYS UTC. Mahalliy oyna contracts/timewin.py orqali hisoblanadi.

@@ -20,6 +20,6 @@ Batafsil umumiy reja: [notifier/PLAN.md](file:///Users/baxrom/ish_full/wmax/noti
 3. `backend/auth/router.py`:
    - Prefix: `/api/v1/auth`.
    - `POST /login` (shifokor/hamshira parolli login).
-   - `POST /relative/login` (yaqin kishi PIN login).
+   - `POST /relative/login` (yaqin kishi PIN login -> `RelativeLoginResponse`: JWT token + biriktirilgan barcha bemorlar ro'yxati `patients: RelativePatientItem[]`).
    - `POST /refresh` (refresh token yangilash).
    - `GET /me` (joriy foydalanuvchi ma'lumotlari).

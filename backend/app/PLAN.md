@@ -69,7 +69,14 @@ FastAPI async serverini qurish, PostgreSQL bilan SQLAlchemy 2.0 orqali ishlash, 
   - `GET /api/v1/tasks`: Topshiriqlar ro'yxati (status filtri bilan).
   - `POST /api/v1/tasks/{id}/confirm`: `status = 'done'`, `confirmed_at = now()`, shifokor izohi (`note`).
 - [ ] `backend/app/api/relatives.py`:
-  - `GET /api/v1/relatives/{token}/view`: Yaqin kishi ekrani ma'lumotlari (`RelativeView`), 7 kunlik normallashtirilgan (0..1) `sparkline` massivi.
+  - `GET /api/v1/relatives/{token}/view` -> To'liq `RelativeView`:
+    - Bemor ma'lumotlari (`patient_id`, `patient_name`, `relationship`).
+    - AI Prognozi (`prognosis`: xavf darajasi, foizi, 72-soatlik erta ogohlantirish, tavsiya).
+    - Aniqlangan muammolar ro'yxati (`problems`: har bir og'igan parametr, me'yor bilan farqi, insoniy tushuntirish).
+    - 7 kunlik shaxsiy norma koridorli seriyalar (`series: ParamSeries[]`).
+    - Signallar va 24 soatlik topshiriqlar tarixi (`alerts`, `tasks`).
+    - 7 kunlik normallashtirilgan `sparkline` (0..1).
+    - Shifokor kontakt ma'lumotlari (`doctor_contact`: ism, telefon).
 - [ ] `backend/app/main.py`:
   - FastAPI ilovasi, CORS sozlamalari (`5173`, `5174`), routerlarni ulash, `GET /api/v1/health`.
   - `from auth.deps import auth_router; app.include_router(auth_router)`.

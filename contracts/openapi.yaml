@@ -158,27 +158,82 @@ components:
             tasks:   { type: array, items: { $ref: '#/components/schemas/Task' } }
             baseline_approved: { type: boolean }
 
+    ProblemItem:
+      type: object
+      properties:
+        param:          { type: string }
+        label:          { type: string }
+        deviation:      { type: string }
+        current_value:  { type: number }
+        baseline_range: { type: string }
+        severity:       { type: string, enum: [mild, moderate, severe] }
+        explanation:    { type: string }
+
+    PrognosisInfo:
+      type: object
+      properties:
+        risk_level:           { type: string, enum: [low, moderate, high] }
+        risk_probability_pct: { type: integer }
+        early_warning_hours:  { type: integer }
+        summary:              { type: string }
+        recommendation:       { type: string }
+
+    RelativePatientItem:
+      type: object
+      properties:
+        id:              { type: string, format: uuid }
+        full_name:       { type: string }
+        relationship:    { type: string }
+        access_token:    { type: string }
+        level:           { $ref: '#/components/schemas/AlertLevel' }
+        diagnosis:       { type: string }
+        age:             { type: integer }
+        last_reading_at: { type: string, format: date-time, nullable: true }
+
     RelativeView:
       type: object
-      description: Everything the relative screen needs, in one call.
+      description: Complete health and prognosis analysis for the caregiver dashboard.
       properties:
-        patient_name: { type: string }
-        level:        { $ref: '#/components/schemas/AlertLevel' }
-        level_word_key:
-          type: string
-          description: i18n key — 'state.good' | 'state.attention' | 'state.risk' | 'state.no_data'
+        patient_id:      { type: string, format: uuid }
+        patient_name:    { type: string }
+        relationship:    { type: string, nullable: true }
+        level:           { $ref: '#/components/schemas/AlertLevel' }
+        level_word_key:  { type: string }
+        composite_score: { type: number }
         last_reading_at: { type: string, format: date-time, nullable: true }
-        trend:        { $ref: '#/components/schemas/Trend' }
+        trend:           { $ref: '#/components/schemas/Trend' }
+        prognosis:       { $ref: '#/components/schemas/PrognosisInfo' }
+        problems:
+          type: array
+          items: { $ref: '#/components/schemas/ProblemItem' }
+        series:
+          type: array
+          items: { $ref: '#/components/schemas/ParamSeries' }
+        alerts:
+          type: array
+          items: { $ref: '#/components/schemas/Alert' }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/Task' }
         sparkline:
           type: array
-          description: 7 daily values, normalised 0..1. No axes, no numbers — a shape.
+          description: 7 daily values, normalised 0..1.
           items: { type: number }
         vitals:
           type: object
           properties:
-            hr:         { type: number, nullable: true }
-            spo2:       { type: number, nullable: true }
+            hr:          { type: number, nullable: true }
+            spo2:        { type: number, nullable: true }
             sleep_hours: { type: number, nullable: true }
+            skin_temp:   { type: number, nullable: true }
+            rr:          { type: number, nullable: true }
+            steps:       { type: integer, nullable: true }
+        doctor_contact:
+          type: object
+          nullable: true
+          properties:
+            name:  { type: string }
+            phone: { type: string }
 
     LoginRequest:
       type: object
@@ -202,6 +257,16 @@ components:
         expires_in:    { type: integer }
         role:          { $ref: '#/components/schemas/Role' }
         full_name:     { type: string }
+
+    RelativeLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/TokenPair'
+        - type: object
+          properties:
+            patients:
+              type: array
+              items: { $ref: '#/components/schemas/RelativePatientItem' }
+
 
     Error:
       type: object
@@ -229,7 +294,7 @@ paths:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/RelativeLoginRequest' } } }
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RelativeLoginResponse' } } } }
         '401': { description: Bad PIN }
 
   /auth/refresh:

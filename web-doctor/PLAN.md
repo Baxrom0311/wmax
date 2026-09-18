@@ -1,59 +1,89 @@
-# A3: web-doctor — Bajarish Rejasi (PLAN.md)
+# A3: web-doctor — Bajarish Rejasi (PLAN.md) — 100% PRO KLINIK WORKSTATION
 
 Papka: `web-doctor/`  
 Mas'ul: **A3 agenti**  
-Chegaralar: Faqat `web-doctor/`. `web-relative/`, `backend/`, `contracts/` ga tegmaydi!
+Chegaralar: Faqat `web-doctor/`. `web-relative/`, `backend/`, `contracts/` ga tegilmaydi.
 
 ---
 
-## 1. Asosiy Vazifa
-Shifokor va patronaj hamshiralar uchun klinik boshqaruv panelini qurish. Zich, ortiqcha vizual shovqinsiz (gradientlar, og'ir soyalar va animatsiyalarsiz) ish maydoni.
+## 1. Konsepsiya va Maqsad
+
+Oilaviy shifokor va patronaj hamshiralar uchun yuqori zichlikdagi, aniq, professional klinik boshqaruv stoli (Clinical Workstation).
+Shifokor 100-300 bemor orasidan aynan bugun kimga birinchi navbatda e'tibor qaratish kerakligini 3 soniyada tushunadi. 24 soatlik aktiv chaqiruvlarni nazorat qiladi, 7 kunlik ko'p parametrli koridorlarni tahlil qiladi va shaxsiy normativ bazani tasdiqlaydi (`Human-in-the-loop`).
 
 ---
 
 ## 2. Texnologik Stek va Arxitektura
-- React 18 / Vite / TypeScript (Port: 5173, `/api` proxy `http://localhost:8000`).
-- Recharts (LineChart, ReferenceArea).
-- Dizayn tokenlari: Faqat `contracts/types.ts` dagi `COLORS` va `LEVEL_COLOR`.
-- Ko'p tilli qo'llab-quvvatlash: `uz` va `ru`.
+
+- **Framework:** React 18, TypeScript, Vite (Port: 5173, proxy `/api` -> `http://localhost:8000`).
+- **Grafiklar:** Recharts (`LineChart`, `ReferenceArea`, `ResponsiveContainer`, `Tooltip`, `Brush`).
+- **Dizayn tamoyili:** Klinik zichlik — ortiqcha gradientlar, ulkan bo'shliqlar va samarasiz SaaS animatsiyalarisiz. Faqat kerakli tibbiy ma'lumotlar, aniq rangli statuslar.
+- **Dizayn tokenlari:** Faqat `contracts/types.ts` dagi `COLORS` va `LEVEL_COLOR`.
+- **Tillar:** `src/i18n.ts` (O'zbekcha va Ruscha).
 
 ---
 
-## 3. Fayllar Tuzilmasi va Qadamlar
+## 3. Sahifalar va Funksional Bloklar
 
-### 3.1 Boshlang'ich Sozlash va Tiplar
-- [x] Vite React-TS loyihasini initsializatsiya qilish.
-- [x] `contracts/types.ts` faylini `web-doctor/src/lib/types.ts` ga NUSXALASH (to'g'ridan-to'g'ri import taqiqlangan).
-- [x] `vite.config.ts`: port `5173`, proxy sozlash.
+### 3.1 Kirish Ekrani (`/login`)
+- Shifokor va hamshira kirishi: Telefon (`+998901234567`) + Parol (`nazorat123`).
+- `POST /api/v1/auth/login` orqali JWT token olib, `localStorage` ga saqlash.
 
-### 3.2 Yordamchi Modullar
-- [x] `src/lib/api.ts`: Fetch klient, `Authorization: Bearer <token>` sarlavhasi bilan. 401 bo'lsa `/login` ga yo'naltiradi.
-- [x] `src/i18n.ts`: Bitta faylda `uz` va `ru` lug'atlari. `I18N_KEYS` dagi barcha backend kalitlari tarjimasi. Yuqori o'ng burchakda til tugmasi (`UZ` | `RU`).
-- [x] `src/lib/mock.ts`: Backend hali to'liq ulanmagan paytda sinash uchun `types.ts` ga mos vaqtinchalik mock (bir flag bilan o'chiriladi).
+---
 
-### 3.3 Sahifalar va Komponentlar
-- [x] `/login`:
-  - Shifokor/hamshira kirishi (Telefon: `+998901234567`, Parol: `nazorat123`).
-  - `POST /api/v1/auth/login` chaqirib tokenni saqlash.
-- [x] `/patients` (Ish ro'yxati / Worklist):
-  - Yuqorida indikator: "Bugun e'tibor talab qiladi — N bemor".
-  - Bemorlar qatorlari: holat rangi (`green`, `amber`, `red`, `no_data`), ism, yosh, tashxis, trend o'qi (↗, →, ↘), chetlangan parametrlar qisqa matni, "Ko'rish" tugmasi.
-  - Saralash: Backend tartibi bo'yicha (`red` > `no_data` > `amber` > `green`).
-- [x] `/patients/:id` (Bemor Profili):
-  - Har parametr uchun (Puls, SpO2, Teri harorati, HRV, RR, Qadamlar) alohida Recharts grafigi:
-    - O'lchov nuqtalari (`points`).
-    - Shaxsiy norma koridori: `ReferenceArea` orqali `baseline_low` dan `baseline_high` gacha bo'lgan soyalangan fon.
-    - Og'ish oralig'i (`deviated_ranges`) rangli belgilangan.
-  - **Aktiv chaqiruv kartasi:**
-    - Topshiriq turi va qolgan vaqt taymeri (24 soatdan qancha qoldi).
-    - "Tasdiqlash" tugmasi -> modal oyna, shifokor izohi -> `POST /api/v1/tasks/{id}/confirm`.
-  - **"Bazani tasdiqlash" tugmasi:** Agar `phase === 'learning'` bo'lsa -> `POST /api/v1/patients/{id}/approve-baseline`.
-  - Signallar tarixi ro'yxati (`alerts`), `anomaly_score` kichik ikkinchi darajali yorliq sifatida.
+### 3.2 Bosh Sahifa: Klinik Ish Ro'yxati (`/patients`)
+- **Yuqori xulosa paneli:**
+  - "Bugun e'tibor talab qiladiganlar: N bemor" (Qizil va Sariq darajadagilar).
+  - Tuman filtri: Urganch, Xiva, Xonqa, Shovot.
+  - Holat filtri: Barchasi | Qizil | Ma'lumot yo'q | Sariq | Yashil.
+- **Bemorlar Ishchi Jadvali (Worklist Table):**
+  - **Saralash qoidasi:** `red` > `no_data` > `amber` > `green`.
+  - Ustunlar:
+    1. Holat nishoni (Qizil, Sariq, Yashil, Kulrang).
+    2. Bemor F.I.Sh, yoshi, jinsi, tashxisi.
+    3. AI Xavf Trendi (↗ Yomonlashmoqda, → Barqaror, ↘ Yaxshilanmoqda).
+    4. Aniqlangan muammolar (masalan: `SpO2: -2.4σ, HR: +3.1σ`).
+    5. Ochiq topshiriq / 24 soatlik Aktiv chaqiruv holati (qolgan vaqt indikatori).
+    6. Amallar: "Bemor kartasi" tugmasi.
 
-### 3.4 Dockerfile
-- [x] `web-doctor/Dockerfile`: Multi-stage: `node:20-alpine` build -> `nginx:alpine` 80-port.
+---
+
+### 3.3 Bemorning Kengaytirilgan Klinik Profili (`/patients/:id`)
+- **1. Bemorning Pasport Qismi:**
+  - Ism, yoshi, tashxis, tuman, faza (`calib` / `learning` / `full`).
+  - Shaxsiy baza holati: "Shifokor tomonidan tasdiqlangan" yoki "Tasdiqlash kutilmoqda".
+- **2. 24 Soatlik Aktiv Chaqiruv Kartasi (Muammo 11):**
+  - Taymer: Masalan, "Qolgan vaqt: 6 soat 24 daqiqa".
+  - Agar 4 soat qolsa -> sariq ogohlantirish, muddati o'tsa -> qizil "Muddati o'tgan" nishoni.
+  - **"Tashrifni tasdiqlash" tugmasi:** Shifokor ko'rik o'tkazgach, izoh yozib topshiriqni yopadi (`POST /api/v1/tasks/{id}/confirm`).
+- **3. AI 72-soatlik Prognoz va Muammolar Tahlili:**
+  - AI dekommutatsiya prognozi foizi va tavsiya.
+  - Aniqlangan og'ishlar ro'yxati (parametr, me'yordan farqi va Z-score).
+  - IsolationForest anomaliya indeksi (advisory yorliq).
+- **4. 7 Kunlik Ko'p Parametrli Klinik Grafiklar:**
+  - Har bir ko'rsatkich uchun alohida panel:
+    - Yurak urishi (HR mean, min, max).
+    - SpO2 (Kislorod to'yinishi).
+    - RMSSD / SDNN (Yurak ritmi variabilligi).
+    - Teri harorati.
+    - Nafas tezligi (RR).
+    - Qadamlar va jismoniy faollik.
+    - Uyqu davomiyligi va uzilishi.
+  - **Recharts LineChart xususiyatlari:**
+    - `ReferenceArea`: Bemorning shaxsiy normativ bazasi (`baseline_low` dan `baseline_high` gacha soyalangan koridor).
+    - Bemor o'lchovlari chizig'i.
+    - Normadan og'igan nuqtalar va oraliqlar (`deviated_ranges`) rangli belgilangan.
+- **5. "Bazani tasdiqlash" Tugmasi (`Approve Baseline`):**
+  - Agar bemor `phase === 'learning'` (5-7 kunlik o'rganish) bo'lsa, shifokor profilni ko'rib, bitta tugma bilan bazani tasdiqlaydi (`POST /api/v1/patients/{id}/approve-baseline`). Bemor `full` fazaga o'tadi.
+- **6. Signallar Tarixi (`alerts`):**
+  - Oxirgi signallar ro'yxati, sana, sababi va darajasi.
+
+---
+
+### 3.4 Dockerfile va Build
+- `web-doctor/Dockerfile`: Multi-stage build (`node:20-alpine` build -> `nginx:alpine` 80-port).
 
 ---
 
 ## 4. Majburiy Checkpoint
-`/patients` sahifasi API (yoki mock) orqali 3 bemorni ko'rsatgach to'xtab hisobot berish.
+`/patients` ish ro'yxati va `/patients/:id` tahliliy kartalari real API (yoki mock) orqali to'liq ko'rsatilgach to'xtab hisobot berish.
