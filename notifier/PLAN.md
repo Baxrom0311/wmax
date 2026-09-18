@@ -15,14 +15,14 @@ Chegaralar: Faqat `backend/auth/` va `notifier/`. `backend/app/` dan faqat ORM m
 ## 2. Fayllar Tuzilmasi va Qadamlar
 
 ### 2.1 Autentifikatsiya Qismi (`backend/auth/`)
-- [ ] `backend/auth/security.py`:
+- [x] `backend/auth/security.py`:
   - `bcrypt` orqali parollarni tekshirish (`verify_password`) va xeshilash (`hash_password`).
   - `pyjwt` orqali access va refresh token yaratish va dekodlash.
   - `.env` dan parametrlarni o'qish: `JWT_SECRET`, `JWT_ALG`, `ACCESS_TOKEN_TTL_MIN`, `REFRESH_TOKEN_TTL_DAYS`.
-- [ ] `backend/auth/deps.py` (STUB almashtiriladi):
+- [x] `backend/auth/deps.py` (STUB almashtirildi):
   - Qat'iy talab: Mavjud funksiya nomlari va shakli o'zgarmaydi! (`get_current_user`, `require_role`, `auth_router`, `CurrentUser`).
   - Haqiqiy `Authorization: Bearer <token>` tekshiruvi, xato bo'lsa 401 qaytarish.
-- [ ] `backend/auth/router.py`:
+- [x] `backend/auth/router.py`:
   - Prefix: `/api/v1/auth`.
   - `POST /login`: Shifokor/hamshira kirishi (telefon + parol, `users` jadvali bo'yicha).
   - `POST /relative/login`: Yaqin kishi kirishi (telefon + 6 xonali PIN, `relatives.pin_hash` bo'yicha).
@@ -32,12 +32,12 @@ Chegaralar: Faqat `backend/auth/` va `notifier/`. `backend/app/` dan faqat ORM m
 ### 2.2 Notifier Qismi (`notifier/`)
 > `notifier` api bilan bir xil Docker image'da ishlaydi (`command: python -m notifier.main`).
 > Shuning uchun ORM modellar to'g'ridan-to'g'ri import qilinadi: `from app.models import Patient, Alert, Task, ...`.
-- [ ] `notifier/telegram.py`:
+- [x] `notifier/telegram.py`:
   - `python-telegram-bot` integratsiyasi.
   - `.env` dan `TELEGRAM_BOT_TOKEN` va `PUBLIC_BASE_URL` o'qish.
   - Agar token bo'sh bo'lsa: qulamasdan faqat loggerga xabar yozish (test va demoda qulaylik).
   - Xabar matnlari o'zbek tilida, tashxis qo'ymasdan: *"Hurmatli fuqaro, [Ism]ning holati e'tibor talab qilmoqda. Havola: {PUBLIC_BASE_URL}/r/{token}"*.
-- [ ] `notifier/main.py`:
+- [x] `notifier/main.py`:
   - `APScheduler` fon drayveri.
   - **1-ish: Topshiriq Eskalatsiyasi (har 5 daqiqada):**
     - `due_at - now <= 4 soat` va `reminded_at IS NULL` bo'lsa -> shifokorga eslatma, `reminded_at = now`.
@@ -51,6 +51,9 @@ Chegaralar: Faqat `backend/auth/` va `notifier/`. `backend/app/` dan faqat ORM m
     - Barcha xabarlarni `notifications` jadvaliga qayd etish.
   - **3-ish: No-data Kuzatuvchisi (har 15 daqiqada):**
     - Agar oxirgi o'lchov 45 daqiqadan oshgan bo'lsa -> yaqin kishiga: "Soat ma'lumot yubormayapti" (kuniga 1 marta).
+
+### 2.3 Dockerfile
+- [x] `notifier/Dockerfile`: Python 3.12-slim asosidagi fon xizmati konteyneri sozlandi.
 
 ---
 

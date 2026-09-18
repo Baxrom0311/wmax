@@ -1,0 +1,170 @@
+import React, { useState } from "react";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { ParamChart } from "../components/ParamChart";
+import type { Lang } from "../i18n";
+import { t } from "../i18n";
+import { approveBaseline, confirmTask } from "../lib/api";
+import type { PatientDetail as PatientDetailType } from "../lib/types";
+
+interface PatientDetailPageProps {
+  patient: PatientDetailType;
+  onBack: () => void;
+  onRefresh: () => Promise<void>;
+  lang: Lang;
+}
+
+export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
+  patient,
+  onBack,
+  onRefresh,
+  lang,
+}) => {
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  const activeTask = patient.tasks.find(
+    (t) => t.status !== "done" && t.type === "active_call"
+  );
+
+  const formatCountdown = (dueAtIso: string) => {
+    const diffMs = new Date(dueAtIso).getTime() - Date.now();
+    if (diffMs <= 0) return t("patients.overdue", lang);
+    const hours = Math.floor(diffMs / (3600 * 1000));
+    const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
+    return `${hours} soat ${mins} daqiqa qoldi`;
+  };
+
+  const handleApproveBaseline = async () => {
+    setApproving(true);
+    try {
+      await approveBaseline(patient.id);
+      await onRefresh();
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleConfirmTask = async (note: string) => {
+    if (!activeTask) return;
+    await confirmTask(activeTask.id, note);
+    await onRefresh();
+  };
+
+  return (
+    <div className="doc-container">
+      {/* 1. Back link */}
+      <button type="button" className="back-link" onClick={onBack}>
+        {t("detail.back", lang)}
+      </button>
+
+      {/* 2. Title & Clinical Profile Bar */}
+      <div className="detail-title-bar">
+        <div className="patient-main-info">
+          <h1>
+            <span className={`status-dot ${patient.level}`} style={{ width: "14px", height: "14px" }} />
+            {patient.full_name}
+            <span style={{ fontSize: "14px", fontWeight: 400, color: "var(--color-muted)" }}>
+              ({patient.age} yosh, {patient.district})
+            </span>
+          </h1>
+          <div className="patient-sub-info">
+            <span><strong>Tashxis:</strong> {patient.diagnosis}</span>
+            <span>
+              <strong>Bosqich:</strong> {t(`detail.phase_${patient.phase}`, lang)}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          {patient.phase === "learning" && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleApproveBaseline}
+              disabled={approving}
+            >
+              {approving ? "..." : t("detail.approve_baseline", lang)}
+            </button>
+          )}
+          {patient.baseline_approved && (
+            <span className="task-tag" style={{ color: "var(--color-good)" }}>
+              ✓ {t("detail.baseline_approved", lang)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Active Call Card (Problem 11) */}
+      {activeTask && (
+        <div className="active-call-widget">
+          <div className="active-call-left">
+            <h3>{t("detail.active_call_card", lang)}</h3>
+            <p style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+              {t("detail.active_call_desc", lang)}
+            </p>
+            <div className="active-call-timer" style={{ marginTop: "6px" }}>
+              ⏳ {formatCountdown(activeTask.due_at)}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setIsConfirmModalOpen(true)}
+          >
+            {t("detail.confirm_visit", lang)}
+          </button>
+        </div>
+      )}
+
+      {/* 4. Multi-Row 7-Day Physiological Charts with Baseline Corridors */}
+      <div className="charts-grid">
+        <h3 style={{ fontSize: "17px", fontWeight: 600, marginTop: "8px" }}>
+          {t("detail.vitals_history", lang)}
+        </h3>
+
+        {patient.series.map((s) => (
+          <ParamChart key={s.param} series={s} />
+        ))}
+      </div>
+
+      {/* 5. Alerts History & Isolation Forest AI Advisory */}
+      {patient.alerts && patient.alerts.length > 0 && (
+        <div className="alerts-card">
+          <h3 className="alerts-title">{t("detail.alerts_history", lang)}</h3>
+          {patient.alerts.map((a) => (
+            <div key={a.id} className="alert-item">
+              <div>
+                <span className={`status-dot ${a.level}`} />
+                <strong>{new Date(a.ts).toLocaleString()}</strong> — {a.reason}
+                {a.anomaly_score !== null && (
+                  <span
+                    style={{
+                      marginLeft: "10px",
+                      fontSize: "11px",
+                      color: "var(--color-muted)",
+                      backgroundColor: "#F0EFEB",
+                      padding: "2px 6px",
+                      borderRadius: "3px",
+                    }}
+                  >
+                    AI anomaly score: {Math.round(a.anomaly_score * 100)}% (advisory)
+                  </span>
+                )}
+              </div>
+              <span style={{ fontWeight: 600 }}>Score: {a.composite_score}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Confirm modal */}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmTask}
+        lang={lang}
+      />
+    </div>
+  );
+};
