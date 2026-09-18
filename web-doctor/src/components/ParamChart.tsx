@@ -21,6 +21,10 @@ const PARAM_LABELS: Record<string, { title: string; unit: string; color: string 
   spo2: { title: "Kislorod to'yinishi (SpO₂)", unit: "%", color: "#2E7D5B" },
   skin_temp: { title: "Teri harorati", unit: "°C", color: "#C77A0A" },
   rmssd: { title: "Yurak variabelligi (RMSSD)", unit: "ms", color: "#4A4740" },
+  sdnn: { title: "Yurak ritmi variabilligi (SDNN)", unit: "ms", color: "#6A5ACD" },
+  rr_est: { title: "Nafas tezligi (RR)", unit: "/min", color: "#2B6CB0" },
+  steps: { title: "Kunlik qadamlar / Faollik", unit: "qadam", color: "#319795" },
+  sleep_frag: { title: "Uyqu uzilishi / Fragilite", unit: "%", color: "#4C51BF" },
 };
 
 export const ParamChart: React.FC<ParamChartProps> = ({ series }) => {

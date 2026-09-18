@@ -35,7 +35,7 @@ export const MOCK_PATIENTS: PatientSummary[] = [
     full_name: "Gulnora Matyoqubova",
     age: 72,
     sex: "f",
-    diagnosis: "Arterial gipertenziya III, qandli diabet",
+    diagnosis: "Arterial gipertenziya III, diabet",
     district: "Xiva",
     phase: "learning",
     level: "amber",
@@ -53,8 +53,8 @@ export const MOCK_PATIENTS: PatientSummary[] = [
       patient_id: "p-002-amber",
       type: "active_call",
       status: "sent",
-      created_at: new Date(Date.now() - 19 * 3600 * 1000).toISOString(),
-      due_at: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
+      created_at: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
+      due_at: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
       confirmed_at: null,
       note: null,
     },
@@ -110,10 +110,11 @@ export function getMockPatientDetail(id: string): PatientDetail {
   const pointsSPO2 = [];
   const pointsTemp = [];
   const pointsRMSSD = [];
+  const pointsRR = [];
+  const pointsSteps = [];
 
   for (let i = 42; i >= 0; i--) {
     const ts = new Date(now - i * 4 * 3600 * 1000).toISOString();
-    // simulate worsening if patient is p-001-red
     const severityFactor = summary.level === "red" && i < 15 ? (15 - i) * 1.5 : 0;
 
     pointsHR.push({
@@ -132,42 +133,111 @@ export function getMockPatientDetail(id: string): PatientDetail {
       ts,
       value: Math.max(12, Math.round(34 - severityFactor * 1.2 + Math.sin(i / 2) * 4)),
     });
+    pointsRR.push({
+      ts,
+      value: Math.round(16 + Math.sin(i / 4) * 2 + (severityFactor > 0 ? 4 : 0)),
+    });
+    pointsSteps.push({
+      ts,
+      value: Math.max(0, Math.round(450 + Math.sin(i / 2) * 350 - severityFactor * 20)),
+    });
   }
 
   return {
     ...summary,
     baseline_approved: summary.phase === "full",
+    prognosis: {
+      risk_level: summary.level === "red" ? "high" : summary.level === "amber" ? "moderate" : "low",
+      risk_probability_pct: summary.level === "red" ? 86 : summary.level === "amber" ? 64 : 14,
+      early_warning_hours: 48,
+      summary:
+        summary.level === "red"
+          ? "SpO2 pasayishi (-2.4σ) va tinch holatda yuqori yurak urishi (+3.1σ) kuzatilmoqda. 72 soat ichida gospitalizatsiya xavfi yuqori."
+          : "Fiziologik parametrlar shaxsiy me'yor koridorida barqaror.",
+      recommendation:
+        summary.level === "red"
+          ? "Bugun zudlik bilan bemor xonadoniga patronaj tashrifini amalga oshirish va dori dozasini qayta sozlash zarur."
+          : "Rejali dispanser nazoratini davom ettirish.",
+    },
+    problems: [
+      {
+        param: "spo2",
+        label: "Kislorod to'yinishi (SpO₂)",
+        deviation: summary.level === "red" ? "-2.4σ me'yordan past" : "Normada",
+        current_value: summary.level === "red" ? 87.0 : 97.5,
+        baseline_range: "95.5% - 98.8%",
+        severity: summary.level === "red" ? "severe" : "mild",
+        explanation: "Gipoksemiya belgilari. O'pka va yurak yetishmovchiligi kuchayishi mumkin.",
+      },
+      {
+        param: "hr_mean",
+        label: "Tinch holatdagi puls",
+        deviation: summary.level === "red" ? "+3.1σ me'yordan yuqori" : "Normada",
+        current_value: summary.level === "red" ? 112.0 : 72.0,
+        baseline_range: "66 - 76 bpm",
+        severity: summary.level === "red" ? "severe" : "mild",
+        explanation: "Kompensator taxikardiya. Gemodinamik barqarorsizlik xavfi.",
+      },
+    ],
     series: [
       {
         param: "hr_mean",
         points: pointsHR,
         baseline_median: 72,
-        baseline_low: 64,
-        baseline_high: 82,
-        deviated_ranges: summary.level === "red" ? [{ from: pointsHR[pointsHR.length - 8].ts, to: pointsHR[pointsHR.length - 1].ts }] : [],
+        baseline_low: 66,
+        baseline_high: 76,
+        deviated_ranges:
+          summary.level === "red"
+            ? [{ from: pointsHR[pointsHR.length - 8].ts, to: pointsHR[pointsHR.length - 1].ts }]
+            : [],
       },
       {
         param: "spo2",
         points: pointsSPO2,
-        baseline_median: 96,
-        baseline_low: 94,
-        baseline_high: 99,
-        deviated_ranges: summary.level === "red" ? [{ from: pointsSPO2[pointsSPO2.length - 6].ts, to: pointsSPO2[pointsSPO2.length - 1].ts }] : [],
+        baseline_median: 97,
+        baseline_low: 95.5,
+        baseline_high: 98.8,
+        deviated_ranges:
+          summary.level === "red"
+            ? [{ from: pointsSPO2[pointsSPO2.length - 6].ts, to: pointsSPO2[pointsSPO2.length - 1].ts }]
+            : [],
       },
       {
         param: "skin_temp",
         points: pointsTemp,
-        baseline_median: 36.4,
-        baseline_low: 35.8,
+        baseline_median: 36.5,
+        baseline_low: 36.1,
         baseline_high: 36.9,
-        deviated_ranges: summary.level === "red" ? [{ from: pointsTemp[pointsTemp.length - 5].ts, to: pointsTemp[pointsTemp.length - 1].ts }] : [],
+        deviated_ranges:
+          summary.level === "red"
+            ? [{ from: pointsTemp[pointsTemp.length - 5].ts, to: pointsTemp[pointsTemp.length - 1].ts }]
+            : [],
       },
       {
         param: "rmssd",
         points: pointsRMSSD,
-        baseline_median: 32,
-        baseline_low: 24,
-        baseline_high: 44,
+        baseline_median: 38,
+        baseline_low: 32,
+        baseline_high: 48,
+        deviated_ranges: [],
+      },
+      {
+        param: "rr_est",
+        points: pointsRR,
+        baseline_median: 16,
+        baseline_low: 14,
+        baseline_high: 18,
+        deviated_ranges:
+          summary.level === "red"
+            ? [{ from: pointsRR[pointsRR.length - 4].ts, to: pointsRR[pointsRR.length - 1].ts }]
+            : [],
+      },
+      {
+        param: "steps",
+        points: pointsSteps,
+        baseline_median: 450,
+        baseline_low: 200,
+        baseline_high: 700,
         deviated_ranges: [],
       },
     ],
@@ -179,7 +249,10 @@ export function getMockPatientDetail(id: string): PatientDetail {
         composite_score: summary.composite_score,
         triggered_params: summary.triggered_params,
         anomaly_score: summary.level === "red" ? 0.84 : null,
-        reason: summary.level === "red" ? "SpO2 pasayishi va taxikardiya aniqlandi" : "Barqaror parametrlar",
+        reason:
+          summary.level === "red"
+            ? "SpO2 pasayishi va taxikardiya aniqlandi"
+            : "Barqaror parametrlar",
       },
     ],
     tasks: summary.open_task ? [summary.open_task] : [],

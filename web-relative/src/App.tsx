@@ -1,22 +1,34 @@
 import React, { useEffect, useState } from "react";
+import { ActionContactBar } from "./components/ActionContactBar";
+import { HeroStatusPrognosis } from "./components/HeroStatusPrognosis";
+import { InteractiveMetrics } from "./components/InteractiveMetrics";
 import { LanguageSelector } from "./components/LanguageSelector";
-import { Sparkline } from "./components/Sparkline";
-import { StatusOrb } from "./components/StatusOrb";
-import { Vitals } from "./components/Vitals";
+import { PatientSwitcher } from "./components/PatientSwitcher";
+import { ProblemBreakdown } from "./components/ProblemBreakdown";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
-import { clearTokens, fetchRelativeView, getStoredToken, loginRelative } from "./lib/api";
 import {
-  MOCK_RELATIVE_VIEW_ATTENTION,
-  MOCK_RELATIVE_VIEW_GOOD,
+  clearTokens,
+  fetchRelativeView,
+  getStoredPatients,
+  getStoredToken,
+  loginRelative,
+} from "./lib/api";
+import {
+  MOCK_RELATIVE_PATIENTS,
   MOCK_RELATIVE_VIEW_NODATA,
-  MOCK_RELATIVE_VIEW_RISK,
+  MOCK_RELATIVE_VIEW_PRO,
+  MOCK_RELATIVE_VIEW_STABLE,
 } from "./lib/mock";
-import type { AlertLevel, RelativeView } from "./lib/types";
+import type { AlertLevel, RelativePatientItem, RelativeView } from "./lib/types";
 
 export const App: React.FC = () => {
   const [lang, setLang] = useState<Lang>("uz");
   const [token, setToken] = useState<string | null>(getStoredToken());
+  const [patients, setPatients] = useState<RelativePatientItem[]>(getStoredPatients());
+  const [activePatientId, setActivePatientId] = useState<string>(
+    patients[0]?.id || "p-001-red"
+  );
   const [viewData, setViewData] = useState<RelativeView | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -42,7 +54,7 @@ export const App: React.FC = () => {
       const data = await fetchRelativeView(activeToken);
       setViewData(data);
     } catch {
-      setViewData(MOCK_RELATIVE_VIEW_GOOD);
+      setViewData(MOCK_RELATIVE_VIEW_PRO);
     } finally {
       setLoading(false);
     }
@@ -63,6 +75,10 @@ export const App: React.FC = () => {
     try {
       const res = await loginRelative(phone, pin);
       setToken(res.access_token);
+      setPatients(res.patients || MOCK_RELATIVE_PATIENTS);
+      if (res.patients && res.patients.length > 0) {
+        setActivePatientId(res.patients[0].id);
+      }
       await loadData(res.access_token);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t("login.error", lang);
@@ -75,31 +91,42 @@ export const App: React.FC = () => {
   const handleLogout = () => {
     clearTokens();
     setToken(null);
+    setPatients([]);
     setViewData(null);
+  };
+
+  const handleSelectPatient = async (p: RelativePatientItem) => {
+    setActivePatientId(p.id);
+    await loadData(p.access_token);
   };
 
   // Demo switchers for presentation
   const setDemoState = (lvl: AlertLevel) => {
-    if (lvl === "green") setViewData(MOCK_RELATIVE_VIEW_GOOD);
-    else if (lvl === "amber") setViewData(MOCK_RELATIVE_VIEW_ATTENTION);
-    else if (lvl === "red") setViewData(MOCK_RELATIVE_VIEW_RISK);
-    else if (lvl === "no_data") setViewData(MOCK_RELATIVE_VIEW_NODATA);
-  };
-
-  const formatLastUpdated = (isoDate: string | null) => {
-    if (!isoDate) return t("updated.just_now", lang);
-    const diffMins = Math.max(1, Math.round((Date.now() - new Date(isoDate).getTime()) / 60000));
-    if (diffMins < 60) {
-      return t("updated.mins_ago", lang, { m: diffMins });
-    }
-    const diffHours = Math.round(diffMins / 60);
-    return t("updated.hours_ago", lang, { h: diffHours });
+    if (lvl === "green") setViewData(MOCK_RELATIVE_VIEW_STABLE);
+    else if (lvl === "amber") setViewData(MOCK_RELATIVE_VIEW_PRO);
+    else if (lvl === "red") {
+      setViewData({
+        ...MOCK_RELATIVE_VIEW_PRO,
+        level: "red",
+        level_word_key: "state.risk",
+        composite_score: 4.6,
+        prognosis: {
+          ...MOCK_RELATIVE_VIEW_PRO.prognosis,
+          risk_level: "high",
+          risk_probability_pct: 88,
+          summary: "SpO2 88% gacha tushgan, taxikardiya 114 bpm. Zudlik bilan shifokor ko'rigi talab etiladi!",
+        },
+      });
+    } else if (lvl === "no_data") setViewData(MOCK_RELATIVE_VIEW_NODATA);
   };
 
   return (
     <>
       <header className="app-header">
-        <span className="brand-title">{t("app.title", lang)}</span>
+        <div className="brand-wrapper">
+          <span className="brand-badge">PRO</span>
+          <span className="brand-title">{t("app.title", lang)}</span>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <LanguageSelector lang={lang} onChange={setLang} />
           {token && (
@@ -162,50 +189,55 @@ export const App: React.FC = () => {
           </form>
         </div>
       ) : loading ? (
-        <div className="main-content" style={{ justifyContent: "center" }}>
+        <div className="main-content" style={{ justifyContent: "center", alignItems: "center" }}>
           <span style={{ color: "var(--color-muted)" }}>Yuklanmoqda...</span>
         </div>
       ) : viewData ? (
         <main className="main-content">
-          {/* 1. Katta Doira (The Big Status Orb) */}
-          <StatusOrb level={viewData.level} lang={lang} />
-
-          {/* 2. Bemor ismi + Oxirgi yangilanish vaqti */}
-          <div className="patient-meta">
-            <h2 className="patient-name">{viewData.patient_name}</h2>
-            <div className="update-time">
-              {formatLastUpdated(viewData.last_reading_at)}
-            </div>
-          </div>
-
-          {/* 3. Trend jumlasi */}
-          <div className="trend-section">
-            {viewData.level === "no_data" ? (
-              <p className="no-data-hint">{t("no_data.desc", lang)}</p>
-            ) : (
-              <p className="trend-sentence">
-                {viewData.trend.direction === "improving" && "↗ "}
-                {viewData.trend.direction === "worsening" && "↘ "}
-                {viewData.trend.direction === "stable" && "→ "}
-                {t(`trend.${viewData.trend.direction}`, lang)}
-              </p>
-            )}
-          </div>
-
-          {/* 4. 7 kunlik sparkline (o'qsiz, to'rsiz, sof shakl) */}
-          <div className="sparkline-container">
-            <Sparkline data={viewData.sparkline} level={viewData.level} />
-          </div>
-
-          {/* 5. Pastki ko'rsatkichlar (Puls, SpO2, Uyqu) */}
-          <Vitals
-            hr={viewData.vitals.hr}
-            spo2={viewData.vitals.spo2}
-            sleepHours={viewData.vitals.sleep_hours}
+          {/* 1. Multi-Patient Switcher */}
+          <PatientSwitcher
+            patients={patients.length > 0 ? patients : MOCK_RELATIVE_PATIENTS}
+            activePatientId={activePatientId}
+            onSelect={handleSelectPatient}
             lang={lang}
           />
 
-          {/* Demo hakamlar uchun holat o'zgartirgich tugmalar */}
+          {/* 2. Hero Status & AI 72-hour Prognosis Hub */}
+          <HeroStatusPrognosis
+            level={viewData.level}
+            compositeScore={viewData.composite_score}
+            lastReadingAt={viewData.last_reading_at}
+            prognosis={viewData.prognosis}
+            lang={lang}
+          />
+
+          {/* no_data Warning if applicable */}
+          {viewData.level === "no_data" && (
+            <div className="no-data-warning-card">
+              <h3>⚠️ {t("no_data.title", lang)}</h3>
+              <p>{t("no_data.desc", lang)}</p>
+            </div>
+          )}
+
+          {/* 3. Root-Cause Problem Breakdown */}
+          {viewData.level !== "no_data" && viewData.problems && (
+            <ProblemBreakdown problems={viewData.problems} lang={lang} />
+          )}
+
+          {/* 4. Interactive Metrics with Baseline Corridors */}
+          {viewData.level !== "no_data" && viewData.series && (
+            <InteractiveMetrics series={viewData.series} lang={lang} />
+          )}
+
+          {/* 5. Doctor Advice & Quick Contact Bar */}
+          <ActionContactBar
+            doctorContact={viewData.doctor_contact}
+            activeTask={viewData.tasks && viewData.tasks.length > 0 ? viewData.tasks[0] : null}
+            recommendation={viewData.prognosis?.recommendation}
+            lang={lang}
+          />
+
+          {/* Demo stage switcher chips */}
           <div className="state-switcher-demo">
             <button
               type="button"

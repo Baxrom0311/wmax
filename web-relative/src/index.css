@@ -3,10 +3,11 @@
   --color-attention: #C77A0A;
   --color-risk: #B3261E;
   --color-nodata: #8A8780;
-  --color-bg: #FAFAF8;
+  --color-bg: #F8F8F6;
+  --color-surface: #FFFFFF;
   --color-text: #1C1B1F;
-  --color-line: #D8D6D0;
-  --color-muted: #6B6861;
+  --color-line: #E2E0D8;
+  --color-muted: #65635D;
 }
 
 * {
@@ -19,7 +20,7 @@
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -29,13 +30,13 @@ body {
 
 #root {
   width: 100%;
-  max-width: 440px;
+  max-width: 680px;
   min-height: 100vh;
   background-color: var(--color-bg);
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: 24px;
+  padding-bottom: 40px;
 }
 
 /* Header */
@@ -43,14 +44,35 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px 8px;
+  padding: 18px 20px 14px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-badge {
+  background-color: var(--color-good);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.8px;
 }
 
 .brand-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--color-muted);
+  letter-spacing: 0.5px;
+  color: var(--color-text);
 }
 
 .lang-selector {
@@ -67,17 +89,87 @@ body {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-muted);
-  padding: 2px 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
 }
 
 .lang-btn.active {
   color: var(--color-text);
   font-weight: 700;
+  background-color: #EEECE6;
 }
 
 .lang-sep {
   color: var(--color-line);
+}
+
+/* Multi-Patient Switcher */
+.patient-switcher-container {
+  padding: 12px 20px 6px;
+}
+
+.switcher-header {
   font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.patient-cards-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.patient-cards-row::-webkit-scrollbar {
+  display: none;
+}
+
+.patient-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-line);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 170px;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+.patient-card-btn.active {
+  border-color: var(--color-text);
+  background-color: #FFFFFF;
+}
+
+.patient-status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.patient-btn-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-rel-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.patient-btn-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 /* Main Container */
@@ -85,26 +177,38 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 12px 20px;
+  gap: 20px;
+}
+
+/* Hero Status & Prognosis Grid */
+.hero-prognosis-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 600px) {
+  .hero-prognosis-wrapper {
+    grid-template-columns: 1fr 1.3fr;
+  }
+}
+
+.status-hub-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 12px 20px 24px;
+  justify-content: center;
   text-align: center;
 }
 
-/* The Big Status Orb */
-.orb-container {
-  margin: 20px 0 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.status-orb {
-  width: 55vw;
-  height: 55vw;
-  max-width: 250px;
-  max-height: 250px;
-  min-width: 190px;
-  min-height: 190px;
+.main-orb {
+  width: 170px;
+  height: 170px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -114,8 +218,8 @@ body {
 
 @keyframes orb-open {
   from {
-    transform: scale(0.85);
-    opacity: 0.2;
+    transform: scale(0.88);
+    opacity: 0.3;
   }
   to {
     transform: scale(1);
@@ -123,124 +227,475 @@ body {
   }
 }
 
-.orb-word {
+.orb-status-text {
   color: #FFFFFF;
-  font-size: 40px;
+  font-size: 30px;
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
   text-align: center;
   line-height: 1.1;
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
-/* Meta info */
-.patient-meta {
-  margin-top: 4px;
+.status-hub-meta {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-.patient-name {
-  font-size: 17px;
-  font-weight: 600;
+.composite-badge {
+  font-size: 13px;
   color: var(--color-text);
+  background-color: #F1EFEA;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
-.update-time {
+.time-ago-text {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* AI Prognosis Card */
+.ai-prognosis-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.prognosis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.prognosis-ai-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-good);
+  background-color: #E8F5E9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.6px;
+}
+
+.prognosis-risk-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.prognosis-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.prognosis-summary {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.prognosis-footer {
+  border-top: 1px solid var(--color-line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.early-warning-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-attention);
+}
+
+.prognosis-rec {
   font-size: 13px;
   color: var(--color-muted);
-  margin-top: 2px;
+  line-height: 1.4;
 }
 
-/* Clinical Trend sentence */
-.trend-section {
-  margin: 18px 0 12px;
-  padding: 0 12px;
-}
-
-.trend-sentence {
-  font-size: 15px;
-  font-weight: 500;
+/* Section Title */
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
   color: var(--color-text);
-  line-height: 1.4;
+  margin-bottom: 12px;
 }
 
-.no-data-hint {
+/* Root-Cause Problems */
+.problems-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.problems-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.problem-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.problem-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.problem-label {
   font-size: 14px;
-  color: var(--color-muted);
-  margin-top: 8px;
-  line-height: 1.4;
-}
-
-/* Sparkline */
-.sparkline-container {
-  width: 100%;
-  margin: 16px 0 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.sparkline-wrapper {
-  width: 100%;
-  max-width: 340px;
-  height: 84px;
-}
-
-.sparkline-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.sparkline-label {
-  font-size: 12px;
-  color: var(--color-muted);
-  margin-top: 4px;
-}
-
-/* Bottom vitals row */
-.vitals-row {
-  width: 100%;
-  max-width: 340px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 16px 12px;
-  border-top: 1px solid var(--color-line);
-  margin-top: auto;
-}
-
-.vital-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.vital-label {
-  font-size: 12px;
-  color: var(--color-muted);
-  margin-bottom: 4px;
-}
-
-.vital-val {
-  font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
 }
 
-.vital-unit {
+.problem-deviation-badge {
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.problem-values-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: #FAF9F6;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.val-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.val-col-title {
+  font-size: 11px;
   color: var(--color-muted);
 }
 
-.vital-divider {
+.val-col-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.val-divider {
   width: 1px;
-  height: 28px;
+  height: 22px;
   background-color: var(--color-line);
 }
 
-/* Login Screen (Accessible, large, simple) */
+.problem-explanation {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.no-problems-card {
+  background-color: #EBF5EF;
+  border: 1px solid #C5E2D2;
+  color: var(--color-good);
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Interactive Metrics & Baseline Corridors */
+.metrics-interactive-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.metrics-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.time-filter-group {
+  display: flex;
+  gap: 4px;
+}
+
+.range-btn {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-muted);
+}
+
+.range-btn.active {
+  background-color: var(--color-text);
+  color: #FFFFFF;
+  border-color: var(--color-text);
+}
+
+.metric-tabs-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.metric-tabs-row::-webkit-scrollbar {
+  display: none;
+}
+
+.metric-tab-pill {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px;
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-line);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 90px;
+  text-align: left;
+}
+
+.metric-tab-pill.active {
+  border-color: var(--color-good);
+  background-color: #F6FAF7;
+}
+
+.tab-pill-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.tab-pill-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 2px;
+}
+
+.tab-pill-unit {
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 2px;
+  color: var(--color-muted);
+}
+
+.chart-canvas-container {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 16px 14px 10px;
+}
+
+.chart-legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-bottom: 10px;
+  padding: 0 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.corridor-box {
+  width: 14px;
+  height: 10px;
+  background-color: #2E7D5B;
+  opacity: 0.25;
+  border-radius: 2px;
+}
+
+.line-indicator {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Action Contact Bar */
+.action-contact-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.doctor-contact-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.doc-info-left {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.doc-avatar {
+  font-size: 28px;
+  background-color: #F1EFEA;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doc-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.doc-fullname {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 2px;
+}
+
+.doc-rec-text {
+  font-size: 13px;
+  color: var(--color-text);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.doc-action-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.contact-btn {
+  height: 42px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.call-btn {
+  background-color: var(--color-good);
+  color: #FFFFFF;
+}
+
+.telegram-btn {
+  background-color: #229ED9;
+  color: #FFFFFF;
+}
+
+.relative-active-call-card {
+  margin-top: 10px;
+  background-color: #FFFDF9;
+  border: 1px solid var(--color-attention);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.active-call-icon {
+  font-size: 20px;
+}
+
+.active-call-text strong {
+  font-size: 13px;
+  color: var(--color-attention);
+}
+
+.active-call-text p {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.emergency-call-bar {
+  margin-top: 10px;
+  height: 46px;
+  background-color: #FBEBEB;
+  color: var(--color-risk);
+  border: 1.5px solid var(--color-risk);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* No data card */
+.no-data-warning-card {
+  background-color: #F4F3EF;
+  border: 1.5px solid var(--color-nodata);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.no-data-warning-card h3 {
+  font-size: 17px;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.no-data-warning-card p {
+  font-size: 14px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+/* Login Page */
 .login-container {
   flex: 1;
   display: flex;
@@ -256,7 +711,7 @@ body {
 
 .login-title {
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-text);
   margin-bottom: 8px;
 }
@@ -310,12 +765,7 @@ body {
   border-radius: 8px;
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.5px;
   cursor: pointer;
-}
-
-.login-btn:active {
-  opacity: 0.9;
 }
 
 .login-demo-hint {
@@ -325,19 +775,8 @@ body {
   text-align: center;
 }
 
-.error-banner {
-  padding: 10px 14px;
-  background-color: #FDF2F2;
-  color: var(--color-risk);
-  border: 1px solid var(--color-risk);
-  border-radius: 6px;
-  font-size: 14px;
-  margin-bottom: 12px;
-  text-align: left;
-}
-
 .state-switcher-demo {
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 8px;
   display: flex;
   gap: 6px;

@@ -107,6 +107,96 @@ body {
   color: var(--color-text);
 }
 
+/* Filter Controls Bar */
+.filters-control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  padding: 12px 18px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.filter-select {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background-color: #fff;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  border-color: var(--color-good);
+}
+
+/* AI Prognosis & Root-cause Problem Cards */
+.doc-ai-prognosis-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.prognosis-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ai-engine-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #5B45B2;
+  background-color: #F2EEFB;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.risk-pct-pill {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background-color: #FBFBFA;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.doc-problems-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-problem-chip {
+  font-size: 13px;
+  padding: 8px 12px;
+  background-color: #FAF9F6;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+}
+
 /* Table - High Density Worklist */
 .table-wrapper {
   background-color: var(--color-surface);
