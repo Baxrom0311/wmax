@@ -5,6 +5,7 @@ import { InteractiveMetrics } from "./components/InteractiveMetrics";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { PatientSwitcher } from "./components/PatientSwitcher";
 import { ProblemBreakdown } from "./components/ProblemBreakdown";
+import { Vitals } from "./components/Vitals";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
 import {
@@ -183,6 +184,17 @@ export const App: React.FC = () => {
               {loggingIn ? "..." : t("login.submit", lang)}
             </button>
 
+            <button
+              type="button"
+              className="quick-demo-btn"
+              onClick={() => {
+                setPhone("+998901234567");
+                setPin("112233");
+              }}
+            >
+              🚀 {t("login.quick_demo", lang)}
+            </button>
+
             <div className="login-demo-hint">
               <span>{t("login.hint", lang)}</span>
             </div>
@@ -210,6 +222,11 @@ export const App: React.FC = () => {
             prognosis={viewData.prognosis}
             lang={lang}
           />
+
+          {/* 2.5. Apple Health Style Vitals Grid */}
+          {viewData.level !== "no_data" && viewData.vitals && (
+            <Vitals vitals={viewData.vitals} lang={lang} />
+          )}
 
           {/* no_data Warning if applicable */}
           {viewData.level === "no_data" && (

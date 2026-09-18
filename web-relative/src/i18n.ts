@@ -79,6 +79,22 @@ const translations: Record<Lang, Record<string, string>> = {
     "no_data.title": "Soatdan ma'lumot kelmayapti",
     "no_data.desc": "Aqlli soat 45 daqiqadan beri ma'lumot uzatmayapti. Soat yechilgan yoki batareya quvvati tugagan bo'lishi mumkin. Iltimos, bemor bilan bog'lanib, soatni taqishini iltimos qiling.",
 
+    // Vitals Section (Apple Health / Oura Ring style)
+    "vitals.title": "Joriy Fiziologik Ko'rsatkichlar",
+    "vitals.hr": "Yurak urishi (Puls)",
+    "vitals.spo2": "Kislorod (SpO₂)",
+    "vitals.temp": "Teri harorati",
+    "vitals.rr": "Nafas tezligi",
+    "vitals.sleep": "Tungi uyqu",
+    "vitals.steps": "Kunlik qadamlar",
+    "vitals.bpm": "bpm",
+    "vitals.hours": "soat",
+    "vitals.breaths": "/daq",
+    "vitals.normal": "Me'yorda",
+    "vitals.attention": "Diqqat",
+    "vitals.risk": "Og'ish",
+    "login.quick_demo": "Demo hisob bilan tez kirish (112233)",
+
     // Time Formatting
     "updated.just_now": "Hozirgina yangilandi",
     "updated.mins_ago": "{m} daqiqa oldin",
@@ -159,6 +175,22 @@ const translations: Record<Lang, Record<string, string>> = {
     // No Data Protection
     "no_data.title": "Часы не передают данные",
     "no_data.desc": "Часы не передают данные более 45 минут. Возможно, они сняты или разряжены. Пожалуйста, свяжитесь с близким и попросите надеть часы.",
+
+    // Vitals Section (Apple Health / Oura Ring style)
+    "vitals.title": "Текущие Физиологические Показатели",
+    "vitals.hr": "Пульс в покое",
+    "vitals.spo2": "Кислород (SpO₂)",
+    "vitals.temp": "Температура кожи",
+    "vitals.rr": "Частота дыхания",
+    "vitals.sleep": "Ночной сон",
+    "vitals.steps": "Шаги за сегодня",
+    "vitals.bpm": "уд/мин",
+    "vitals.hours": "ч",
+    "vitals.breaths": "/мин",
+    "vitals.normal": "В норме",
+    "vitals.attention": "Внимание",
+    "vitals.risk": "Отклонение",
+    "login.quick_demo": "Быстрый вход с демо-данными (112233)",
 
     // Time Formatting
     "updated.just_now": "Обновлено только что",

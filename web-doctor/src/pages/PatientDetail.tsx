@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ParamChart } from "../components/ParamChart";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import { approveBaseline, confirmTask } from "../lib/api";
+import { approveBaseline, confirmTask, dischargePatient } from "../lib/api";
 import type { PatientDetail as PatientDetailType } from "../lib/types";
 
 interface PatientDetailPageProps {
@@ -20,7 +20,16 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
   lang,
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [discharging, setDischarging] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Live timer tick every 10 seconds
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const activeTask = patient.tasks.find(
     (t) => t.status !== "done" && t.type === "active_call"
@@ -48,6 +57,17 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       await onRefresh();
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleDischargePatient = async () => {
+    setDischarging(true);
+    try {
+      await dischargePatient(patient.id);
+      setIsDischargeModalOpen(false);
+      await onRefresh();
+    } finally {
+      setDischarging(false);
     }
   };
 
@@ -82,7 +102,17 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
           </div>
         </div>
 
-        <div>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {!activeTask && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ borderColor: "var(--color-attention)", color: "var(--color-attention)" }}
+              onClick={() => setIsDischargeModalOpen(true)}
+            >
+              {t("detail.discharge_btn", lang)}
+            </button>
+          )}
           {patient.phase === "learning" && (
             <button
               type="button"
@@ -212,13 +242,43 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       )}
 
-      {/* Confirm modal */}
+      {/* Confirm active call modal */}
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmTask}
         lang={lang}
       />
+
+      {/* Discharge confirm modal */}
+      {isDischargeModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsDischargeModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">{t("detail.discharge_confirm_title", lang)}</h2>
+            <p style={{ fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5, marginBottom: "20px" }}>
+              {t("detail.discharge_confirm_desc", lang)}
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setIsDischargeModalOpen(false)}
+                disabled={discharging}
+              >
+                {t("confirm_modal.cancel", lang)}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleDischargePatient}
+                disabled={discharging}
+              >
+                {discharging ? "..." : t("detail.discharge_confirm_submit", lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

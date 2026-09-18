@@ -16,6 +16,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 }) => {
   const [districtFilter, setDistrictFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const attentionPatients = patients.filter(
     (p) => p.level === "red" || p.level === "amber"
@@ -34,6 +35,12 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     .filter((p) => {
       if (districtFilter !== "all" && p.district !== districtFilter) return false;
       if (statusFilter !== "all" && p.level !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = p.full_name.toLowerCase().includes(q);
+        const matchDiag = p.diagnosis.toLowerCase().includes(q);
+        if (!matchName && !matchDiag) return false;
+      }
       return true;
     })
     .sort((a, b) => (LEVEL_PRIORITY[a.level] ?? 99) - (LEVEL_PRIORITY[b.level] ?? 99));
@@ -57,8 +64,28 @@ export const PatientsList: React.FC<PatientsListProps> = ({
         </div>
       )}
 
-      {/* 2. Filters Row */}
+      {/* 2. Filters & Search Row */}
       <div className="filters-control-bar">
+        {/* Search input */}
+        <div className="filter-group filter-search-group">
+          <input
+            type="text"
+            className="filter-search-input"
+            placeholder={t("patients.search_placeholder", lang)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="clear-search-btn"
+              onClick={() => setSearchQuery("")}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         <div className="filter-group">
           <label htmlFor="filter-district-select" className="filter-label">{t("patients.filter_district", lang)}</label>
           <select

@@ -113,3 +113,18 @@ export async function approveBaseline(patientId: string): Promise<void> {
     // ignore in demo
   }
 }
+
+export async function dischargePatient(patientId: string): Promise<void> {
+  const token = getStoredToken();
+  try {
+    await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/discharge`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch {
+    // ignore in demo
+  }
+}
+

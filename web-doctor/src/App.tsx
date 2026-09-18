@@ -179,7 +179,32 @@ export const App: React.FC = () => {
                 {loggingIn ? "..." : t("login.submit", lang)}
               </button>
 
-              <p style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "12px", textAlign: "center" }}>
+              <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: "100%", height: "36px", fontSize: "12px" }}
+                  onClick={() => {
+                    setPhone("+998901234567");
+                    setPassword("nazorat123");
+                  }}
+                >
+                  👨‍⚕️ {t("login.quick_doc", lang)}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: "100%", height: "36px", fontSize: "12px" }}
+                  onClick={() => {
+                    setPhone("+998901234568");
+                    setPassword("nazorat123");
+                  }}
+                >
+                  👩‍⚕️ {t("login.quick_nurse", lang)}
+                </button>
+              </div>
+
+              <p style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "10px", textAlign: "center" }}>
                 {t("login.demo", lang)}
               </p>
             </form>

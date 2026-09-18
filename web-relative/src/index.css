@@ -800,3 +800,151 @@ body {
   color: #FFFFFF;
   border-color: var(--color-text);
 }
+
+/* Vitals Cards (Apple Health / Oura Ring Style) */
+.vitals-section {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.vitals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.vitals-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+}
+
+.vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .vitals-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vital-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vital-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.vital-card.status-risk {
+  border-color: rgba(179, 38, 30, 0.3);
+  background: linear-gradient(180deg, #FFFFFF 60%, #FFF5F5 100%);
+}
+
+.vital-card.status-attention {
+  border-color: rgba(199, 122, 10, 0.3);
+  background: linear-gradient(180deg, #FFFFFF 60%, #FFFDF8 100%);
+}
+
+.vital-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.vital-icon-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vital-icon {
+  font-size: 14px;
+}
+
+.vital-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.vital-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.badge-good {
+  background: #EAF5EE;
+  color: var(--color-good);
+}
+
+.badge-attention {
+  background: #FDF4E7;
+  color: var(--color-attention);
+}
+
+.badge-risk {
+  background: #FDF2F2;
+  color: var(--color-risk);
+}
+
+.badge-nodata {
+  background: #F3F3F1;
+  color: var(--color-nodata);
+}
+
+.vital-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.vital-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+}
+
+.vital-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.quick-demo-btn {
+  margin-top: 10px;
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  background: #F3F3F1;
+  border: 1px solid var(--color-line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-demo-btn:hover {
+  background: #EAE8E3;
+  border-color: var(--color-text);
+}
+
