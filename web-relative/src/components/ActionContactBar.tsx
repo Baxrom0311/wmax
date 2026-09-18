@@ -48,7 +48,7 @@ export const ActionContactBar: React.FC<ActionContactBarProps> = ({
             <span>{t("actions.call_doctor", lang)}</span>
           </a>
           <a
-            href="https://t.me/nazorat_bot"
+            href="https://t.me/WMAX_uz_bot"
             target="_blank"
             rel="noreferrer"
             className="contact-btn telegram-btn"

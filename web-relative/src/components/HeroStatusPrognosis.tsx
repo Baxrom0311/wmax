@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { AlertLevel, PrognosisInfo } from "../lib/types";
@@ -22,6 +22,13 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
   const color = LEVEL_COLOR[level];
   const wordKey = LEVEL_WORD_KEY[level];
   const word = t(wordKey, lang);
+
+  // Live ticker — update "X daqiqa oldin" every 10s
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((v) => v + 1), 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const formatLastUpdated = (isoDate: string | null) => {
     if (!isoDate) return t("updated.just_now", lang);
@@ -48,9 +55,9 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
 
   return (
     <div className="hero-prognosis-wrapper">
-      {/* 1. Katta Doira / Status Hub */}
+      {/* 1. Status Hub with pulse animation */}
       <div className="status-hub-card">
-        <div className="orb-outer-halo">
+        <div className={`orb-outer-halo orb-halo-${level}`}>
           <div
             className={`main-orb orb-${level}`}
             style={{
@@ -78,7 +85,7 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
         </div>
       </div>
 
-      {/* 2. AI 72-soatlik Erta Ogohlantirish Prognozi */}
+      {/* 2. AI 72-hour Prognosis */}
       {level !== "no_data" && prognosis && (
         <div className="ai-prognosis-card">
           <div className="prognosis-header">

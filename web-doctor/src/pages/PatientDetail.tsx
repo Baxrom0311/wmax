@@ -37,7 +37,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
   const formatCountdown = (dueAtIso: string) => {
     const diffMs = new Date(dueAtIso).getTime() - Date.now();
-    if (diffMs <= 0) return t("patients.overdue", lang);
+    if (diffMs <= 0) return "Muddati o'tgan";
     const hours = Math.floor(diffMs / (3600 * 1000));
     const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
     return `${hours} soat ${mins} daqiqa qoldi`;
@@ -77,209 +77,235 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
     await onRefresh();
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const patientCode = `K-2026/${patient.id.replace(/-/g, "").slice(0, 4).toUpperCase()}`;
+
   return (
-    <div className="doc-container">
-      {/* 1. Breadcrumbs Navigation */}
-      <div className="detail-breadcrumb">
-        <button type="button" className="back-link" onClick={onBack}>
-          <span className="back-arrow">←</span>
-          <span>{t("detail.back", lang)}</span>
+    <div className="doc-container patient-detail-official">
+      {/* 1. Official Breadcrumb Navigation */}
+      <div className="official-breadcrumb no-print">
+        <button type="button" className="btn-back-link" onClick={onBack}>
+          <span className="back-arrow-icon">←</span>
+          <span>Bemorlar ro'yxatiga qaytish</span>
         </button>
-        <span className="breadcrumb-separator">/</span>
-        <span className="breadcrumb-current">{patient.full_name}</span>
+        <span className="breadcrumb-slash">/</span>
+        <span className="breadcrumb-current-patient">
+          {patient.full_name} ({patientCode})
+        </span>
       </div>
 
-      {/* 2. Clinical Passport Header */}
-      <div className="detail-title-bar">
-        <div className="patient-passport-left">
-          <div className="patient-lg-avatar">
-            {patient.full_name
-              .split(" ")
-              .map((w) => w[0])
-              .slice(0, 2)
-              .join("")}
-          </div>
-          <div className="patient-main-info">
-            <div className="patient-name-title-row">
-              <h1>{patient.full_name}</h1>
-              <span className={`status-pill ${patient.level}`}>
-                <span className={`status-dot ${patient.level}`} />
-                {t(`state.${patient.level}`, lang)}
+      {/* 2. Official Clinical Case File Header (Bemorning kasallik varaqasi) */}
+      <div className="clinical-passport-card">
+        <div className="passport-institution-line">
+          <span>O'ZBEKISTON RESPUBLIKASI SSV · XORAZM VILOYATI KARDIOLOGIYA DISPANSERI</span>
+          <span className="passport-card-no">TIBBIY KARTA № {patientCode}</span>
+        </div>
+
+        <div className="passport-body">
+          <div className="passport-main">
+            <div className="passport-name-row">
+              <h1 className="patient-name-heading">{patient.full_name}</h1>
+              <span className={`status-badge-official large ${patient.level}`}>
+                <span className={`status-badge-dot ${patient.level}`} />
+                {t(`state.${patient.level}`, lang).toUpperCase()}
               </span>
             </div>
-            <div className="patient-sub-info">
-              <span className="passport-meta-item">
-                <strong>Yosh / Jins:</strong> {patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}
-              </span>
-              <span className="passport-meta-item">
-                <strong>Tuman:</strong> {patient.district}
-              </span>
-              <span className="passport-meta-item">
-                <strong>Tashxis:</strong> <span className="diagnosis-highlight">{patient.diagnosis}</span>
-              </span>
-              <span className="passport-meta-item">
-                <strong>Bosqich:</strong>{" "}
-                <span className={`phase-tag ${patient.phase}`}>
-                  {t(`detail.phase_${patient.phase}`, lang)}
+
+            <div className="passport-grid-meta">
+              <div className="meta-field">
+                <span className="meta-label">Yosh / Jins:</span>
+                <span className="meta-value">{patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}</span>
+              </div>
+              <div className="meta-field">
+                <span className="meta-label">Tuman / Manzil:</span>
+                <span className="meta-value">{patient.district}</span>
+              </div>
+              <div className="meta-field">
+                <span className="meta-label">Klinik tashxis:</span>
+                <span className="meta-value text-bold">{patient.diagnosis}</span>
+              </div>
+              <div className="meta-field">
+                <span className="meta-label">Monitoring bosqichi:</span>
+                <span className="meta-value">
+                  <span className={`phase-tag-official ${patient.phase}`}>
+                    {t(`detail.phase_${patient.phase}`, lang)}
+                  </span>
                 </span>
-              </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="passport-actions-right">
-          {!activeTask && (
+          <div className="passport-actions no-print">
             <button
               type="button"
-              className="btn btn-discharge"
-              onClick={() => setIsDischargeModalOpen(true)}
+              className="btn-clinical btn-print"
+              onClick={handlePrint}
+              title="Klinik epikrizni chop etish"
             >
-              <span className="btn-icon">📋</span>
-              <span>{t("detail.discharge_btn", lang)}</span>
+              <span>Chop etish</span>
             </button>
-          )}
-          {patient.phase === "learning" && (
-            <button
-              type="button"
-              className="btn btn-approve-baseline"
-              onClick={handleApproveBaseline}
-              disabled={approving}
-            >
-              <span className="btn-icon">✓</span>
-              <span>{approving ? "..." : t("detail.approve_baseline", lang)}</span>
-            </button>
-          )}
-          {patient.baseline_approved && (
-            <span className="baseline-approved-badge">
-              <span className="check-icon">✓</span>
-              <span>{t("detail.baseline_approved", lang)}</span>
-            </span>
-          )}
+
+            {!activeTask && (
+              <button
+                type="button"
+                className="btn-clinical btn-discharge-official"
+                onClick={() => setIsDischargeModalOpen(true)}
+              >
+                <span>Statsionardan chiqarish</span>
+              </button>
+            )}
+
+            {patient.phase === "learning" && (
+              <button
+                type="button"
+                className="btn-clinical btn-approve-official"
+                onClick={handleApproveBaseline}
+                disabled={approving}
+              >
+                <span>{approving ? "Saqlanmoqda..." : "Bazaviy normani tasdiqlash"}</span>
+              </button>
+            )}
+
+            {patient.baseline_approved && (
+              <span className="badge-baseline-confirmed">
+                <span>Normativ baza tasdiqlangan</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 3. 24-Hour Active Call Card (Problem 11) */}
+      {/* 3. 24-Hour Clinical Protocol Alert (Problem 11) */}
       {activeTask && (
-        <div
-          className={`active-call-widget ${isOverdue ? "overdue" : isUrgent ? "urgent" : "normal"}`}
-        >
-          <div className="active-call-left">
-            <div className="active-call-title-row">
-              <span className="active-call-pulse-icon">⏳</span>
-              <h3>
-                {t("detail.active_call_card", lang)}
-                {isOverdue && <span className="overdue-pill">MUDDATI O'TGAN</span>}
-                {isUrgent && !isOverdue && <span className="urgent-pill">SHOSHILINCH (&lt; 4 soat)</span>}
-              </h3>
+        <div className={`clinical-protocol-alert ${isOverdue ? "overdue" : isUrgent ? "urgent" : "active"}`}>
+          <div className="protocol-alert-left">
+            <div className="protocol-header-tag">
+              <span className="protocol-badge">PROTOKOL #CP-24H</span>
+              <span className="protocol-type">SHOSHILINCH PATRONAJ CHAQUROVI</span>
+              {isOverdue && <span className="tag-overdue">MUDDATI O'TGAN</span>}
+              {isUrgent && !isOverdue && <span className="tag-urgent">DIQQAT (&lt; 4 soat)</span>}
             </div>
-            <p className="active-call-desc">
-              {t("detail.active_call_desc", lang)}
+            <p className="protocol-desc">
+              Kardiologiya dispanseri shifokori tomonidan 24 soat ichida bemor bilan bevosita
+              yoki masofaviy klinik ko'rik o'tkazilishi va xulosa kiritilishi shart.
             </p>
-            <div className="active-call-timer">
-              <span className="timer-icon">🕒</span>
-              <span className="timer-val">{formatCountdown(activeTask.due_at)}</span>
+            <div className="protocol-timer">
+              <span className="timer-label">Qolgan muddat:</span>
+              <span className="timer-countdown">{formatCountdown(activeTask.due_at)}</span>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary btn-confirm-visit"
-            onClick={() => setIsConfirmModalOpen(true)}
-          >
-            <span>{t("detail.confirm_visit", lang)}</span>
-            <span className="btn-arrow">✓</span>
-          </button>
+          <div className="protocol-alert-right no-print">
+            <button
+              type="button"
+              className="btn-confirm-protocol"
+              onClick={() => setIsConfirmModalOpen(true)}
+            >
+              Ko'rik hisobotini kiritish (Tasdiqlash)
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 4. AI 72-Hour Prognosis & Problem Breakdown */}
+      {/* 4. CDSS (Clinical Decision Support System) 72-Hour Prognosis */}
       {patient.prognosis && (
-        <div className="doc-ai-prognosis-card">
-          <div className="prognosis-header-line">
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span className="ai-engine-tag">AI CLINICAL ENGINE (XORAZM WMAX)</span>
-              <span className="ai-model-tag">CIRCADIAN 72H</span>
+        <div className="cdss-prognosis-panel">
+          <div className="cdss-header">
+            <div className="cdss-title-group">
+              <span className="cdss-badge">CDSS KLINIK QAROR TIZIMI</span>
+              <span className="cdss-model">CIRCADIAN-72H MULTI-PARAMETRIC ENGINE</span>
             </div>
-            <span
-              className={`risk-pct-pill ${patient.prognosis.risk_level}`}
-            >
-              {t("detail.risk_prob", lang)}: <strong>{patient.prognosis.risk_probability_pct}%</strong>
-            </span>
+            <div className="cdss-risk-indicator">
+              <span className="risk-label">Dekommutatsiya xavfi ehtimoli:</span>
+              <span className={`risk-probability-val ${patient.prognosis.risk_level}`}>
+                {patient.prognosis.risk_probability_pct}%
+              </span>
+            </div>
           </div>
 
-          {/* Visual Risk Meter */}
-          <div className="risk-meter-bar">
+          {/* Exact Statistical Meter Track */}
+          <div className="cdss-meter-track">
             <div
-              className={`risk-meter-fill ${patient.prognosis.risk_level}`}
+              className={`cdss-meter-fill ${patient.prognosis.risk_level}`}
               style={{ width: `${patient.prognosis.risk_probability_pct}%` }}
             />
           </div>
 
-          <h3 className="prognosis-title-text">
-            {t("detail.prognosis_header", lang)}
-          </h3>
-          <p className="prognosis-summary-text">
-            {patient.prognosis.summary}
-          </p>
-          <div className="prognosis-recommendation-box">
-            <span className="rec-bulb-icon">💡</span>
-            <div>
-              <strong>Klinik tavsiya:</strong> {patient.prognosis.recommendation}
+          <div className="cdss-content-grid">
+            <div className="cdss-summary-box">
+              <span className="box-title">KLINIK TAHLIL VA XULOSA:</span>
+              <p className="cdss-summary-text">{patient.prognosis.summary}</p>
+            </div>
+
+            <div className="cdss-rec-box">
+              <span className="box-title">TAVSIYA ETILADIGAN CHORALAR:</span>
+              <p className="cdss-rec-text">{patient.prognosis.recommendation}</p>
             </div>
           </div>
 
           {/* Root-cause problems */}
           {patient.problems && patient.problems.length > 0 && (
-            <div className="doc-problems-list">
-              {patient.problems.map((pr, i) => (
-                <div key={i} className="doc-problem-chip">
-                  <strong>{pr.label}:</strong> {pr.deviation} ({pr.current_value} vs {pr.baseline_range}) —{" "}
-                  <span style={{ color: "var(--color-muted)" }}>{pr.explanation}</span>
-                </div>
-              ))}
+            <div className="cdss-problems-section">
+              <span className="problems-header-title">Aniqlangan patologik chetlanishlar:</span>
+              <div className="problems-table-official">
+                {patient.problems.map((pr, i) => (
+                  <div key={i} className="problem-row-official">
+                    <span className="pr-param">{pr.label}</span>
+                    <span className="pr-deviation">{pr.deviation}</span>
+                    <span className="pr-values">O'lchangan: <strong>{pr.current_value}</strong> / Baza: {pr.baseline_range}</span>
+                    <span className="pr-desc">{pr.explanation}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* 5. Multi-Row 7-Day Physiological Charts with Baseline Corridors */}
-      <div className="charts-grid">
-        <h3 style={{ fontSize: "17px", fontWeight: 700, marginTop: "12px" }}>
-          {t("detail.vitals_history", lang)}
-        </h3>
+      {/* 5. Telemetric Physiological Charts with Shaded Baseline Corridors */}
+      <div className="telemetry-section">
+        <div className="telemetry-header">
+          <h3 className="section-heading">UZLUKSIZ FIZIOLOGIK TELEMETRIYA GRAFIKLARI (OXIRGI 7 KUN)</h3>
+          <span className="telemetry-sub-note">
+            Soyalangan soha: bemorning shaxsiy normativ koridori (Median ± 2σ)
+          </span>
+        </div>
 
-        {patient.series.map((s) => (
-          <ParamChart key={s.param} series={s} />
-        ))}
+        <div className="telemetry-charts-grid">
+          {patient.series.map((s) => (
+            <ParamChart key={s.param} series={s} />
+          ))}
+        </div>
       </div>
 
-      {/* 6. Alerts History & Isolation Forest AI Advisory */}
+      {/* 6. Alerts & Anomaly Audit Trail */}
       {patient.alerts && patient.alerts.length > 0 && (
-        <div className="alerts-card">
-          <h3 className="alerts-title">{t("detail.alerts_history", lang)}</h3>
-          {patient.alerts.map((a) => (
-            <div key={a.id} className="alert-item">
-              <div>
-                <span className={`status-dot ${a.level}`} />
-                <strong>{new Date(a.ts).toLocaleString()}</strong> — {a.reason}
-                {a.anomaly_score !== null && (
-                  <span
-                    style={{
-                      marginLeft: "10px",
-                      fontSize: "11px",
-                      color: "var(--color-muted)",
-                      backgroundColor: "#F0EFEB",
-                      padding: "2px 6px",
-                      borderRadius: "3px",
-                    }}
-                  >
-                    IsolationForest: {Math.round(a.anomaly_score * 100)}% (advisory)
-                  </span>
-                )}
+        <div className="alerts-audit-panel">
+          <h3 className="section-heading">KUZATUV PROTOKOLI VA SIGNALLAR TARIXI</h3>
+          <div className="alerts-table">
+            {patient.alerts.map((a) => (
+              <div key={a.id} className="alert-row-official">
+                <div className="alert-time-cell">
+                  <span className={`status-badge-dot ${a.level}`} />
+                  <code>{new Date(a.ts).toLocaleString("uz-UZ")}</code>
+                </div>
+                <div className="alert-reason-cell">
+                  <span>{a.reason}</span>
+                  {a.anomaly_score !== null && (
+                    <span className="advisory-score-tag">
+                      IsolationForest indeksi: {Math.round(a.anomaly_score * 100)}% (advisory)
+                    </span>
+                  )}
+                </div>
+                <div className="alert-score-cell">
+                  Kompozit Z: <strong>{a.composite_score}</strong>
+                </div>
               </div>
-              <span style={{ fontWeight: 600 }}>Score: {a.composite_score}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -295,26 +321,27 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {isDischargeModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsDischargeModalOpen(false)}>
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">{t("detail.discharge_confirm_title", lang)}</h2>
-            <p style={{ fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5, marginBottom: "20px" }}>
-              {t("detail.discharge_confirm_desc", lang)}
+            <h2 className="modal-title">Bemor monitoringini yakunlash (Chiqarish)</h2>
+            <p className="modal-desc">
+              Bemor <strong>{patient.full_name}</strong> bo'yicha masofaviy telemetrik
+              monitoring yakunlanadi va bemor reabilitatsiya rejasiga o'tkaziladi.
             </p>
             <div className="modal-actions">
               <button
                 type="button"
-                className="btn btn-outline"
+                className="btn-clinical"
                 onClick={() => setIsDischargeModalOpen(false)}
                 disabled={discharging}
               >
-                {t("confirm_modal.cancel", lang)}
+                Bekor qilish
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn-clinical btn-discharge-submit"
                 onClick={handleDischargePatient}
                 disabled={discharging}
               >
-                {discharging ? "..." : t("detail.discharge_confirm_submit", lang)}
+                {discharging ? "Bajarilmoqda..." : "Tasdiqlash va chiqarish"}
               </button>
             </div>
           </div>

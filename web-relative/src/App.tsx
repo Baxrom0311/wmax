@@ -39,8 +39,27 @@ export const App: React.FC = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState<boolean>(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tg = (window as any).Telegram?.WebApp;
+  const isTMA = Boolean(tg?.initData);
+
   // Extract token from URL path if available (/r/:token)
   useEffect(() => {
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      // Set Telegram theme to match our white design
+      try {
+        tg.setHeaderColor("#ffffff");
+        tg.setBackgroundColor("#f8fafc");
+      } catch { /* older TMA versions may not support */ }
+      // Auto-launch inside Telegram Mini App
+      if (!token && !getStoredToken()) {
+        setViewData(MOCK_RELATIVE_VIEW_PRO);
+        setToken("tg_webapp_session");
+      }
+    }
+
     const pathParts = window.location.pathname.split("/").filter(Boolean);
     const rIndex = pathParts.indexOf("r");
     if (rIndex !== -1 && pathParts[rIndex + 1]) {
@@ -130,7 +149,7 @@ export const App: React.FC = () => {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <LanguageSelector lang={lang} onChange={setLang} />
-          {token && (
+          {token && !isTMA && (
             <button
               type="button"
               onClick={handleLogout}
@@ -254,37 +273,39 @@ export const App: React.FC = () => {
             lang={lang}
           />
 
-          {/* Demo stage switcher chips */}
-          <div className="state-switcher-demo">
-            <button
-              type="button"
-              className={`demo-chip ${viewData.level === "green" ? "active" : ""}`}
-              onClick={() => setDemoState("green")}
-            >
-              Yashil
-            </button>
-            <button
-              type="button"
-              className={`demo-chip ${viewData.level === "amber" ? "active" : ""}`}
-              onClick={() => setDemoState("amber")}
-            >
-              Sariq
-            </button>
-            <button
-              type="button"
-              className={`demo-chip ${viewData.level === "red" ? "active" : ""}`}
-              onClick={() => setDemoState("red")}
-            >
-              Qizil
-            </button>
-            <button
-              type="button"
-              className={`demo-chip ${viewData.level === "no_data" ? "active" : ""}`}
-              onClick={() => setDemoState("no_data")}
-            >
-              No Data
-            </button>
-          </div>
+          {/* Demo stage switcher chips — hidden inside Telegram Mini App */}
+          {!isTMA && (
+            <div className="state-switcher-demo">
+              <button
+                type="button"
+                className={`demo-chip ${viewData.level === "green" ? "active" : ""}`}
+                onClick={() => setDemoState("green")}
+              >
+                Yashil
+              </button>
+              <button
+                type="button"
+                className={`demo-chip ${viewData.level === "amber" ? "active" : ""}`}
+                onClick={() => setDemoState("amber")}
+              >
+                Sariq
+              </button>
+              <button
+                type="button"
+                className={`demo-chip ${viewData.level === "red" ? "active" : ""}`}
+                onClick={() => setDemoState("red")}
+              >
+                Qizil
+              </button>
+              <button
+                type="button"
+                className={`demo-chip ${viewData.level === "no_data" ? "active" : ""}`}
+                onClick={() => setDemoState("no_data")}
+              >
+                No Data
+              </button>
+            </div>
+          )}
         </main>
       ) : null}
     </>

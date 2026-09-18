@@ -17,11 +17,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "login.error": "Telefon yoki parol xato",
     "logout": "Chiqish",
 
-    // Backend emitted keys
-    "state.good": "Yaxshi",
+    // Backend emitted keys & direct level keys
+    "state.good": "Barqaror",
     "state.attention": "E'tibor",
-    "state.risk": "Qizil xavf",
-    "state.no_data": "Ma'lumot yo'q",
+    "state.risk": "Kritik xavf",
+    "state.red": "I Daraja (Kritik)",
+    "state.amber": "II Daraja (Kuzatuv)",
+    "state.green": "III Daraja (Barqaror)",
+    "state.no_data": "Aloqa yo'q",
     "rec.contact_today": "Bugun bog'laning",
     "rec.visit_within_3_days": "3 kun ichida ko'rik tavsiya etiladi",
     "rec.routine_followup": "Reja bo'yicha kuzatuv",
@@ -109,10 +112,13 @@ const translations: Record<Lang, Record<string, string>> = {
     "login.error": "Неверный телефон или пароль",
     "logout": "Выйти",
 
-    // Backend emitted keys
+    // Backend emitted keys & direct level keys
     "state.good": "В норме",
     "state.attention": "Внимание",
-    "state.risk": "Красный риск",
+    "state.risk": "Критический риск",
+    "state.red": "I Степень (Критический)",
+    "state.amber": "II Степень (Внимание)",
+    "state.green": "III Степень (Стабильный)",
     "state.no_data": "Нет данных",
     "rec.contact_today": "Свяжитесь сегодня",
     "rec.visit_within_3_days": "Осмотр в течение 3 дней",

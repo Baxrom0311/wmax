@@ -28,6 +28,15 @@ const PARAM_TABS: Record<string, { labelKey: string; unit: string; color: string
   skin_temp: { labelKey: "metrics.tab_temp", unit: "°C", color: "#65558F" },
 };
 
+// O'zbekcha qisqa kun nomlari
+const UZ_DAYS_SHORT: Record<number, string> = {
+  0: "Yak", 1: "Du", 2: "Se", 3: "Cho", 4: "Pa", 5: "Ju", 6: "Sha",
+};
+
+const RU_DAYS_SHORT: Record<number, string> = {
+  0: "Вс", 1: "Пн", 2: "Вт", 3: "Ср", 4: "Чт", 5: "Пт", 6: "Сб",
+};
+
 export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, lang }) => {
   const [activeParam, setActiveParam] = useState<string>("spo2");
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
@@ -45,29 +54,39 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
   const pointLimit = timeRange === "24h" ? 6 : timeRange === "3d" ? 18 : 42;
   const filteredPoints = currentSeries.points.slice(-pointLimit);
 
-  const chartData = filteredPoints.map((p) => ({
-    time: new Date(p.ts).toLocaleDateString([], {
-      weekday: timeRange === "7d" ? "short" : undefined,
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    value: p.value,
-    rawTs: p.ts,
-  }));
+  const daysMap = lang === "uz" ? UZ_DAYS_SHORT : RU_DAYS_SHORT;
+
+  const chartData = filteredPoints.map((p) => {
+    const d = new Date(p.ts);
+    const dayLabel = daysMap[d.getDay()] || "";
+    const timeLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return {
+      time: timeRange === "7d" ? `${dayLabel} ${timeLabel}` : timeLabel,
+      value: p.value,
+      rawTs: p.ts,
+    };
+  });
+
+  // Haptic for Telegram
+  const haptic = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tg = (window as any).Telegram?.WebApp?.HapticFeedback;
+    if (tg) tg.selectionChanged();
+  };
 
   return (
     <div className="metrics-interactive-section">
       <div className="metrics-header-row">
         <h3 className="section-title">{t("metrics.title", lang)}</h3>
 
-        {/* Time Filter Buttons */}
+        {/* Time Filter — iOS Segment Control style */}
         <div className="time-filter-group">
           {(["24h", "3d", "7d"] as TimeRange[]).map((range) => (
             <button
               key={range}
               type="button"
               className={`range-btn ${timeRange === range ? "active" : ""}`}
-              onClick={() => setTimeRange(range)}
+              onClick={() => { setTimeRange(range); haptic(); }}
             >
               {t(`metrics.range_${range}`, lang)}
             </button>
@@ -75,7 +94,7 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
         </div>
       </div>
 
-      {/* Metric Tabs */}
+      {/* Metric Tabs — fixed spacing */}
       <div className="metric-tabs-row">
         {Object.entries(PARAM_TABS).map(([key, tab]) => {
           const isSelected = activeParam === key;
@@ -87,13 +106,13 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
               key={key}
               type="button"
               className={`metric-tab-pill ${isSelected ? "active" : ""}`}
-              onClick={() => setActiveParam(key)}
+              onClick={() => { setActiveParam(key); haptic(); }}
             >
               <span className="tab-pill-label">{t(tab.labelKey, lang)}</span>
-              {latestVal !== undefined && (
+              {latestVal !== undefined && latestVal !== null && (
                 <span className="tab-pill-val">
-                  {latestVal}
-                  <span className="tab-pill-unit">{tab.unit}</span>
+                  {typeof latestVal === "number" ? latestVal.toFixed(1) : latestVal}
+                  <span className="tab-pill-unit"> {tab.unit}</span>
                 </span>
               )}
             </button>
@@ -125,7 +144,7 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
               <XAxis
                 dataKey="time"
-                tick={{ fontSize: 11, fill: COLORS.nodata }}
+                tick={{ fontSize: 10, fill: COLORS.nodata }}
                 interval="preserveStartEnd"
                 tickLine={false}
                 axisLine={{ stroke: COLORS.line }}
@@ -141,10 +160,21 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
                   backgroundColor: "#fff",
                   border: `1px solid ${COLORS.line}`,
                   fontSize: "12px",
-                  borderRadius: "6px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+                  padding: "8px 12px",
                 }}
-                formatter={(val: unknown) => [`${val} ${meta.unit}`, t(meta.labelKey, lang)]}
+                formatter={(val: unknown) => {
+                  const v = Number(val);
+                  const bm = currentSeries.baseline_median;
+                  let diffStr = "";
+                  if (bm !== null && bm !== undefined) {
+                    const diff = v - bm;
+                    const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "=";
+                    diffStr = ` (${arrow}${Math.abs(diff).toFixed(1)})`;
+                  }
+                  return [`${v} ${meta.unit}${diffStr}`, t(meta.labelKey, lang)];
+                }}
               />
               {currentSeries.baseline_low !== null && currentSeries.baseline_high !== null && (
                 <ReferenceArea
@@ -160,8 +190,9 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
                 stroke={meta.color}
                 strokeWidth={3}
                 dot={{ r: 2, fill: meta.color }}
-                activeDot={{ r: 5 }}
-                isAnimationActive={false}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+                isAnimationActive={true}
+                animationDuration={600}
               />
             </LineChart>
           </ResponsiveContainer>

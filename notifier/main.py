@@ -7,6 +7,9 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from .telegram import (
     format_active_call_reminder,
@@ -14,6 +17,7 @@ from .telegram import (
     format_no_data_alert,
     format_overdue_escalation,
     format_relative_alert,
+    poll_telegram_messages,
     send_telegram_message,
 )
 
@@ -69,6 +73,9 @@ async def main():
 
     scheduler.start()
     logger.info("Scheduler started with 3 background monitoring jobs.")
+
+    # Launch background Telegram message poller
+    polling_task = asyncio.create_task(poll_telegram_messages())
 
     try:
         while True:

@@ -100,126 +100,108 @@ export const App: React.FC = () => {
       {!token ? (
         <div className="doctor-login-wrapper">
           <div className="doctor-login-box">
-            {/* Hospital & Department Tag */}
-            <div className="login-hospital-badge">
-              <span className="hospital-dot" />
-              <span>Xorazm viloyati Kardiologiya Dispanseri</span>
+            {/* Ministry & Hospital Header */}
+            <div className="login-institution-header">
+              <div className="institution-flag-bar" />
+              <div className="institution-names">
+                <span className="inst-sub">O'ZBEKISTON RESPUBLIKASI SOG'LIQNI SAQLASH VAZIRLIGI</span>
+                <span className="inst-main">Xorazm Viloyati Kardiologiya Dispanseri</span>
+              </div>
             </div>
 
-            <div className="login-brand-header">
-              <div className="medical-pulse-logo">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="ecg-svg"
-                >
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            <div className="login-portal-title">
+              <div className="portal-emblem">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
               </div>
               <div>
-                <h1 className="login-title">
-                  {t("login.title", lang)}
-                </h1>
-                <p className="login-desc">
-                  {t("login.desc", lang)}
-                </p>
+                <h2>{t("login.title", lang)}</h2>
+                <p>Masofaviy telemetrik monitoring va erta ogohlantirish tizimi</p>
               </div>
             </div>
 
-            {/* Quick Role Selection Cards */}
-            <div className="login-role-selector">
-              <div
-                className={`login-role-card ${selectedRole === "doctor" ? "active" : ""}`}
+            {/* Segmented Official Role Selector */}
+            <div className="official-role-segmented">
+              <button
+                type="button"
+                className={`role-tab ${selectedRole === "doctor" ? "active" : ""}`}
                 onClick={() => {
                   setSelectedRole("doctor");
                   setPhone("+998901234567");
                   setPassword("nazorat123");
                 }}
               >
-                <span className="role-card-icon">👨‍⚕️</span>
-                <div className="role-card-info">
-                  <span className="role-card-title">{t("login.quick_doc", lang)}</span>
-                  <span className="role-card-sub">Dr. B. Alimov</span>
-                </div>
-                {selectedRole === "doctor" && <span className="role-active-check">✓</span>}
-              </div>
-
-              <div
-                className={`login-role-card ${selectedRole === "nurse" ? "active" : ""}`}
+                <span className="role-tab-name">Shifokor-kardiolog</span>
+                <span className="role-tab-sub">Dr. B. Alimov</span>
+              </button>
+              <button
+                type="button"
+                className={`role-tab ${selectedRole === "nurse" ? "active" : ""}`}
                 onClick={() => {
                   setSelectedRole("nurse");
                   setPhone("+998901234568");
                   setPassword("nazorat123");
                 }}
               >
-                <span className="role-card-icon">👩‍⚕️</span>
-                <div className="role-card-info">
-                  <span className="role-card-title">{t("login.quick_nurse", lang)}</span>
-                  <span className="role-card-sub">Hamshira N. Rahimova</span>
-                </div>
-                {selectedRole === "nurse" && <span className="role-active-check">✓</span>}
-              </div>
+                <span className="role-tab-name">Patronaj hamshirasi</span>
+                <span className="role-tab-sub">N. Rahimova</span>
+              </button>
             </div>
 
             {loginError && (
-              <div className="login-error-banner">
-                <span>⚠️ {loginError}</span>
+              <div className="login-error-alert">
+                <span>{loginError}</span>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="login-form">
-              <div className="login-field-group">
-                <label htmlFor="doctor-phone-input" className="login-field-label">
+            <form onSubmit={handleLogin} className="login-form-official">
+              <div className="form-field">
+                <label htmlFor="doctor-phone-input" className="form-label-official">
                   {t("login.phone_label", lang)}
                 </label>
-                <div className="input-with-icon">
-                  <span className="input-decor-icon">📞</span>
-                  <input
-                    id="doctor-phone-input"
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="doctor-text-input"
-                    placeholder="+998901234567"
-                    required
-                  />
-                </div>
+                <input
+                  id="doctor-phone-input"
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="form-input-official"
+                  placeholder="+998901234567"
+                  required
+                />
               </div>
 
-              <div className="login-field-group">
-                <label htmlFor="doctor-password-input" className="login-field-label">
+              <div className="form-field">
+                <label htmlFor="doctor-password-input" className="form-label-official">
                   {t("login.password_label", lang)}
                 </label>
-                <div className="input-with-icon">
-                  <span className="input-decor-icon">🔒</span>
-                  <input
-                    id="doctor-password-input"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="doctor-text-input"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
+                <input
+                  id="doctor-password-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="form-input-official"
+                  placeholder="••••••••"
+                  required
+                />
               </div>
 
               <button
                 type="submit"
-                className="btn btn-primary login-submit-btn"
+                className="btn-official-submit"
                 disabled={loggingIn}
               >
-                {loggingIn ? "Kirilmoqda..." : t("login.submit", lang)}
+                {loggingIn ? "Avtorizatsiya..." : t("login.submit", lang)}
               </button>
 
-              <div className="login-compliance-footer">
-                <span>🔒 O'zbekiston Respublikasi SSV standartlariga muvofiq shifrlangan</span>
+              <div className="login-notice-box">
+                <p>
+                  Ushbu tizim O'zbekiston Respublikasi SSV klinik protokollari asosida
+                  shifokorlik sirini saqlash va bemor ma'lumotlarini himoyalash
+                  talablariga to'liq javob beradi.
+                </p>
               </div>
             </form>
           </div>

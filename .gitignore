@@ -14,3 +14,5 @@ pgdata/
 .gradle/
 wear/**/build/
 *.apk
+*.exe
+cloudflared.exe

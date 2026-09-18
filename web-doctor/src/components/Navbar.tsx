@@ -23,63 +23,85 @@ export const Navbar: React.FC<NavbarProps> = ({
         .slice(0, 2)
         .join("")
         .toUpperCase()
-    : "DR";
+    : "BA";
 
   return (
     <header className="doc-header">
-      <div className="doc-logo">
-        <div className="medical-pulse-logo">
-          <svg className="ecg-svg" viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 16 9 16 12 7 16 25 19 12 22 18 25 16 29 16" />
+      <div className="doc-header-brand">
+        <div className="med-emblem">
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ filter: "drop-shadow(0 0 6px rgba(56, 189, 248, 0.8))" }}
+          >
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
         </div>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span className="doc-logo-title">NAZORAT</span>
-            <span className="doc-logo-badge">WORKSTATION PRO</span>
+        <div className="brand-text-block">
+          <div className="brand-primary-line">
+            <span className="brand-name">NAZORAT</span>
+            <span className="brand-divider">/</span>
+            <span className="brand-dept">Kardiologiya Dispanseri</span>
+            <span className="brand-badge-official">KLINIK STANSIYA</span>
           </div>
-          <div className="live-status-sub">
-            <span className="live-pulse-dot" />
-            <span>{t("app.monitoring_active", lang)}</span>
+          <div className="brand-sub-line">
+            <span className="telemetry-live-dot" />
+            <span>Telemetriya faol · Sinxronizatsiya: 15s</span>
           </div>
         </div>
       </div>
 
-      <div className="doc-header-right">
+      <div className="doc-header-controls">
         {doctorName && (
-          <div className="doctor-profile-pill">
-            <div className="doctor-avatar-circle">{initials || "MD"}</div>
-            <div className="doctor-meta">
-              <span className="doctor-name-text">{doctorName}</span>
-              <span className="doctor-role-text">Shifokor-kardiolog</span>
+          <div className="physician-badge">
+            <div className="physician-avatar">{initials}</div>
+            <div className="physician-info">
+              <span className="physician-name">{doctorName}</span>
+              <span className="physician-post">Shifokor-kardiolog</span>
             </div>
           </div>
         )}
 
-        <div className="lang-pill-container">
+        <div className="official-lang-toggle">
           <button
             type="button"
-            className={`lang-pill-btn ${lang === "uz" ? "active" : ""}`}
+            className={`lang-opt ${lang === "uz" ? "active" : ""}`}
             onClick={() => onLangChange("uz")}
           >
-            UZ
+            O'ZB
           </button>
+          <span className="lang-sep">|</span>
           <button
             type="button"
-            className={`lang-pill-btn ${lang === "ru" ? "active" : ""}`}
+            className={`lang-opt ${lang === "ru" ? "active" : ""}`}
             onClick={() => onLangChange("ru")}
           >
-            RU
+            РУС
           </button>
         </div>
 
         <button
           type="button"
           onClick={onLogout}
-          className="logout-nav-btn"
+          className="btn-official-logout"
           title={t("logout", lang)}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
