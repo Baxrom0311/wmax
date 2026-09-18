@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NAZORAT Soat</string>
+    <string name="app_name">WMAX Soat</string>
     <string name="status_connected">Ulangan</string>
     <string name="status_disconnected">Ulanmagan</string>
     <string name="measuring">O\'lchanmoqda...</string>

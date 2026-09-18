@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NAZORAT Hamroh</string>
+    <string name="app_name">WMAX Hamroh</string>
     <string name="title_watch_status">Aqlli soat aloqasi</string>
     <string name="title_offline_queue">Oflayn navbat buferi (Room DB)</string>
     <string name="title_server_sync">Server sinxronizatsiyasi</string>

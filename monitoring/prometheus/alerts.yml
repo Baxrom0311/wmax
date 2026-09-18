@@ -1,0 +1,53 @@
+# Alerting Rules for NAZORAT Production Stack
+groups:
+  - name: nazorat_infrastructure_alerts
+    rules:
+      # 1. API Availability
+      - alert: ApiDown
+        expr: up{job="fastapi"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NAZORAT FastAPI backend is DOWN"
+          description: "FastAPI container has been unreachable for more than 1 minute."
+
+      # 2. High HTTP 5xx Error Rate
+      - alert: HighHttp5xxErrorRate
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate (> 5%)"
+          description: "5xx errors exceed 5% of total requests over the last 5 minutes."
+
+      # 3. High Latency Alert (p95 > 1.5s)
+      - alert: ApiHighLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "FastAPI p95 latency is high (> 1.5s)"
+          description: "95th percentile response time is above 1.5 seconds."
+
+      # 4. Gemini AI High Latency
+      - alert: GeminiAiHighLatency
+        expr: rate(gemini_request_duration_seconds_sum[5m]) / rate(gemini_request_duration_seconds_count[5m]) > 4.0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Google Gemini AI latency is high (> 4s)"
+          description: "Average latency for Gemini inference exceeds 4 seconds."
+
+      # 5. Gemini AI Circuit Breaker Open
+      - alert: GeminiCircuitBreakerOpen
+        expr: gemini_circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Gemini Circuit Breaker is OPEN"
+          description: "Gemini AI calls are falling back to rule-based engine due to repeated errors."

@@ -37,7 +37,9 @@ services:
       context: ..
       dockerfile: backend/Dockerfile
     restart: always
-    env_file: ../.env
+    env_file:
+      - path: ../.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +67,9 @@ services:
       dockerfile: backend/Dockerfile
     command: ["python", "-m", "notifier.main"]
     restart: always
-    env_file: ../.env
+    env_file:
+      - path: ../.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

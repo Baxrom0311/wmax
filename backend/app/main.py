@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.health import router as health_router
 from app.api.ingest import router as ingest_router
 from app.api.patients import router as patients_router
 from app.api.relatives import router as relatives_router
@@ -56,6 +57,7 @@ async def health_check() -> dict[str, str]:
 
 
 # Mount all routers
+app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(ingest_router)
 app.include_router(patients_router)

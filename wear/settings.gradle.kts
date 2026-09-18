@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NazoratWear"
+rootProject.name = "WmaxWear"
 include(":watch")
 include(":phone")

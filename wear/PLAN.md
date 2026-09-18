@@ -15,7 +15,7 @@ Qurilma qatlami — aqlli soat (Galaxy Watch 5 / Wear OS) datchiklaridan o'lchov
 ## 2. Fayllar Tuzilmasi va Qadamlar
 
 ### 2.1 Noutbuk Simulyatori (`scripts/watch_sim.py`) — BIRINCHI QADAM
-- [ ] `scripts/watch_sim.py`:
+- [x] `scripts/watch_sim.py`:
   - Python skripti, `httpx` orqali `POST /api/v1/ingest` ga so'rov yuboradi.
   - Sxema: `contracts/openapi.yaml` dagi `IngestBatch` va `ReadingIn` ga 100% mos.
   - Parametrlar: `--patient-id`, `--base-url`, `--interval`.
@@ -23,7 +23,7 @@ Qurilma qatlami — aqlli soat (Galaxy Watch 5 / Wear OS) datchiklaridan o'lchov
   - A1 ning idempotentligini tekshirish: Bir xil `(patient_id, ts)` juftligini qayta yuborib ko'rish.
 
 ### 2.2 Wear OS Soat Ilovasi (`wear/watch/`)
-- [ ] Kotlin / Gradle loyihasi:
+- [x] Kotlin / Gradle loyihasi:
   - SDK: `androidx.health:health-services-client`.
   - Datchiklar:
     - `HEART_RATE_BPM` (uzluksiz).
@@ -34,14 +34,14 @@ Qurilma qatlami — aqlli soat (Galaxy Watch 5 / Wear OS) datchiklaridan o'lchov
   - Soat ekrani: joriy puls, ulanish holati ("Ulangan" / "Ulanmagan").
 
 ### 2.3 Android Telefon Ilovasi (`wear/phone/`)
-- [ ] Kotlin / Gradle loyihasi:
+- [x] Kotlin / Gradle loyihasi:
   - Data Layer API orqali soatdan paketlarni qabul qilish.
   - **Room DB buferi:** Internet bo'lmaganda barcha o'lchovlarni xavfsiz saqlash.
   - `WorkManager`: Tarmoq paydo bo'lganda eksponensial qayta urinish bilan backend `POST /api/v1/ingest` ga yuborish.
   - Telefon ekrani: ulanish holati, navbatdagi yozuvlar soni, oxirgi sinxron vaqti.
 
 ### 2.4 Hujjatlashtirish
-- [ ] `wear/README.md`:
+- [x] `wear/README.md`:
   - Qaysi Android Studio versiyasi kerakligi.
   - SDK sozlamalari, Wear OS emulatorida sinash qadamlari.
   - APK build qilish buyruqlari.

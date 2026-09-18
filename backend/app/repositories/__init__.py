@@ -4,6 +4,7 @@ from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reading_repo import ReadingRepository
+from app.repositories.refresh_token_repo import RefreshTokenRepository
 from app.repositories.relative_repo import RelativeRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
@@ -16,4 +17,5 @@ __all__ = [
     "TaskRepository",
     "RelativeRepository",
     "UserRepository",
+    "RefreshTokenRepository",
 ]

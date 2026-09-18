@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NAZORAT — Smartwatch & Ingest Simulator.
+"""WMAX — Smartwatch & Ingest Simulator.
 
 Simulates the Wear OS smartwatch and phone companion ingestion pipeline.
 Sends 5-minute aggregated biometric readings to the backend API:
@@ -150,7 +150,7 @@ class OfflineQueueBuffer:
 
 
 class IngestClient:
-    """Client for uploading IngestBatch payloads to NAZORAT backend."""
+    """Client for uploading IngestBatch payloads to WMAX backend."""
 
     def __init__(self, base_url: str, patient_id: str, device_id: str) -> None:
         self.base_url = base_url.rstrip("/")
@@ -274,7 +274,7 @@ def run_offline_test(client: IngestClient, gen: VitalsGenerator) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="NAZORAT Smartwatch & Ingest Simulator (A5)",
+        description="WMAX Smartwatch & Ingest Simulator (A5)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -333,7 +333,7 @@ def main() -> int:
     args = parser.parse_args()
 
     logger.info("--------------------------------------------------")
-    logger.info("NAZORAT Watch Simulator (A5)")
+    logger.info("WMAX Watch Simulator (A5)")
     logger.info("Target Patient: %s", args.patient_id)
     logger.info("Target URL:     %s/api/v1/ingest", args.base_url)
     logger.info("Device ID:      %s", args.device_id)
