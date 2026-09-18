@@ -82,12 +82,14 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
 
 #root {
   width: 100%;
-  max-width: 760px;
+  max-width: 580px;
+  margin: 0 auto;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: 50px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 24px));
 }
 
 /* ==========================================================================
@@ -144,13 +146,15 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 22px;
-  background: #ffffff;
+  padding: max(12px, env(safe-area-inset-top, 12px)) 18px 12px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .brand-wrapper {
@@ -1492,5 +1496,66 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
 }
 .contact-btn:active {
   transform: scale(0.96);
+}
+
+/* ==========================================================================
+   TELEGRAM MINI APP MOBILE RESPONSIVE OPTIMIZATION (<= 520px)
+   ========================================================================== */
+@media (max-width: 520px) {
+  .hero-prognosis-wrapper,
+  .vitals-section,
+  .problems-section,
+  .metrics-interactive-section,
+  .action-contact-section,
+  .patient-switcher-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .status-hub-card {
+    padding: 18px 12px 16px;
+    border-radius: 20px;
+  }
+
+  .main-orb {
+    width: 134px;
+    height: 134px;
+  }
+
+  .orb-icon {
+    font-size: 26px;
+  }
+
+  .orb-status-text {
+    font-size: 16px;
+  }
+
+  .vitals-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .vital-card {
+    padding: 12px 12px;
+    border-radius: 16px;
+  }
+
+  .vital-number {
+    font-size: 22px;
+  }
+
+  .prognosis-title {
+    font-size: 15px;
+  }
+
+  .problem-card {
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+
+  .doctor-contact-card {
+    padding: 16px 14px;
+    border-radius: 18px;
+  }
 }
 

@@ -34,7 +34,7 @@ export const ActionContactBar: React.FC<ActionContactBarProps> = ({
           <div>
             <span className="doc-label">{t("actions.doctor_name", lang)}</span>
             <h4 className="doc-fullname">{doctorContact?.name || "Dr. Bahrom Alimov"}</h4>
-            <span className="doc-specialty">Kardiolog-shifokor · Xorazm KD</span>
+            <span className="doc-specialty">{t("actions.doc_specialty", lang)}</span>
             {recommendation && <p className="doc-rec-text">💬 {recommendation}</p>}
           </div>
         </div>

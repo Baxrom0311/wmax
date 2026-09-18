@@ -1,0 +1,11 @@
+{
+  "super_admin_id": 6956456422,
+  "admins": {
+    "6956456422": {
+      "id": 6956456422,
+      "name": "Super Admin",
+      "role": "super_admin",
+      "added_at": "2026-09-18T17:21:26.324415+00:00"
+    }
+  }
+}

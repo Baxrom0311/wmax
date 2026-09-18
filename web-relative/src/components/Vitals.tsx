@@ -122,7 +122,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-unit">{t("vitals.bpm", lang)}</span>
           </div>
           <div className="vital-sub-note">
-            <span>Me'yor: 60 – 90 bpm</span>
+            <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_hr", lang)}</span>
           </div>
         </div>
 
@@ -142,7 +142,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-unit">%</span>
           </div>
           <div className="vital-sub-note">
-            <span>Me'yor: 95% – 100%</span>
+            <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_spo2", lang)}</span>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-unit">°C</span>
           </div>
           <div className="vital-sub-note">
-            <span>Me'yor: 36.0 – 37.2 °C</span>
+            <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_temp", lang)}</span>
           </div>
         </div>
 
@@ -182,7 +182,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-unit">{t("vitals.breaths", lang)}</span>
           </div>
           <div className="vital-sub-note">
-            <span>Me'yor: 12 – 20 /daq</span>
+            <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_rr", lang)}</span>
           </div>
         </div>
 
@@ -202,7 +202,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-unit">{t("vitals.hours", lang)}</span>
           </div>
           <div className="vital-sub-note">
-            <span>Me'yor: 7 – 9 soat</span>
+            <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_sleep", lang)}</span>
           </div>
         </div>
 
@@ -221,10 +221,10 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
             <span className="vital-number">
               {steps !== null && steps !== undefined ? steps.toLocaleString() : "—"}
             </span>
-            <span className="vital-unit">qadam</span>
+            <span className="vital-unit">{t("vitals.steps_unit", lang)}</span>
           </div>
           <div className="vital-sub-note">
-            <span>Kunlik reja: 5,000</span>
+            <span>{t("vitals.steps_target", lang)}</span>
           </div>
         </div>
       </div>

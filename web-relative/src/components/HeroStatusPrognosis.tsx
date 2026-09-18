@@ -90,8 +90,8 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
         <div className="ai-prognosis-card">
           <div className="prognosis-header">
             <div className="prognosis-badge-group">
-              <span className="prognosis-ai-tag">✨ AI CLINICAL ENGINE</span>
-              <span className="prognosis-sub-tag">CIRCADIAN 72H</span>
+              <span className="prognosis-ai-tag">{t("hero.ai_engine_tag", lang)}</span>
+              <span className="prognosis-sub-tag">{t("hero.circadian_tag", lang)}</span>
             </div>
             <span
               className="prognosis-risk-badge"
@@ -127,7 +127,7 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
             <div className="prognosis-rec-box">
               <span className="prognosis-rec-icon">💡</span>
               <p className="prognosis-rec">
-                <strong>Tavsiya:</strong> {prognosis.recommendation}
+                <strong>{t("hero.rec_label", lang)}</strong> {prognosis.recommendation}
               </p>
             </div>
           </div>

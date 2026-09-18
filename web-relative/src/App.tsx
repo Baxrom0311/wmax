@@ -48,10 +48,10 @@ export const App: React.FC = () => {
     if (tg) {
       tg.ready();
       tg.expand();
-      // Set Telegram theme to match our white design
       try {
-        tg.setHeaderColor("#ffffff");
-        tg.setBackgroundColor("#f8fafc");
+        tg.enableClosingConfirmation?.();
+        tg.setHeaderColor?.("#ffffff");
+        tg.setBackgroundColor?.("#f8fafc");
       } catch { /* older TMA versions may not support */ }
       // Auto-launch inside Telegram Mini App
       if (!token && !getStoredToken()) {
@@ -221,7 +221,7 @@ export const App: React.FC = () => {
         </div>
       ) : loading ? (
         <div className="main-content" style={{ justifyContent: "center", alignItems: "center" }}>
-          <span style={{ color: "var(--color-muted)" }}>Yuklanmoqda...</span>
+          <span style={{ color: "var(--color-muted)" }}>{t("app.loading", lang)}</span>
         </div>
       ) : viewData ? (
         <main className="main-content">
@@ -281,28 +281,28 @@ export const App: React.FC = () => {
                 className={`demo-chip ${viewData.level === "green" ? "active" : ""}`}
                 onClick={() => setDemoState("green")}
               >
-                Yashil
+                {t("state.good", lang)}
               </button>
               <button
                 type="button"
                 className={`demo-chip ${viewData.level === "amber" ? "active" : ""}`}
                 onClick={() => setDemoState("amber")}
               >
-                Sariq
+                {t("state.attention", lang)}
               </button>
               <button
                 type="button"
                 className={`demo-chip ${viewData.level === "red" ? "active" : ""}`}
                 onClick={() => setDemoState("red")}
               >
-                Qizil
+                {t("state.risk", lang)}
               </button>
               <button
                 type="button"
                 className={`demo-chip ${viewData.level === "no_data" ? "active" : ""}`}
                 onClick={() => setDemoState("no_data")}
               >
-                No Data
+                {t("state.no_data", lang)}
               </button>
             </div>
           )}
