@@ -66,7 +66,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
             task.due_at.isoformat(),
         )
         task.escalated_at = now
-        task.status = "expired"
+        task.status = "overdue"
 
     await session.commit()
 

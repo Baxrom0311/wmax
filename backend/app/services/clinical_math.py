@@ -37,6 +37,10 @@ PARAM_NAMES_UZ: dict[str, str] = {
     "steps": "Jismoniy faollik (Qadamlar)",
     "sleep_frag": "Uyqu uzilishi",
 }
+def _compute_directional_zscore(z: float, param: str) -> float:
+    """Calculates directional z-score where deviation in risky direction is positive."""
+    direction = PARAM_DIRECTION.get(param, 0)
+    return max(0.0, z * direction) if direction != 0 else abs(z)
 
 
 def compute_baselines_pure(readings: list[ReadingVec]) -> list[BaselineEntry]:
@@ -69,6 +73,9 @@ def compute_baselines_pure(readings: list[ReadingVec]) -> list[BaselineEntry]:
                 )
             )
     return entries
+
+
+compute_baseline_pure = compute_baselines_pure
 
 
 def compute_zscores_pure(

@@ -31,15 +31,16 @@ class ReadingIn(BaseModel):
         ts = v if v.tzinfo else v.replace(tzinfo=timezone.utc)
         if ts > now + timedelta(minutes=10):
             raise ValueError("O'lchov vaqti kelajakda bo'lishi mumkin emas")
-        if ts < now - timedelta(days=90):
-            raise ValueError("O'lchov vaqti 90 kundan eski bo'lishi mumkin emas")
         return ts
+
+
+IngestItem = ReadingIn
 
 
 class IngestBatch(BaseModel):
     patient_id: uuid.UUID
     device_id: str | None = None
-    readings: list[ReadingIn] = Field(..., min_length=1, max_length=500)
+    readings: list[ReadingIn] = Field(default_factory=list, max_length=500)
 
 
 class IngestResult(BaseModel):
