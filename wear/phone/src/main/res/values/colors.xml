@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NAZORAT design tokens from contracts/types.ts -->
+    <color name="good">#2E7D5B</color>
+    <color name="attention">#C77A0A</color>
+    <color name="risk">#B3261E</color>
+    <color name="nodata">#8A8780</color>
+    <color name="bg">#FAFAF8</color>
+    <color name="text">#1C1B1F</color>
+    <color name="line">#D8D6D0</color>
+</resources>

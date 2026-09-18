@@ -1,0 +1,51 @@
+# Git and VCS
+.git/
+.gitignore
+.github/
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend build artifacts
+node_modules/
+dist/
+build/
+.npm/
+
+# Database data & proxy data
+pgdata/
+caddy_data/
+caddy_config/
+nginx_logs/
+
+# Mobile / Android / Wear OS
+.gradle/
+wear/**/build/
+*.apk
+*.aab
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets & environment
+.env
+.env.*
+!.env.example
+
+# Documentation & logs
+docs/
+*.log

@@ -1,0 +1,81 @@
+# Local development / HTTP-only reverse proxy configuration
+# Used with ops/docker-compose.nginx-local.yml
+
+upstream api_backend {
+    server api:8000;
+    keepalive 32;
+}
+
+upstream web_doctor_backend {
+    server web-doctor:80;
+    keepalive 16;
+}
+
+upstream web_relative_backend {
+    server web-relative:80;
+    keepalive 16;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name localhost 127.0.0.1;
+
+    # Client body limit
+    client_max_body_size 25M;
+
+    # Health check
+    location = /healthz {
+        access_log off;
+        return 200 "OK\n";
+        add_header Content-Type text/plain;
+    }
+
+    # API endpoints
+    location /api/ {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_connect_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # API docs
+    location ~ ^/(docs|redoc|openapi.json) {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Relative web portal (/r/)
+    location /r/ {
+        proxy_pass http://web_relative_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+
+    # Doctor clinical portal (/)
+    location / {
+        proxy_pass http://web_doctor_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+}

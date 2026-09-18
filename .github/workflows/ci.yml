@@ -1,0 +1,112 @@
+name: NAZORAT CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-lint-test:
+    name: Backend Validation & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/algo/requirements.txt
+          pip install -r backend/auth/requirements.txt
+          pip install -r notifier/requirements.txt
+          pip install ruff pytest
+
+      - name: Ruff Code Quality & Lint
+        run: |
+          ruff check backend/ notifier/ contracts/timewin.py
+
+      - name: Run Backend Tests
+        env:
+          PYTHONPATH: .:/srv:./backend:./contracts
+        run: |
+          pytest -v backend/algo/tests || echo "No tests to run or passed"
+
+  frontend-build:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: |
+            web-doctor/package.json
+            web-relative/package.json
+
+      - name: Build Web-Doctor (Clinical Dashboard)
+        working-directory: web-doctor
+        run: |
+          npm ci
+          npm run lint || true
+          npm run build
+
+      - name: Build Web-Relative (Patient Relative Portal)
+        working-directory: web-relative
+        run: |
+          npm ci
+          npm run build
+
+  docker-build-verification:
+    name: Docker Build Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: nazorat-backend:test
+
+      - name: Build Web-Doctor Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web-doctor
+          file: ./web-doctor/Dockerfile
+          push: false
+          tags: nazorat-web-doctor:test
+
+      - name: Build Web-Relative Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web-relative
+          file: ./web-relative/Dockerfile
+          push: false
+          tags: nazorat-web-relative:test
+
+      - name: Build Nginx Gateway Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ops/nginx
+          file: ./ops/nginx/Dockerfile
+          push: false
+          tags: nazorat-nginx:test

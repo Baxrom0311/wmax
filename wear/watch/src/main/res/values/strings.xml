@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NAZORAT Soat</string>
+    <string name="status_connected">Ulangan</string>
+    <string name="status_disconnected">Ulanmagan</string>
+    <string name="measuring">O\'lchanmoqda...</string>
+    <string name="syncing">Jo\'natilmoqda...</string>
+    <string name="bpm">bpm</string>
+    <string name="spo2">SpO2</string>
+    <string name="steps">Qadam</string>
+    <string name="measure_now">O\'lchash</string>
+    <string name="send_to_phone">Telefonga jo\'natish</string>
+    <string name="sensor_worn">Soat taqilgan</string>
+    <string name="sensor_offbody">Soat yechilgan</string>
+</resources>

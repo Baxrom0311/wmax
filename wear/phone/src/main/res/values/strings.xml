@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NAZORAT Hamroh</string>
+    <string name="title_watch_status">Aqlli soat aloqasi</string>
+    <string name="title_offline_queue">Oflayn navbat buferi (Room DB)</string>
+    <string name="title_server_sync">Server sinxronizatsiyasi</string>
+    <string name="title_latest_reading">Oxirgi qabul qilingan o\'lchov</string>
+    <string name="status_connected">Ulangan</string>
+    <string name="status_disconnected">Ulanmagan</string>
+    <string name="queue_items">%1$d ta o\'lchov jo\'natishga tayyor</string>
+    <string name="sync_now">Hozir sinxronlash</string>
+    <string name="syncing">Sinxronlanmoqda...</string>
+    <string name="last_sync_time">Oxirgi sinxron: %1$s</string>
+    <string name="no_sync_yet">Hali sinxron qilinmagan</string>
+    <string name="patient_id_label">Bemor ID:</string>
+    <string name="backend_url_label">Backend manzili:</string>
+</resources>
