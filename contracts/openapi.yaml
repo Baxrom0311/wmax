@@ -1,0 +1,346 @@
+openapi: 3.1.0
+info:
+  title: NAZORAT API
+  version: "1.0.0"
+  description: |
+    FROZEN CONTRACT. A1 implements /ingest, /patients, /tasks.
+    A6 implements /auth/*. A3, A4, A5 consume this document.
+    All timestamps are UTC ISO-8601. All clinical windowing is Asia/Tashkent
+    (see contracts/timewin.py) and is never exposed as a raw hour.
+servers:
+  - url: /api/v1
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    AlertLevel:
+      type: string
+      enum: [green, amber, red, no_data]
+    Phase:
+      type: string
+      enum: [calib, learning, full]
+    TrendDirection:
+      type: string
+      enum: [improving, stable, worsening]
+    TaskStatus:
+      type: string
+      enum: [created, sent, seen, done, overdue]
+    Role:
+      type: string
+      enum: [doctor, nurse, admin]
+
+    ReadingIn:
+      type: object
+      required: [ts]
+      properties:
+        ts:         { type: string, format: date-time }
+        hr_mean:    { type: number, nullable: true }
+        hr_min:     { type: number, nullable: true }
+        hr_max:     { type: number, nullable: true }
+        rmssd:      { type: number, nullable: true }
+        sdnn:       { type: number, nullable: true }
+        spo2:       { type: number, nullable: true }
+        skin_temp:  { type: number, nullable: true }
+        steps:      { type: integer, nullable: true }
+        rr_est:     { type: number, nullable: true }
+        sleep_frag: { type: number, nullable: true }
+        worn:       { type: boolean, default: true }
+        battery:    { type: integer, nullable: true }
+
+    IngestBatch:
+      type: object
+      required: [patient_id, readings]
+      properties:
+        patient_id: { type: string, format: uuid }
+        device_id:  { type: string, nullable: true }
+        readings:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/ReadingIn' }
+
+    IngestResult:
+      type: object
+      description: Idempotent. Re-sending the same (patient_id, ts) is a no-op.
+      properties:
+        accepted:  { type: integer }
+        duplicates:{ type: integer }
+        latest_level: { $ref: '#/components/schemas/AlertLevel' }
+
+    Trend:
+      type: object
+      properties:
+        slope:     { type: number }
+        direction: { $ref: '#/components/schemas/TrendDirection' }
+        recommendation_key:
+          type: string
+          description: i18n key; frontends translate it (uz/ru). Never a ready sentence.
+        days_used: { type: integer }
+
+    PatientSummary:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        full_name:  { type: string }
+        age:        { type: integer }
+        sex:        { type: string, enum: [m, f] }
+        diagnosis:  { type: string }
+        district:   { type: string }
+        phase:      { $ref: '#/components/schemas/Phase' }
+        level:      { $ref: '#/components/schemas/AlertLevel' }
+        composite_score: { type: number }
+        triggered_params:
+          type: object
+          additionalProperties: { type: number }
+        trend:      { $ref: '#/components/schemas/Trend' }
+        last_reading_at: { type: string, format: date-time, nullable: true }
+        open_task:  { $ref: '#/components/schemas/Task', nullable: true }
+
+    SeriesPoint:
+      type: object
+      properties:
+        ts:    { type: string, format: date-time }
+        value: { type: number, nullable: true }
+
+    ParamSeries:
+      type: object
+      properties:
+        param:  { type: string }
+        points: { type: array, items: { $ref: '#/components/schemas/SeriesPoint' } }
+        baseline_median: { type: number, nullable: true }
+        baseline_low:    { type: number, nullable: true }
+        baseline_high:   { type: number, nullable: true }
+        deviated_ranges:
+          type: array
+          description: Highlight bands for the doctor chart.
+          items:
+            type: object
+            properties:
+              from: { type: string, format: date-time }
+              to:   { type: string, format: date-time }
+
+    Alert:
+      type: object
+      properties:
+        id:    { type: integer }
+        ts:    { type: string, format: date-time }
+        level: { $ref: '#/components/schemas/AlertLevel' }
+        composite_score: { type: number }
+        triggered_params:
+          type: object
+          additionalProperties: { type: number }
+        anomaly_score:
+          type: number
+          nullable: true
+          description: ADVISORY. Shown as a secondary label, never drives the level.
+        reason: { type: string }
+
+    Task:
+      type: object
+      properties:
+        id:         { type: integer }
+        patient_id: { type: string, format: uuid }
+        type:       { type: string, enum: [active_call, red_alert] }
+        status:     { $ref: '#/components/schemas/TaskStatus' }
+        created_at: { type: string, format: date-time }
+        due_at:     { type: string, format: date-time }
+        confirmed_at: { type: string, format: date-time, nullable: true }
+        note:       { type: string, nullable: true }
+
+    PatientDetail:
+      allOf:
+        - $ref: '#/components/schemas/PatientSummary'
+        - type: object
+          properties:
+            series:  { type: array, items: { $ref: '#/components/schemas/ParamSeries' } }
+            alerts:  { type: array, items: { $ref: '#/components/schemas/Alert' } }
+            tasks:   { type: array, items: { $ref: '#/components/schemas/Task' } }
+            baseline_approved: { type: boolean }
+
+    RelativeView:
+      type: object
+      description: Everything the relative screen needs, in one call.
+      properties:
+        patient_name: { type: string }
+        level:        { $ref: '#/components/schemas/AlertLevel' }
+        level_word_key:
+          type: string
+          description: i18n key — 'state.good' | 'state.attention' | 'state.risk' | 'state.no_data'
+        last_reading_at: { type: string, format: date-time, nullable: true }
+        trend:        { $ref: '#/components/schemas/Trend' }
+        sparkline:
+          type: array
+          description: 7 daily values, normalised 0..1. No axes, no numbers — a shape.
+          items: { type: number }
+        vitals:
+          type: object
+          properties:
+            hr:         { type: number, nullable: true }
+            spo2:       { type: number, nullable: true }
+            sleep_hours: { type: number, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone:    { type: string, example: "+998901234567" }
+        password: { type: string }
+
+    RelativeLoginRequest:
+      type: object
+      required: [phone, pin]
+      properties:
+        phone: { type: string }
+        pin:   { type: string, minLength: 6, maxLength: 6 }
+
+    TokenPair:
+      type: object
+      properties:
+        access_token:  { type: string }
+        refresh_token: { type: string }
+        expires_in:    { type: integer }
+        role:          { $ref: '#/components/schemas/Role' }
+        full_name:     { type: string }
+
+    Error:
+      type: object
+      properties:
+        detail: { type: string }
+
+paths:
+  # ---------------- A6: auth ----------------
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Doctor / nurse login (phone + password)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+        '401': { description: Bad credentials, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/relative/login:
+    post:
+      tags: [auth]
+      summary: Relative login (phone + 6-digit PIN). Refresh token lives 30 days.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RelativeLoginRequest' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+        '401': { description: Bad PIN }
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenPair' } } } }
+
+  /auth/me:
+    get:
+      tags: [auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  # ---------------- A1: ingest ----------------
+  /ingest:
+    post:
+      tags: [ingest]
+      summary: Batch upload of 5-minute aggregates. Idempotent.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/IngestBatch' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/IngestResult' } } } }
+
+  # ---------------- A1: patients ----------------
+  /patients:
+    get:
+      tags: [patients]
+      summary: Worklist. Sorted by attention needed (red, amber, no_data, green).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: district, schema: { type: string } }
+        - { in: query, name: level, schema: { $ref: '#/components/schemas/AlertLevel' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/PatientSummary' } }
+
+  /patients/{id}:
+    get:
+      tags: [patients]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: days, schema: { type: integer, default: 7 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PatientDetail' } } } }
+
+  /patients/{id}/discharge:
+    post:
+      tags: [patients]
+      summary: Discharge the patient and auto-create the 24h active-call task.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Task created, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+
+  /patients/{id}/approve-baseline:
+    post:
+      tags: [patients]
+      summary: Human in the loop — doctor approves the learned personal baseline (learning -> full).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK }
+
+  # ---------------- A1: tasks ----------------
+  /tasks:
+    get:
+      tags: [tasks]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/TaskStatus' } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Task' } } } } }
+
+  /tasks/{id}/confirm:
+    post:
+      tags: [tasks]
+      summary: Doctor confirms the visit; task closes.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { note: { type: string } } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+
+  # ---------------- A1: relative view ----------------
+  /relatives/{token}/view:
+    get:
+      tags: [relative]
+      summary: |
+        Relative screen payload. The URL token identifies the patient; the
+        Bearer token (from /auth/relative/login) authorises the read.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RelativeView' } } } }
+        '401': { description: PIN login required }
+
+  /health:
+    get:
+      tags: [ops]
+      responses:
+        '200': { description: OK }
