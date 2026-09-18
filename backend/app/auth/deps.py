@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.exceptions import AuthenticationException, ForbiddenException
-from app.core.security import decode_jwt
+from app.core.security import decode_token
 from app.schemas.auth import CurrentUser
 
 security_scheme = HTTPBearer(auto_error=False)
@@ -28,7 +28,7 @@ async def get_current_user(
 
     token = credentials.credentials
     try:
-        payload = decode_jwt(token)
+        payload = decode_token(token)
         if payload.get("type") == "refresh":
             raise AuthenticationException("Access token o'rniga refresh token yuborildi")
 

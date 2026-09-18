@@ -334,7 +334,7 @@ class PatientService:
         )
 
     async def approve_baseline(
-        self, patient_id: uuid.UUID, doctor_id: uuid.UUID
+        self, patient_id: uuid.UUID, approved_by: uuid.UUID
     ) -> None:
         """Human in the loop: doctor signs off on learned personal baseline."""
         patient = await self.patient_repo.get_by_id(patient_id)
@@ -342,5 +342,5 @@ class PatientService:
             raise NotFoundException("Bemor", patient_id)
 
         now = datetime.now(timezone.utc)
-        await self.patient_repo.approve_baseline(patient_id, doctor_id, now)
+        await self.patient_repo.approve_baseline(patient_id, approved_by, now)
         await self.session.commit()

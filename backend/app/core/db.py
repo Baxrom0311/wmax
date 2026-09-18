@@ -84,3 +84,20 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
+
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def get_db_context():
+    """Async context manager for database sessions in background workers."""
+    factory = get_sessionmaker()
+    async with factory() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

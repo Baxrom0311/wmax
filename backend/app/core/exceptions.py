@@ -28,12 +28,29 @@ class BaseAppException(HTTPException):
 
 
 class NotFoundException(BaseAppException):
-    def __init__(self, resource: str, identifier: Any):
+    def __init__(
+        self,
+        resource: str | None = None,
+        identifier: Any = None,
+        message: str | None = None,
+        resource_name: str | None = None,
+    ):
+        _resource = resource or resource_name or "Resource"
+        _msg = message or f"{_resource} topilmadi" + (f": {identifier}" if identifier else "")
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
-            message=f"{resource} topilmadi: {identifier}",
+            message=_msg,
             code="NOT_FOUND",
-            details={"resource": resource, "identifier": str(identifier)},
+            details={"resource": _resource, "identifier": str(identifier) if identifier else None},
+        )
+
+
+class AuthenticationException(BaseAppException):
+    def __init__(self, message: str = "Autentifikatsiya muvaffaqiyatsiz"):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message=message,
+            code="AUTHENTICATION_FAILED",
         )
 
 

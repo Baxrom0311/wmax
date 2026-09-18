@@ -53,11 +53,12 @@ def create_refresh_token(
     subject: str,
     claims: dict[str, Any] | None = None,
     expires_delta: timedelta | None = None,
+    jti: str | None = None,
 ) -> tuple[str, str, datetime]:
     """Generates a signed JWT refresh token and returns (token, jti, expires_at)."""
     now = datetime.now(timezone.utc)
     expire = now + (expires_delta or timedelta(days=settings.REFRESH_TOKEN_TTL_DAYS))
-    token_jti = str(uuid.uuid4())
+    token_jti = jti or str(uuid.uuid4())
 
     payload: dict[str, Any] = {
         "sub": subject,
@@ -81,3 +82,7 @@ def decode_token(token: str) -> dict[str, Any]:
         algorithms=[settings.JWT_ALG],
         options={"require": ["exp", "sub", "iat", "type"]},
     )
+
+
+# Alias for clarity
+decode_jwt = decode_token

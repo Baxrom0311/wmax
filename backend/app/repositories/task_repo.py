@@ -36,12 +36,15 @@ class TaskRepository:
         self,
         patient_id: uuid.UUID | None = None,
         status: str | None = None,
+        limit: int | None = None,
     ) -> Sequence[Task]:
         stmt = select(Task).order_by(Task.due_at.asc())
         if patient_id:
             stmt = stmt.where(Task.patient_id == patient_id)
         if status:
             stmt = stmt.where(Task.status == status)
+        if limit:
+            stmt = stmt.limit(limit)
         res = await self.session.execute(stmt)
         return res.scalars().all()
 
@@ -52,6 +55,7 @@ class TaskRepository:
         due_at: datetime,
         doctor_id: uuid.UUID | None = None,
         alert_id: int | None = None,
+        note: str | None = None,
     ) -> Task:
         task = Task(
             patient_id=patient_id,
@@ -60,18 +64,19 @@ class TaskRepository:
             status="created",
             due_at=due_at,
             alert_id=alert_id,
+            note=note,
         )
         self.session.add(task)
         await self.session.flush()
         return task
 
     async def confirm_task(
-        self, task_id: int, note: str | None = None
+        self, task_id: int, confirmed_at: datetime | None = None, note: str | None = None
     ) -> Task | None:
         task = await self.get_by_id(task_id)
         if task:
             task.status = "done"
-            task.confirmed_at = datetime.now(timezone.utc)
+            task.confirmed_at = confirmed_at or datetime.now(timezone.utc)
             if note:
                 task.note = note
             await self.session.flush()

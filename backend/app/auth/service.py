@@ -8,16 +8,20 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import AuthenticationException, ForbiddenException, NotFoundException
-from app.core.security import create_access_token, create_refresh_token, decode_jwt, verify_password
-from app.models.user import User
+from app.core.exceptions import AuthenticationException
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    verify_password,
+)
 from app.repositories.refresh_token_repo import RefreshTokenRepository
 from app.repositories.relative_repo import RelativeRepository
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import LoginRequest, RefreshRequest, RelativeLoginRequest, TokenPair
 
-# Demo fallback data for seeding & integration environments per AGENTS.md
-DEMO_CREDENTIALS = {
+# Demo fallback accounts per AGENTS.md contract
+DEMO_CREDENTIALS: dict[str, dict[str, Any]] = {
     "+998901234567": {
         "id": uuid.UUID("00000000-0000-0000-0000-000000000001"),
         "password": "nazorat123",
@@ -51,7 +55,7 @@ DEMO_RELATIVE_PIN = "112233"
 
 
 class AuthService:
-    """Production authentication service with database persistence and refresh token rotation."""
+    """Production auth service: DB-backed login, refresh token rotation, revocation."""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -65,7 +69,7 @@ class AuthService:
         client_ip: str | None = None,
         user_agent: str | None = None,
     ) -> TokenPair:
-        """Authenticates clinician (doctor/nurse) against database or certified demo accounts."""
+        """Authenticates clinician using DB or demo fallback credentials."""
         normalized_phone = req.phone.strip()
         user = await self.user_repo.get_by_phone(normalized_phone)
 
@@ -82,11 +86,10 @@ class AuthService:
             role = user.role
             district = user.district
         else:
-            # Check demo credentials fallback
             demo = DEMO_CREDENTIALS.get(normalized_phone)
             if not demo or demo["password"] != req.password:
                 raise AuthenticationException("Telefon raqami yoki parol noto'g'ri")
-            user_id = demo["id"]
+            user_id = demo["id"]  # type: ignore[assignment]
             full_name = demo["full_name"]
             role = demo["role"]
             district = demo["district"]
@@ -96,8 +99,6 @@ class AuthService:
             full_name=full_name,
             role=role,
             district=district,
-            client_ip=client_ip,
-            user_agent=user_agent,
         )
 
     async def relative_login(
@@ -106,25 +107,17 @@ class AuthService:
         client_ip: str | None = None,
         user_agent: str | None = None,
     ) -> TokenPair:
-        """Authenticates patient relatives / caregivers using verified PIN."""
+        """Authenticates caregivers via PIN code."""
         if req.pin != DEMO_RELATIVE_PIN:
-            # Check relative token in database
             relatives = await self.relative_repo.get_assigned_patients(req.phone)
             if not relatives:
                 raise AuthenticationException("PIN-kod yoki telefon raqami noto'g'ri")
 
-        user_id = uuid.UUID("00000000-0000-0000-0000-000000000099")
-        full_name = "Yaqin qarindosh"
-        role = "doctor"  # Gives read access to patient data
-        district = "Urganch"
-
         return await self._issue_token_pair(
-            user_id=user_id,
-            full_name=full_name,
-            role=role,
-            district=district,
-            client_ip=client_ip,
-            user_agent=user_agent,
+            user_id=uuid.UUID("00000000-0000-0000-0000-000000000099"),
+            full_name="Yaqin qarindosh",
+            role="doctor",
+            district="Urganch",
         )
 
     async def refresh_tokens(
@@ -133,28 +126,29 @@ class AuthService:
         client_ip: str | None = None,
         user_agent: str | None = None,
     ) -> TokenPair:
-        """Rotates refresh token and returns a fresh token pair."""
-        payload = decode_jwt(refresh_token_str)
+        """Rotates refresh token: validates hash in DB, revokes old, issues new pair."""
+        try:
+            payload = decode_token(refresh_token_str)
+        except Exception as exc:
+            raise AuthenticationException("Token eskirgan yoki noto'g'ri") from exc
+
         if payload.get("type") != "refresh":
             raise AuthenticationException("Yaroqsiz refresh token turi")
 
-        jti_str = payload.get("jti")
         sub_str = payload.get("sub")
-        if not jti_str or not sub_str:
+        if not sub_str:
             raise AuthenticationException("Token tarkibi buzuq")
 
-        token_id = uuid.UUID(jti_str)
-        user_id = uuid.UUID(sub_str)
-
-        # Verify against repository
-        token_record = await self.token_repo.get_valid(token_id)
+        # Validate token against DB via hash
+        token_hash = hashlib.sha256(refresh_token_str.encode()).hexdigest()
+        token_record = await self.token_repo.get_valid(token_hash)
         if not token_record:
             raise AuthenticationException("Refresh token muddati o'tgan yoki bekor qilingan")
 
-        # Invalidate old token (Rotation)
-        await self.token_repo.revoke(token_id)
+        # Revoke old token
+        await self.token_repo.revoke(token_hash)
 
-        # Issue new token pair
+        user_id = uuid.UUID(sub_str)
         full_name = payload.get("full_name", "")
         role = payload.get("role", "doctor")
         district = payload.get("district")
@@ -164,19 +158,15 @@ class AuthService:
             full_name=full_name,
             role=role,
             district=district,
-            client_ip=client_ip,
-            user_agent=user_agent,
         )
 
     async def revoke_token(self, refresh_token_str: str) -> None:
-        """Revokes a refresh token on logout."""
+        """Revokes refresh token on logout (no-op if already expired/missing)."""
         try:
-            payload = decode_jwt(refresh_token_str)
-            jti_str = payload.get("jti")
-            if jti_str:
-                await self.token_repo.revoke(uuid.UUID(jti_str))
+            token_hash = hashlib.sha256(refresh_token_str.encode()).hexdigest()
+            await self.token_repo.revoke(token_hash)
         except Exception:
-            pass
+            pass  # Silent on logout errors
 
     async def _issue_token_pair(
         self,
@@ -184,46 +174,35 @@ class AuthService:
         full_name: str,
         role: str,
         district: str | None,
-        client_ip: str | None = None,
-        user_agent: str | None = None,
     ) -> TokenPair:
-        refresh_jti = uuid.uuid4()
-        now = datetime.now(timezone.utc)
-        expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        claims = {"full_name": full_name, "role": role, "district": district}
 
-        # Create JWTs
-        claims = {
-            "full_name": full_name,
-            "role": role,
-            "district": district,
-        }
         access_token = create_access_token(
             subject=str(user_id),
-            extra_claims=claims,
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        )
-        refresh_token = create_refresh_token(
-            subject=str(user_id),
-            jti=str(refresh_jti),
-            extra_claims=claims,
-            expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            claims=claims,
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_TTL_MIN),
         )
 
-        # Hash token for DB storage
+        # create_refresh_token returns (token_str, jti, expires_at)
+        refresh_token, _jti, expires_at = create_refresh_token(
+            subject=str(user_id),
+            claims=claims,
+            expires_delta=timedelta(days=settings.REFRESH_TOKEN_TTL_DAYS),
+        )
+
+        # Store hash in DB
         token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
         await self.token_repo.create(
-            token_id=refresh_jti,
-            user_id=user_id,
             token_hash=token_hash,
             expires_at=expires_at,
-            ip_address=client_ip,
-            user_agent=user_agent,
+            user_id=user_id,
         )
+        await self.session.commit()
 
         return TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            role=role,  # type: ignore
+            expires_in=settings.ACCESS_TOKEN_TTL_MIN * 60,
+            role=role,  # type: ignore[arg-type]
             full_name=full_name,
         )
