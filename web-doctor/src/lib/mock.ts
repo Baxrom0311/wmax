@@ -157,7 +157,7 @@ export function getMockPatientDetail(id: string): PatientDetail {
       recommendation:
         summary.level === "red"
           ? "Bugun zudlik bilan bemor xonadoniga patronaj tashrifini amalga oshirish va dori dozasini qayta sozlash zarur."
-          : "Rejali dispanser nazoratini davom ettirish.",
+          : "Rejali dispanser kuzatuvini davom ettirish.",
     },
     problems: [
       {

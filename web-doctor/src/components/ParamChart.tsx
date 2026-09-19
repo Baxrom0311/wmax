@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -9,11 +9,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { Lang } from "../i18n";
+import { t } from "../i18n";
 import type { ParamSeries } from "../lib/types";
 
 interface ParamChartProps {
   series: ParamSeries;
+  lang?: Lang;
 }
+
+type RangeOption = "24h" | "3d" | "7d" | "all";
 
 const PARAM_LABELS: Record<string, { title: string; unit: string; color: string }> = {
   hr_mean: { title: "Yurak qisqarish soni (Puls)", unit: "bpm", color: "#ef4444" },
@@ -26,26 +31,39 @@ const PARAM_LABELS: Record<string, { title: string; unit: string; color: string 
   sleep_frag: { title: "Tungi uyqu uzilishi (Fragillik)", unit: "%", color: "#a855f7" },
 };
 
-export const ParamChart: React.FC<ParamChartProps> = ({ series }) => {
+export const ParamChart: React.FC<ParamChartProps> = ({ series, lang = "uz" }) => {
+  const [range, setRange] = useState<RangeOption>("7d");
+
   const meta = PARAM_LABELS[series.param] || {
     title: series.param,
     unit: "",
-    color: "#38bdf8",
+    color: "#0284c7",
   };
 
-  const latestPoint =
-    series.points && series.points.length > 0
-      ? series.points[series.points.length - 1]
-      : null;
+  const allPoints = series.points || [];
+  const latestPoint = allPoints.length > 0 ? allPoints[allPoints.length - 1] : null;
 
-  const formattedData = series.points.map((p) => ({
-    time: new Date(p.ts).toLocaleDateString([], {
-      weekday: "short",
-      hour: "2-digit",
-    }),
-    value: p.value,
-    rawTs: p.ts,
-  }));
+  // Filter points according to range
+  const filteredPoints = React.useMemo(() => {
+    const pts = series.points || [];
+    if (range === "all" || pts.length === 0) return pts;
+    const nowTs = new Date(pts[pts.length - 1].ts).getTime();
+    const hours = range === "24h" ? 24 : range === "3d" ? 72 : 168;
+    const cutoff = nowTs - hours * 3600 * 1000;
+    const subset = pts.filter((p) => new Date(p.ts).getTime() >= cutoff);
+    return subset.length >= 2 ? subset : pts.slice(-Math.min(pts.length, 24));
+  }, [series.points, range]);
+
+  const formattedData = filteredPoints.map((p) => {
+    const d = new Date(p.ts);
+    const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const dateStr = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
+    return {
+      time: range === "24h" ? timeStr : `${dateStr} ${timeStr}`,
+      value: p.value,
+      rawTs: p.ts,
+    };
+  });
 
   const hasDeviations = series.deviated_ranges && series.deviated_ranges.length > 0;
 
@@ -54,19 +72,34 @@ export const ParamChart: React.FC<ParamChartProps> = ({ series }) => {
       <div className="telemetry-card-header">
         <div className="telemetry-title-block">
           <span className="telemetry-name">{meta.title}</span>
-          {latestPoint && (
+          {latestPoint && latestPoint.value !== null && (
             <span className="telemetry-current-val">
               Oxirgi: <strong>{latestPoint.value} {meta.unit}</strong>
             </span>
           )}
         </div>
 
-        <div className="telemetry-meta-block">
+        <div className="telemetry-controls-block">
           {series.baseline_median !== null && (
             <span className="telemetry-norm-range">
               Normativ baza: <strong>{series.baseline_median}</strong> ({series.baseline_low} – {series.baseline_high} {meta.unit})
             </span>
           )}
+
+          {/* Time range switcher */}
+          <div className="telemetry-range-pills">
+            {(["24h", "3d", "7d", "all"] as RangeOption[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`range-pill-btn ${range === r ? "active" : ""}`}
+                onClick={() => setRange(r)}
+              >
+                {t(`detail.range_${r}`, lang) || r}
+              </button>
+            ))}
+          </div>
+
           {hasDeviations && (
             <span className="telemetry-alert-tag">
               Klinik og'ish
@@ -75,13 +108,13 @@ export const ParamChart: React.FC<ParamChartProps> = ({ series }) => {
         </div>
       </div>
 
-      <div style={{ width: "100%", height: 160 }}>
-        <ResponsiveContainer>
+      <div style={{ width: "100%", height: 175 }}>
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart data={formattedData} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis
               dataKey="time"
-              tick={{ fontSize: 11, fill: "#64748b" }}
+              tick={{ fontSize: 10, fill: "#64748b" }}
               interval="preserveStartEnd"
               tickLine={false}
               axisLine={{ stroke: "#cbd5e1" }}
@@ -103,7 +136,16 @@ export const ParamChart: React.FC<ParamChartProps> = ({ series }) => {
               }}
               labelStyle={{ color: "#64748b", marginBottom: "4px" }}
               itemStyle={{ color: "#0284c7", fontWeight: "600" }}
-              formatter={(val: unknown) => [`${val} ${meta.unit}`, meta.title]}
+              formatter={(val: unknown) => {
+                const v = Number(val);
+                let diffStr = "";
+                if (series.baseline_median !== null && series.baseline_median !== undefined) {
+                  const diff = v - series.baseline_median;
+                  const sign = diff > 0 ? "+" : "";
+                  diffStr = ` (Δ ${sign}${diff.toFixed(1)})`;
+                }
+                return [`${val} ${meta.unit}${diffStr}`, meta.title];
+              }}
             />
             {series.baseline_low !== null && series.baseline_high !== null && (
               <ReferenceArea

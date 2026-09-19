@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { NurseHandoverPanel } from "../components/NurseHandoverPanel";
 import { ParamChart } from "../components/ParamChart";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import { approveBaseline, confirmTask, dischargePatient } from "../lib/api";
-import type { PatientDetail as PatientDetailType } from "../lib/types";
+import { approveBaseline, confirmTask, dischargePatient, fetchNurseHandover, fetchPatientFullProfile } from "../lib/api";
+import type { NurseHandoverSBAR, PatientDetail as PatientDetailType, PatientFullProfile } from "../lib/types";
 
 interface PatientDetailPageProps {
   patient: PatientDetailType;
@@ -21,9 +22,19 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [approving, setApproving] = useState(false);
   const [discharging, setDischarging] = useState(false);
   const [, setTick] = useState(0);
+  const [fullProfile, setFullProfile] = useState<PatientFullProfile | null>(null);
+  const [activeTab, setActiveTab] = useState<"telemetry" | "profile" | "medications" | "admissions" | "nurse">("telemetry");
+  const [nurseHandover, setNurseHandover] = useState<NurseHandoverSBAR | null>(null);
+  const [nurseLoading, setNurseLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPatientFullProfile(patient.id).then(setFullProfile).catch(() => {});
+  }, [patient.id]);
+
 
   // Live timer tick every 10 seconds
   useEffect(() => {
@@ -36,6 +47,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
   );
 
   const formatCountdown = (dueAtIso: string) => {
+    // oxlint-disable-next-line react/purity -- countdown intentionally reads wall-clock time
     const diffMs = new Date(dueAtIso).getTime() - Date.now();
     if (diffMs <= 0) return "Muddati o'tgan";
     const hours = Math.floor(diffMs / (3600 * 1000));
@@ -45,15 +57,18 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
   const isUrgent =
     activeTask &&
+    // oxlint-disable-next-line react/purity -- urgency changes with wall-clock time
     new Date(activeTask.due_at).getTime() - Date.now() < 4 * 3600 * 1000;
 
   const isOverdue =
+    // oxlint-disable-next-line react/purity -- overdue status changes with wall-clock time
     activeTask && new Date(activeTask.due_at).getTime() - Date.now() <= 0;
 
   const handleApproveBaseline = async () => {
     setApproving(true);
     try {
       await approveBaseline(patient.id);
+      setIsApproveModalOpen(false);
       await onRefresh();
     } finally {
       setApproving(false);
@@ -97,11 +112,9 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </span>
       </div>
 
-      {/* 2. Official Clinical Case File Header (Bemorning kasallik varaqasi) */}
       <div className="clinical-passport-card">
         <div className="passport-institution-line">
-          <span>O'zbekiston Respublikasi SSV · Xorazm viloyati kardiologiya dispanseri</span>
-          <span className="passport-card-no">Tibbiy karta № {patientCode}</span>
+          <span className="passport-card-no">№ {patientCode}</span>
         </div>
 
         <div className="passport-body">
@@ -162,10 +175,10 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               <button
                 type="button"
                 className="btn-clinical btn-approve-official"
-                onClick={handleApproveBaseline}
+                onClick={() => setIsApproveModalOpen(true)}
                 disabled={approving}
               >
-                <span>{approving ? "Saqlanmoqda..." : "Bazaviy normani tasdiqlash"}</span>
+                <span>{approving ? t("common.saving", lang) : t("detail.approve_baseline", lang)}</span>
               </button>
             )}
 
@@ -178,21 +191,65 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       </div>
 
-      {/* 3. 24-Hour Clinical Protocol Alert (Problem 11) */}
-      {activeTask && (
-        <div className={`clinical-protocol-alert ${isOverdue ? "overdue" : isUrgent ? "urgent" : "active"}`}>
+      <div className="patient-tabs-nav no-print">
+        <button
+          type="button"
+          className={`patient-nav-tab ${activeTab === "telemetry" ? "active" : ""}`}
+          onClick={() => setActiveTab("telemetry")}
+        >
+          {t("detail.tab_telemetry", lang)}
+        </button>
+        <button
+          type="button"
+          className={`patient-nav-tab ${activeTab === "profile" ? "active" : ""}`}
+          onClick={() => setActiveTab("profile")}
+        >
+          {t("detail.tab_profile", lang)}
+        </button>
+        <button
+          type="button"
+          className={`patient-nav-tab ${activeTab === "medications" ? "active" : ""}`}
+          onClick={() => setActiveTab("medications")}
+        >
+          {t("detail.tab_medications", lang)}
+        </button>
+        <button
+          type="button"
+          className={`patient-nav-tab ${activeTab === "admissions" ? "active" : ""}`}
+          onClick={() => setActiveTab("admissions")}
+        >
+          {t("detail.tab_risks", lang)}
+        </button>
+        <button
+          type="button"
+          className={`patient-nav-tab nurse-tab ${activeTab === "nurse" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("nurse");
+            if (!nurseHandover && !nurseLoading) {
+              setNurseLoading(true);
+              fetchNurseHandover(patient.id)
+                .then((data) => setNurseHandover(data))
+                .catch(() => setNurseHandover(null))
+                .finally(() => setNurseLoading(false));
+            }
+          }}
+        >
+          {t("detail.tab_nurse", lang)}
+        </button>
+      </div>
+
+      {activeTab === "telemetry" && (
+        <>
+          {/* 3. 24-Hour Clinical Protocol Alert (Problem 11) */}
+          {activeTask && (
+            <div className={`clinical-protocol-alert ${isOverdue ? "overdue" : isUrgent ? "urgent" : "active"}`}>
           <div className="protocol-alert-left">
             <div className="protocol-header-tag">
-              <span className="protocol-badge">{t("detail.protocol_title", lang)}</span>
-              <span className="protocol-type">{t("detail.emergency_patrol_call", lang)}</span>
+              <span className="protocol-badge">{t("detail.emergency_patrol_call", lang)}</span>
               {isOverdue && <span className="tag-overdue">{t("detail.overdue", lang)}</span>}
               {isUrgent && !isOverdue && <span className="tag-urgent">{t("detail.urgent_sub_4h", lang)}</span>}
             </div>
-            <p className="protocol-desc">
-              {t("detail.protocol_desc", lang)}
-            </p>
             <div className="protocol-timer">
-              <span className="timer-label">{t("detail.remaining_time", lang)}</span>
               <span className="timer-countdown">{formatCountdown(activeTask.due_at)}</span>
             </div>
           </div>
@@ -209,23 +266,19 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       )}
 
-      {/* 4. CDSS (Clinical Decision Support System) 72-Hour Prognosis */}
       {patient.prognosis && (
         <div className="cdss-prognosis-panel">
           <div className="cdss-header">
             <div className="cdss-title-group">
               <span className="cdss-badge">{t("detail.cdss_badge", lang)}</span>
-              <span className="cdss-model">{t("detail.cdss_model", lang)}</span>
             </div>
             <div className="cdss-risk-indicator">
-              <span className="risk-label">{t("detail.decomp_risk_prob", lang)}</span>
               <span className={`risk-probability-val ${patient.prognosis.risk_level}`}>
                 {patient.prognosis.risk_probability_pct}%
               </span>
             </div>
           </div>
 
-          {/* Exact Statistical Meter Track */}
           <div className="cdss-meter-track">
             <div
               className={`cdss-meter-fill ${patient.prognosis.risk_level}`}
@@ -235,20 +288,16 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
           <div className="cdss-content-grid">
             <div className="cdss-summary-box">
-              <span className="box-title">{t("detail.clinical_analysis_summary", lang)}</span>
               <p className="cdss-summary-text">{patient.prognosis.summary}</p>
             </div>
 
             <div className="cdss-rec-box">
-              <span className="box-title">{t("detail.recommended_actions", lang)}</span>
               <p className="cdss-rec-text">{patient.prognosis.recommendation}</p>
             </div>
           </div>
 
-          {/* Root-cause problems */}
           {patient.problems && patient.problems.length > 0 && (
             <div className="cdss-problems-section">
-              <span className="problems-header-title">{t("detail.deviations_detected", lang)}</span>
               <div className="problems-table-official">
                 {patient.problems.map((pr, i) => (
                   <div key={i} className="problem-row-official">
@@ -266,26 +315,16 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         </div>
       )}
 
-      {/* 5. Telemetric Physiological Charts with Shaded Baseline Corridors */}
       <div className="telemetry-section">
-        <div className="telemetry-header">
-          <h3 className="section-heading">{t("detail.vitals_heading", lang)}</h3>
-          <span className="telemetry-sub-note">
-            {t("detail.vitals_shaded_note", lang)}
-          </span>
-        </div>
-
         <div className="telemetry-charts-grid">
           {patient.series.map((s) => (
-            <ParamChart key={s.param} series={s} />
+            <ParamChart key={s.param} series={s} lang={lang} />
           ))}
         </div>
       </div>
 
-      {/* 6. Alerts & Anomaly Audit Trail */}
       {patient.alerts && patient.alerts.length > 0 && (
         <div className="alerts-audit-panel">
-          <h3 className="section-heading">{t("detail.alerts_heading", lang)}</h3>
           <div className="alerts-table">
             {patient.alerts.map((a) => (
               <div key={a.id} className="alert-row-official">
@@ -295,28 +334,257 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 </div>
                 <div className="alert-reason-cell">
                   <span>{a.reason}</span>
-                  {a.anomaly_score !== null && (
-                    <span className="advisory-score-tag">
-                      {t("detail.isolation_forest_idx", lang, { score: Math.round(a.anomaly_score * 100) })}
-                    </span>
-                  )}
                 </div>
                 <div className="alert-score-cell">
-                  {t("detail.composite_z", lang)} <strong>{a.composite_score}</strong>
+                  <strong>{a.composite_score}</strong>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+        </>
+      )}
 
-      {/* Confirm active call modal */}
+      {activeTab === "profile" && (
+        <div className="tab-panel-card">
+          <div className="addresses-grid">
+            {(fullProfile?.addresses || []).map((addr) => (
+              <div key={addr.id} className={`address-detail-card ${addr.is_primary ? "primary-card" : ""}`}>
+                <div className="addr-card-header">
+                  <span className="addr-kind-badge">{addr.kind.toUpperCase()}</span>
+                  {addr.is_primary && <span className="badge-primary-addr">Asosiy</span>}
+                </div>
+
+                <p className="addr-full-text">
+                  <strong>{addr.district}</strong>{addr.street ? `, ${addr.street}` : ""}
+                  {addr.house ? ` №${addr.house}` : ""}
+                  {addr.flat ? `, ${addr.flat}-xonadon` : ""}
+                </p>
+
+                {addr.mahalla && (
+                  <p className="addr-field-sub">
+                    <strong>Mahalla:</strong> {addr.mahalla}
+                  </p>
+                )}
+
+                {addr.landmark && (
+                  <p className="addr-field-sub landmark-highlight">
+                    <strong>Mo'ljal:</strong> {addr.landmark}
+                  </p>
+                )}
+
+                {addr.entrance_note && (
+                  <p className="addr-field-sub">
+                    <strong>Kirish:</strong> {addr.entrance_note}
+                  </p>
+                )}
+
+                {addr.lat && addr.lon && (
+                  <div className="addr-gps-row">
+                    <a
+                      href={`https://maps.google.com/?q=${addr.lat},${addr.lon}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="addr-map-link"
+                    >
+                      Xaritada ↗
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "medications" && (
+        <div className="tab-panel-card">
+          <div className="meds-table-container">
+            <table className="clinical-table-official">
+              <thead>
+                <tr>
+                  <th>Dori</th>
+                  <th>Doza</th>
+                  <th>Vaqt</th>
+                  <th>Parametr</th>
+                  <th>Holat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(fullProfile?.medications || []).map((m) => (
+                    <tr key={m.id}>
+                      <td className="font-bold">{m.name}</td>
+                      <td>{m.dose || "—"}</td>
+                      <td>{m.frequency || "—"}</td>
+                      <td>
+                        {Object.entries(m.affects_params || {}).map(([param, eff]) => (
+                          <span key={param} className="badge-param-tag">
+                            {param.toUpperCase()} {eff === "lowers" ? "↓" : "↑"}
+                          </span>
+                        ))}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${m.stopped_at ? "stopped" : "active"}`}>
+                          {m.stopped_at ? "To'xtatilgan" : "Faol"}
+                        </span>
+                      </td>
+                    </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "admissions" && (
+        <div className="tab-panel-card">
+          <div className="profile-tri-grid">
+            <div className="sub-profile-card">
+              <h4>Allergiyalar</h4>
+              {fullProfile?.allergies && fullProfile.allergies.length > 0 ? (
+                <div className="allergies-list-box">
+                  {fullProfile.allergies.map((al) => (
+                    <div key={al.id} className={`allergy-item-chip severity-${al.severity}`}>
+                      <div className="chip-header">
+                        <strong>{al.substance}</strong>
+                        <span className="severity-tag">{al.severity.toUpperCase()}</span>
+                      </div>
+                      {al.reaction && <p className="chip-reaction">{al.reaction}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">Yo'q</p>
+              )}
+            </div>
+
+            <div className="sub-profile-card">
+              <h4>Xavf omillari</h4>
+              <div className="risk-factors-list">
+                <div className="rf-row">
+                  <span className="rf-label">Yolg'iz:</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.lives_alone ? "Ha" : "Yo'q"}</span>
+                </div>
+                <div className="rf-row">
+                  <span className="rf-label">Harakatchanlik:</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.mobility || "Mustaqil"}</span>
+                </div>
+                <div className="rf-row">
+                  <span className="rf-label">Diabet:</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.diabetes ? "Bor" : "Yo'q"}</span>
+                </div>
+                <div className="rf-row">
+                  <span className="rf-label">Buyrak (CKD):</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.ckd ? "Bor" : "Yo'q"}</span>
+                </div>
+                <div className="rf-row">
+                  <span className="rf-label">Chekish:</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.smoking || "Yo'q"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="sub-profile-card">
+              <h4>Vazn</h4>
+              {fullProfile?.measurements && fullProfile.measurements.length > 0 ? (
+                <div className="measurements-history">
+                  {fullProfile.measurements.map((m) => (
+                    <div key={m.id} className="meas-row">
+                      <span>{new Date(m.measured_at).toLocaleDateString()}</span>
+                      <strong className="meas-weight">{m.weight_kg ? `${m.weight_kg} kg` : "—"}</strong>
+                      <span className="meas-source">{m.source}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">Ma'lumot yo'q</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Nurse Handover SBAR Tab */}
+      {activeTab === "nurse" && (
+        <div className="tab-panel-card">
+          {nurseLoading ? (
+            <div className="nurse-loading-state">
+              <div className="nurse-loading-spinner">⌛</div>
+              <p>AI SBAR xisoboti tayyorlanmoqda…</p>
+            </div>
+          ) : nurseHandover ? (
+            <NurseHandoverPanel
+              handover={nurseHandover}
+              patientName={patient.full_name}
+              onRefresh={async () => {
+                setNurseLoading(true);
+                const fresh = await fetchNurseHandover(patient.id);
+                setNurseHandover(fresh);
+                setNurseLoading(false);
+              }}
+              lang={lang}
+            />
+          ) : (
+            <div className="nurse-empty-state">
+              <span className="nurse-empty-icon">🏥</span>
+              <h3>Hamshira SBAR Xisoboti mavjud emas</h3>
+              <p>AI xizmati vaqtincha mavjud emas yoki bemor uchun yetarli ma'lumot yo'q.</p>
+              <button
+                type="button"
+                className="btn-clinical"
+                onClick={() => {
+                  setNurseLoading(true);
+                  fetchNurseHandover(patient.id)
+                    .then((data) => setNurseHandover(data))
+                    .catch(() => setNurseHandover(null))
+                    .finally(() => setNurseLoading(false));
+                }}
+              >
+                Qayta urinish
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmTask}
         lang={lang}
       />
+
+      {/* Baseline approve modal */}
+      {isApproveModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsApproveModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">{t("detail.approve_modal_title", lang)}</h2>
+            <p className="modal-desc">
+              {t("detail.approve_modal_desc", lang)}
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-clinical"
+                onClick={() => setIsApproveModalOpen(false)}
+                disabled={approving}
+              >
+                {t("detail.approve_modal_cancel", lang)}
+              </button>
+              <button
+                type="button"
+                className="btn-clinical btn-approve-official"
+                onClick={handleApproveBaseline}
+                disabled={approving}
+              >
+                {approving ? "..." : t("detail.approve_modal_submit", lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Discharge confirm modal */}
       {isDischargeModalOpen && (

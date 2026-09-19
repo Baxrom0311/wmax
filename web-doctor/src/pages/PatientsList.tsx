@@ -28,6 +28,11 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     green: 3,
   };
 
+  type SortField = "priority" | "name" | "age" | "score" | "due";
+  const sortBy: SortField = "priority";
+  const sortAsc = true;
+
+
   const filteredPatients = patients
     .filter((p) => {
       if (districtFilter !== "all" && p.district !== districtFilter) return false;
@@ -41,15 +46,24 @@ export const PatientsList: React.FC<PatientsListProps> = ({
       }
       return true;
     })
-    .sort((a, b) => (LEVEL_PRIORITY[a.level] ?? 99) - (LEVEL_PRIORITY[b.level] ?? 99));
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "priority") {
+        cmp = (LEVEL_PRIORITY[a.level] ?? 99) - (LEVEL_PRIORITY[b.level] ?? 99);
+      } else if (sortBy === "name") {
+        cmp = a.full_name.localeCompare(b.full_name);
+      } else if (sortBy === "age") {
+        cmp = a.age - b.age;
+      } else if (sortBy === "score") {
+        cmp = a.composite_score - b.composite_score;
+      } else if (sortBy === "due") {
+        const dueA = a.open_task ? new Date(a.open_task.due_at).getTime() : Infinity;
+        const dueB = b.open_task ? new Date(b.open_task.due_at).getTime() : Infinity;
+        cmp = dueA - dueB;
+      }
+      return sortAsc ? cmp : -cmp;
+    });
 
-  const formatHoursLeft = (dueAtIso: string) => {
-    const diffMs = new Date(dueAtIso).getTime() - Date.now();
-    if (diffMs <= 0) return t("patients.overdue", lang);
-    const hours = Math.floor(diffMs / (3600 * 1000));
-    const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
-    return t("patients.hours_left", lang, { h: hours, m: mins });
-  };
 
   const redCount = patients.filter((p) => p.level === "red").length;
   const activeCallCount = patients.filter(
@@ -72,24 +86,11 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     setSearchQuery("");
   };
 
-  const localeMap: Record<Lang, string> = { uz: "uz-UZ", ru: "ru-RU", en: "en-US" };
 
   return (
     <div className="doc-container">
       {/* 1. Institutional Clinical Triage Bar */}
       <div className="clinical-triage-panel">
-        <div className="triage-panel-header">
-          <div className="panel-title-left">
-            <span className="panel-title">{t("triage.panel_title", lang)}</span>
-            <span className="panel-date">
-              {t("triage.date_label", lang)}: {new Date().toLocaleDateString(localeMap[lang] || "uz-UZ", { year: "numeric", month: "long", day: "numeric" })}
-            </span>
-          </div>
-          <span className="triage-summary-count">
-            {t("triage.total_coverage", lang, { n: patients.length })}
-          </span>
-        </div>
-
         <div className="triage-tabs-row">
           <button
             type="button"
@@ -99,9 +100,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               setTaskFilterOnly(false);
             }}
           >
-            <span className="kpi-tag">{t("triage.all_count", lang)}</span>
             <span className="kpi-value">{patients.length}</span>
-            <span className="kpi-meta">{t("triage.meta_all", lang)}</span>
+            <span className="kpi-tag">{t("triage.all_count", lang)}</span>
           </button>
 
           <button
@@ -117,7 +117,6 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <span className="kpi-tag text-risk">{t("triage.red_title", lang)}</span>
             </div>
             <span className="kpi-value text-risk">{redCount}</span>
-            <span className="kpi-meta">{t("triage.meta_red", lang)}</span>
           </button>
 
           <button
@@ -132,7 +131,6 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <span className="kpi-tag text-attention">{t("triage.active_call_title", lang)}</span>
             </div>
             <span className="kpi-value text-attention">{activeCallCount}</span>
-            <span className="kpi-meta">{t("triage.meta_active_call", lang)}</span>
           </button>
 
           <button
@@ -148,7 +146,6 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <span className="kpi-tag text-attention">{t("triage.amber_title", lang)}</span>
             </div>
             <span className="kpi-value text-attention">{amberCount}</span>
-            <span className="kpi-meta">{t("triage.meta_amber", lang)}</span>
           </button>
 
           <button
@@ -164,7 +161,6 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <span className="kpi-tag text-good">{t("triage.green_title", lang)}</span>
             </div>
             <span className="kpi-value text-good">{greenCount}</span>
-            <span className="kpi-meta">{t("triage.meta_green", lang)}</span>
           </button>
 
           <button
@@ -180,7 +176,6 @@ export const PatientsList: React.FC<PatientsListProps> = ({
               <span className="kpi-tag text-muted">{t("triage.nodata_title", lang)}</span>
             </div>
             <span className="kpi-value text-muted">{noDataCount}</span>
-            <span className="kpi-meta">{t("triage.meta_nodata", lang)}</span>
           </button>
         </div>
       </div>
@@ -259,143 +254,95 @@ export const PatientsList: React.FC<PatientsListProps> = ({
       </div>
 
       {/* 3. Official High Density Worklist Table */}
-      <div className="table-wrapper-official">
-        <table className="patients-table-official">
-          <thead>
-            <tr>
-              <th style={{ width: "120px" }}>{t("patients.th_status", lang)}</th>
-              <th style={{ width: "240px" }}>{t("patients.th_fio", lang)}</th>
-              <th style={{ width: "110px" }}>{t("patients.th_age_sex", lang)}</th>
-              <th style={{ width: "110px" }}>{t("patients.th_district", lang)}</th>
-              <th>{t("patients.th_diagnosis", lang)}</th>
-              <th style={{ width: "130px" }}>{t("patients.th_trend", lang)}</th>
-              <th>{t("patients.th_deviations", lang)}</th>
-              <th style={{ width: "160px" }}>{t("patients.th_task", lang)}</th>
-              <th style={{ width: "110px", textAlign: "right" }}>{t("patients.th_action", lang)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPatients.map((p) => {
-              const trendDelta =
-                p.trend.direction === "worsening"
-                  ? "+2.4σ"
-                  : p.trend.direction === "improving"
-                  ? "-1.6σ"
-                  : "0.0σ";
+      <ol className="worklist">
+        {filteredPatients.length === 0 ? (
+          <li className="worklist-empty">
+            <h2 className="worklist-empty-title">{t("patients.no_matches", lang)}</h2>
+            <button type="button" className="btn-official-reset" onClick={resetAllFilters}>
+              {t("patients.clear_filters", lang)}
+            </button>
+          </li>
+        ) : (
+          filteredPatients.map((p) => {
+            const slope = p.trend?.slope ?? 0;
+            const trendArrow =
+              p.trend.direction === "worsening" ? "↗" : p.trend.direction === "improving" ? "↘" : "→";
 
-              const trendArrow =
-                p.trend.direction === "worsening"
-                  ? "↗"
-                  : p.trend.direction === "improving"
-                  ? "↘"
-                  : "→";
+            const dueLabel = p.open_task
+              ? new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : lang === "en" ? "en-GB" : "uz-UZ", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(p.open_task.due_at))
+              : null;
 
-              const isUrgent =
-                p.level === "red" ||
-                (p.open_task &&
-                  new Date(p.open_task.due_at).getTime() - Date.now() < 4 * 3600 * 1000);
+            const deviations = Object.entries(p.triggered_params ?? {})
+              .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+              .slice(0, 4);
 
-              const patientCode = `P-${p.id.replace(/-/g, "").slice(0, 4).toUpperCase()}`;
+            return (
+              <li key={p.id} className={`wl-row wl-${p.level}`}>
+                <button
+                  type="button"
+                  className="wl-open"
+                  onClick={() => onSelectPatient(p.id)}
+                  aria-label={`${p.full_name} — ${t("patients.th_action", lang)}`}
+                >
+                  <span className="wl-spine" aria-hidden="true" />
 
-              return (
-                <tr key={p.id} className={`patient-row-official level-${p.level}`}>
-                  <td>
-                    <span className={`status-badge-official ${p.level}`}>
-                      <span className={`status-badge-dot ${p.level}`} />
-                      {t(`state.${p.level}`, lang)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="patient-identity-cell">
-                      <span
-                        className="patient-full-name"
-                        onClick={() => onSelectPatient(p.id)}
-                      >
-                        {p.full_name}
-                      </span>
-                      <div className="patient-id-sub">
-                        <code>{patientCode}</code> · {t(`detail.phase_${p.phase}`, lang)}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="age-sex-cell">
-                      {t("patients.age_years", lang, { age: p.age })} · {p.sex === "m" ? t("patients.sex_male", lang) : t("patients.sex_female", lang)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="district-cell">{p.district}</span>
-                  </td>
-                  <td>
-                    <div className="diagnosis-text-cell" title={p.diagnosis}>
-                      {p.diagnosis}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`trend-tag-official trend-${p.trend.direction}`}>
-                      <span>{trendArrow}</span>
-                      <span>{trendDelta}</span>
-                    </span>
-                  </td>
-                  <td>
-                    {Object.entries(p.triggered_params).length > 0 ? (
-                      <div className="deviations-chips-wrap">
-                        {Object.entries(p.triggered_params).map(([param, val]) => {
-                          const paramDisplay =
-                            param === "spo2"
-                              ? `SpO₂ ${val}% ↓`
-                              : param === "hr_mean"
-                              ? `HR ${val} bpm ↑`
-                              : param === "rmssd"
-                              ? `RMSSD ${val}ms ↓`
-                              : param === "skin_temp"
-                              ? `T ${val}°C ↑`
-                              : param === "rr"
-                              ? `${lang === "ru" ? "ЧДД" : lang === "en" ? "RR" : "Nafas"} ${val}/${lang === "ru" ? "мин" : lang === "en" ? "min" : "daq"} ↑`
-                              : `${param}: ${val}`;
-
-                          return (
-                            <span
-                              key={param}
-                              className={`dev-chip-official ${p.level === "red" ? "risk" : "attention"}`}
-                            >
-                              <strong>{paramDisplay}</strong>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <span className="no-dev-dash">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {p.open_task ? (
-                      <span className={`task-badge-official ${isUrgent ? "urgent" : ""}`}>
-                        <span className="task-type-sub">
-                          {lang === "ru" ? "24ч Патронаж:" : lang === "en" ? "24h Patrol:" : "24s Patronaj:"}
+                  <span className="wl-body">
+                    <span className="wl-line-top">
+                      <span className="wl-name">{p.full_name}</span>
+                      <span className={`wl-level wl-level-${p.level}`}>
+                        <span aria-hidden="true">
+                          {p.level === "red" ? "!" : p.level === "amber" ? "△" : p.level === "green" ? "✓" : "×"}
                         </span>
-                        <strong>{formatHoursLeft(p.open_task.due_at)}</strong>
+                        {t(`state.${p.level}`, lang)}
                       </span>
-                    ) : (
-                      <span className="no-dev-dash">—</span>
+                      <span className="wl-meta">
+                        {p.age} {lang === "ru" ? "лет" : lang === "en" ? "yrs" : "yosh"} · {p.district}
+                      </span>
+                    </span>
+
+                    <span className="wl-dx">{p.diagnosis}</span>
+
+                    {deviations.length > 0 && (
+                      <span className="wl-devs">
+                        {deviations.map(([k, v]) => (
+                          <span key={k} className={`wl-dev ${v < 0 ? "down" : "up"}`}>
+                            <span className="wl-dev-k">{k}</span>
+                            <span className="wl-dev-v">
+                              {v > 0 ? "+" : ""}
+                              {v.toFixed(1)}σ
+                            </span>
+                          </span>
+                        ))}
+                      </span>
                     )}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      type="button"
-                      className="btn-view-official"
-                      onClick={() => onSelectPatient(p.id)}
-                    >
-                      <span>{t("patients.btn_chart", lang)}</span>
-                      <span className="arrow-sym">→</span>
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </span>
+
+                  <span className="wl-side">
+                    <span className="wl-score" title={t("patients.th_trend", lang)}>
+                      <span className="wl-score-v">{p.composite_score.toFixed(1)}</span>
+                      <span className="wl-score-t">
+                        {trendArrow} {slope > 0 ? "+" : ""}
+                        {slope.toFixed(2)}
+                      </span>
+                    </span>
+
+                    {dueLabel && (
+                      <span className={`wl-due ${p.open_task?.status === "overdue" ? "overdue" : ""}`}>
+                        {p.open_task?.status === "overdue" ? t("patients.overdue", lang) : dueLabel}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ol>
     </div>
   );
 };
