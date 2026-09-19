@@ -26,6 +26,8 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
       TextEditingController(text: "+998 90 111 00 11");
   final TextEditingController _pinController =
       TextEditingController(text: "112233");
+  final TextEditingController _passwordController = TextEditingController();
+  String _role = 'relative';
   bool _isLoading = false;
 
   @override
@@ -37,7 +39,7 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
     final phone = _phoneController.text.trim();
     final pin = _pinController.text.trim();
 
-    if (phone.isEmpty || pin.isEmpty) {
+    if (phone.isEmpty || (_role == 'doctor' ? _passwordController.text.trim().isEmpty : pin.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(widget.isUzbek
@@ -52,7 +54,11 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final res = await ApiService.loginRelative(phone: phone, pin: pin);
+      final res = _role == 'doctor'
+          ? await ApiService.loginClinician(phone: phone, password: _passwordController.text.trim())
+          : _role == 'patient'
+              ? await ApiService.loginPatient(phone: phone, pin: pin)
+              : await ApiService.loginRelative(phone: phone, pin: pin);
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,6 +153,17 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(value: 'relative', label: Text(uz ? 'Qarindosh' : 'Опекун')),
+                      ButtonSegment(value: 'patient', label: Text(uz ? 'Bemor' : 'Пациент')),
+                      ButtonSegment(value: 'doctor', label: Text(uz ? 'Shifokor' : 'Врач')),
+                    ],
+                    selected: {_role},
+                    onSelectionChanged: (value) => setState(() => _role = value.first),
+                  ),
+                  const SizedBox(height: 16),
+
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -189,15 +206,17 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                       const SizedBox(height: 16),
 
                       Text(
-                        uz ? 'PIN kod (6 xonali)' : 'ПИН-код (6 цифр)',
+                        _role == 'doctor'
+                            ? (uz ? 'Parol' : 'Пароль')
+                            : (uz ? 'PIN kod (6 xonali)' : 'ПИН-код (6 цифр)'),
                         style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
                       ),
                       const SizedBox(height: 6),
                       TextField(
-                        controller: _pinController,
+                        controller: _role == 'doctor' ? _passwordController : _pinController,
                         keyboardType: TextInputType.number,
                         obscureText: true,
-                        maxLength: 6,
+                        maxLength: _role == 'doctor' ? 64 : 6,
                         decoration: InputDecoration(
                           counterText: "",
                           filled: true,

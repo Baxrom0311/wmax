@@ -114,6 +114,100 @@ class ApiService {
     }
   }
 
+  /// Clinician login. The dashboard can use the same patient view for doctors.
+  static Future<RelativeAuthResponse> loginClinician({
+    required String phone,
+    required String password,
+    String? customBaseUrl,
+  }) async {
+    final baseUrl = customBaseUrl ?? await SessionService.getBaseUrl();
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone.replaceAll(' ', '').trim(), 'password': password}),
+    ).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      throw Exception('Kirishda xatolik: ${response.statusCode}');
+    }
+    final token = jsonDecode(response.body) as Map<String, dynamic>;
+    final patients = await _fetchPatients(token['access_token'] as String, baseUrl);
+    final result = RelativeAuthResponse(
+      accessToken: token['access_token'] ?? '',
+      refreshToken: token['refresh_token'] ?? '',
+      expiresIn: token['expires_in'] ?? 3600,
+      role: token['role'] ?? 'doctor',
+      fullName: token['full_name'] ?? 'Shifokor',
+      patients: patients,
+    );
+    await SessionService.saveSession(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      fullName: result.fullName,
+      phone: phone,
+      patients: patients,
+    );
+    return result;
+  }
+
+  /// Patient login with phone and PIN. The patient is represented as the sole dashboard item.
+  static Future<RelativeAuthResponse> loginPatient({
+    required String phone,
+    required String pin,
+    String? customBaseUrl,
+  }) async {
+    final baseUrl = customBaseUrl ?? await SessionService.getBaseUrl();
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/auth/patient/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone.replaceAll(' ', '').trim(), 'pin': pin.trim()}),
+    ).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      throw Exception('Kirishda xatolik: ${response.statusCode}');
+    }
+    final token = jsonDecode(response.body) as Map<String, dynamic>;
+    final me = await http.get(
+      Uri.parse('$baseUrl/api/v1/auth/me'),
+      headers: {'Authorization': 'Bearer ${token['access_token']}'},
+    ).timeout(const Duration(seconds: 8));
+    final user = me.statusCode == 200 ? jsonDecode(me.body) as Map<String, dynamic> : <String, dynamic>{};
+    final patient = PatientSummary(
+      id: '${user['id'] ?? ''}',
+      fullName: user['full_name'] ?? 'Bemor',
+      relationship: 'O\'zi',
+      accessToken: token['access_token'] ?? '',
+      level: AlertLevel.noData,
+      diagnosis: 'Tashxis ko\'rsatilmagan',
+      age: 0,
+    );
+    final result = RelativeAuthResponse(
+      accessToken: token['access_token'] ?? '',
+      refreshToken: token['refresh_token'] ?? '',
+      expiresIn: token['expires_in'] ?? 3600,
+      role: token['role'] ?? 'patient',
+      fullName: token['full_name'] ?? patient.fullName,
+      patients: [patient],
+    );
+    await SessionService.saveSession(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      fullName: result.fullName,
+      phone: phone,
+      patients: result.patients,
+    );
+    return result;
+  }
+
+  static Future<List<PatientSummary>> _fetchPatients(String token, String baseUrl) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/v1/patients'),
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) return [];
+    final raw = jsonDecode(response.body);
+    if (raw is! List) return [];
+    return raw.whereType<Map<String, dynamic>>().map(PatientSummary.fromJson).toList();
+  }
+
   /// Fetch live patient status view: GET /api/v1/relatives/{token}/view
   static Future<RelativePatientView> fetchPatientView({
     required String patientAccessToken,
