@@ -7,12 +7,13 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from .api_manager import get_active_api_key, get_model, get_system_mode
+
 load_dotenv()
 
 logger = logging.getLogger("wmax.notifier.ai")
 
 # Provider tanlovi va kalitlar app.core.config orqali boshqariladi (AI_PROVIDER).
-
 EMERGENCY_KEYWORDS = [
     # Uzbek
     "sanchyapti", "yurak sanch", "hushidan ketdi", "hushsiz", "nafas qisyapti",
@@ -141,11 +142,15 @@ async def ask_ai(user_message: str, patient_name: str, vitals: dict[str, Any]) -
     metrics behave identically here and in the clinical prognosis path.
     Returns None on any failure — the caller falls back to the rule engine.
     """
+    if get_system_mode() == "offline":
+        return None
+
     try:
         from app.ai.factory import build_ai_provider
     except ImportError:
         logger.error("AI provider package unavailable in notifier image.")
         return None
+
 
     try:
         provider = build_ai_provider()

@@ -16,3 +16,5 @@ wear/**/build/
 *.apk
 *.exe
 cloudflared.exe
+notifier/settings.json
+notifier/exports/
