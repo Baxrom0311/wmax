@@ -3,17 +3,24 @@ from __future__ import annotations
 import logging
 import secrets
 
-from fastapi import Header, HTTPException, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
 
 logger = logging.getLogger("wmax.auth.device")
 
 INGEST_KEY_HEADER = "X-Ingest-Key"
+ingest_api_key_header = APIKeyHeader(
+    name=INGEST_KEY_HEADER,
+    auto_error=False,
+    scheme_name="IngestApiKey",
+    description="Wearable fleet ingest secret key (X-Ingest-Key header)",
+)
 
 
 async def verify_ingest_key(
-    x_ingest_key: str | None = Header(default=None, alias=INGEST_KEY_HEADER),
+    x_ingest_key: str | None = Security(ingest_api_key_header),
 ) -> None:
     """Authenticates a wearable companion app uploading physiological readings.
 

@@ -1,16 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WMAX Часы</string>
+    <string name="status_connected">Подключен</string>
+    <string name="status_disconnected">Не подключен</string>
+    <string name="measuring">Измерение...</string>
+    <string name="syncing">Передача данных...</string>
     <string name="bpm">уд/мин</string>
+    <string name="spo2">SpO2</string>
+    <string name="temp">Темп</string>
+    <string name="steps">Шаги</string>
+    <string name="measure_now">Измерить</string>
+    <string name="send_to_phone">Отправить на телефон</string>
+    <string name="sensor_worn">На руке</string>
+    <string name="sensor_offbody">Часы сняты</string>
     <string name="heart_rate">ПУЛЬС</string>
     <string name="monitoring_active">Мониторинг активен</string>
+    <string name="phone_connected">Телефон подключен</string>
     <string name="phone_disconnected">Телефон не подключен</string>
-    <string name="sensor_permission_required">Нужен доступ к датчику</string>
-    <string name="sos_hold">Удерживайте 3 секунды</string>
-    <string name="sos_sending">Отправка SOS</string>
-    <string name="sos_help_notice">Врач получит уведомление</string>
+    <string name="sensor_permission_required">Требуется доступ к датчикам</string>
+    <string name="sos_hold">Удерживайте 3 сек</string>
+    <string name="sos_sending">ОТПРАВКА SOS</string>
+    <string name="sos_help_notice">Врач и 103 будут вызваны</string>
     <string name="cancel">Отменить</string>
-    <string name="sos_sent">SOS отправлен</string>
-    <string name="sos_sent_notice">Врач получил уведомление</string>
+    <string name="sos_sent">SOS ОТПРАВЛЕН!</string>
+    <string name="sos_sent_notice">103 и Врач уведомлены</string>
     <string name="understood">Понятно</string>
+
+    <!-- Off-body analysis & Hardware button strings (Russian) -->
+    <string name="watch_removed_title">ЧАСЫ СНЯТЫ С РУКИ</string>
+    <string name="watch_removed_desc">Наденьте часы плотно на руку</string>
+    <string name="hardware_sos_title">⚡ БОКОВАЯ КНОПКА SOS</string>
+    <string name="hardware_sos_desc">Мгновенный Экстренный Вызов</string>
+    <string name="hardware_sos_sent">⚡ ЭКСТРЕННЫЙ SOS ОТПРАВЛЕН!</string>
+    <string name="hardware_sos_sent_desc">103 Диспетчер и Врач оповещены</string>
+    <string name="no_data_warning">No Data • Датчик не касается кожи</string>
 </resources>

@@ -74,10 +74,66 @@ async def lifespan(app: FastAPI):
     logger.info("Background workers: STOPPED")
 
 
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import HTMLResponse
+
+TAGS_METADATA = [
+    {
+        "name": "auth",
+        "description": "Foydalanuvchilar autentifikatsiyasi va JWT tokenlar boshqaruvi (shifokor, hamshira, dispetcher, yaqin qarindosh, bemor).",
+    },
+    {
+        "name": "ingest",
+        "description": "Aqlli soat (Wear OS) va sensorlardan 5 daqiqalik o'lchovlar oqimini qabul qilish va signal tekshiruvi (idempotent, X-Ingest-Key himoyalangan).",
+    },
+    {
+        "name": "patients",
+        "description": "Bemorlar profili, dispanser nazorati, vital parametrlar, baseline (me'yorlar), audit va kasallik tarixi.",
+    },
+    {
+        "name": "ai-clinical",
+        "description": "Sun'iy intellekt (AI) klinik assistenti: prognoz, dekompensatsiya xavfi va shifokor tavsiyalari (fallbacks bilan).",
+    },
+    {
+        "name": "sos",
+        "description": "Favqulodda SOS signallari, dispetcherlik boshqaruvi va SSE (Server-Sent Events) real-vaqt monitoringi.",
+    },
+    {
+        "name": "tasks",
+        "description": "Patronaj hamshiralar uchun klinik vazifalar va patronaj buyruqlarini boshqarish.",
+    },
+    {
+        "name": "devices",
+        "description": "Wearable qurilmalar parki, bemorga biriktirish va qaytarib olish amallari.",
+    },
+    {
+        "name": "relative",
+        "description": "Yaqin qarindoshlar portali — cheklangan holat ko'rinishi va xabardorlik.",
+    },
+    {
+        "name": "billing",
+        "description": "Monitoring obuna rejalari, to'lovlar va invoyslar hisobi.",
+    },
+    {
+        "name": "profile",
+        "description": "Foydalanuvchi shaxsiy hisobi va sozlamalari.",
+    },
+    {
+        "name": "ops",
+        "description": "Infratuzilma salomatligi, liveness/readiness tekshiruvlari va monitoring darchalari.",
+    },
+    {
+        "name": "observability",
+        "description": "Prometheus metrikalari va monitoring tahlili.",
+    },
+]
+
 app = FastAPI(
     title="WMAX API",
     description="Remote Patient Monitoring — production-grade clinical signal backend",
     version="2.0.0",
+    openapi_tags=TAGS_METADATA,
     lifespan=lifespan,
     # Public API documentation is intentionally available in production.
     # Authentication and authorization remain enforced by each operation;
@@ -86,6 +142,26 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+        servers=[
+            {"url": "/", "description": "Standart origin (Lokal dev :8000 yoki reverse proxy ildizi)"},
+        ],
+    )
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]
 
 # ── Middleware (outermost first) ──────────────────────────────────────────────
 app.add_middleware(RequestIdMiddleware)
@@ -132,3 +208,31 @@ async def health_check() -> dict:
         "db": "connected" if db_ok else "unreachable",
         "version": "2.0.0",
     }
+
+
+# ── Documentation routes (accessible behind Caddy /api/* proxy) ───────────────
+@app.get("/api/openapi.json", include_in_schema=False)
+@app.get("/api/v1/openapi.json", include_in_schema=False)
+async def get_api_openapi_json() -> dict:
+    return app.openapi()
+
+
+@app.get("/api/docs", include_in_schema=False)
+@app.get("/api/v1/docs", include_in_schema=False)
+async def get_api_swagger_ui() -> HTMLResponse:
+    return get_swagger_ui_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - Swagger UI",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    )
+
+
+@app.get("/api/redoc", include_in_schema=False)
+@app.get("/api/v1/redoc", include_in_schema=False)
+async def get_api_redoc() -> HTMLResponse:
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - ReDoc",
+        redoc_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    )
+

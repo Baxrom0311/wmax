@@ -14,6 +14,9 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
+        // Supplied at build time; never commit live patient credentials.
+        buildConfigField("String", "WMAX_PATIENT_ID", "\"${project.findProperty("WMAX_PATIENT_ID") ?: ""}\"")
+        buildConfigField("String", "WMAX_INGEST_KEY", "\"${project.findProperty("WMAX_INGEST_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -34,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -56,6 +60,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.guava)
+
+    // Networking for direct Wi-Fi/LTE ingestion to https://wmax.boos.uz/
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 
     // JSON serialization
     implementation(libs.gson)

@@ -7,20 +7,31 @@
     <string name="syncing">Jo\'natilmoqda...</string>
     <string name="bpm">bpm</string>
     <string name="spo2">SpO2</string>
+    <string name="temp">Harorat</string>
     <string name="steps">Qadam</string>
     <string name="measure_now">O\'lchash</string>
     <string name="send_to_phone">Telefonga jo\'natish</string>
-    <string name="sensor_worn">Soat taqilgan</string>
+    <string name="sensor_worn">Taqilgan</string>
     <string name="sensor_offbody">Soat yechilgan</string>
     <string name="heart_rate">YURAK URISHI</string>
     <string name="monitoring_active">Monitoring faol</string>
+    <string name="phone_connected">Telefon ulangan</string>
     <string name="phone_disconnected">Telefon ulanmagan</string>
     <string name="sensor_permission_required">Sensor ruxsati kerak</string>
     <string name="sos_hold">3 soniya ushlang</string>
-    <string name="sos_sending">SOS yuborilmoqda</string>
-    <string name="sos_help_notice">Shifokorga xabar beriladi</string>
+    <string name="sos_sending">SOS YUBORILMOQDA</string>
+    <string name="sos_help_notice">103 va shifokorga xabar beriladi</string>
     <string name="cancel">Bekor qilish</string>
-    <string name="sos_sent">SOS yuborildi</string>
-    <string name="sos_sent_notice">Shifokorga xabar yetkazildi</string>
+    <string name="sos_sent">SOS YUBORILDI!</string>
+    <string name="sos_sent_notice">103 va Shifokor xabardor qilindi</string>
     <string name="understood">Tushunarli</string>
+
+    <!-- Off-body analysis & Hardware button strings -->
+    <string name="watch_removed_title">SOAT YECHILGAN</string>
+    <string name="watch_removed_desc">Soatni bilakka mahkam taqing</string>
+    <string name="hardware_sos_title">⚡ YONBOSH TUGMA SOS</string>
+    <string name="hardware_sos_desc">Tezkor Favqulodda Signal</string>
+    <string name="hardware_sos_sent">⚡ TEZKOR SOS YUBORILDI!</string>
+    <string name="hardware_sos_sent_desc">103 Dispetcher va Shifokor xabardor qilindi</string>
+    <string name="no_data_warning">No Data • Datchik uzilgan</string>
 </resources>

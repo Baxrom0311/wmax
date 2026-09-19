@@ -77,8 +77,7 @@ class PipelineService:
             for r in batch.readings
         ]
 
-        accepted = await self.reading_repo.insert_batch_idempotent(reading_dicts)
-        duplicates = max(0, len(reading_dicts) - accepted)
+        accepted, duplicates = await self.reading_repo.insert_batch_idempotent(reading_dicts)
         readings_ingested_total.inc(accepted)
 
         # Run clinical evaluation pipeline

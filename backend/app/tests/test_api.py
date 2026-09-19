@@ -46,6 +46,18 @@ def auth_headers():
         pytest.skip("Auth not available")
 
 
+@pytest.fixture
+def ingest_headers():
+    """Use the configured device-upload key so validation tests reach the body schema."""
+    try:
+        from app.core.config import settings
+        if not settings.INGEST_API_KEY:
+            pytest.skip("Ingest key not configured")
+        return {"X-Ingest-Key": settings.INGEST_API_KEY}
+    except Exception:
+        pytest.skip("Ingest configuration not available")
+
+
 # ── Health check ──────────────────────────────────────────────────────────────
 
 class TestHealthEndpoint:
@@ -151,14 +163,15 @@ class TestIngestEndpoint:
             assert data["accepted"] == 0
             assert data["latest_level"] == "no_data"
 
-    def test_ingest_requires_valid_uuid(self, client):
+    def test_ingest_requires_valid_uuid(self, client, ingest_headers):
         response = client.post(
             "/api/v1/ingest",
             json={"patient_id": "not-a-uuid", "readings": []},
+            headers=ingest_headers,
         )
         assert response.status_code == 422
 
-    def test_ingest_invalid_hr_rejected(self, client):
+    def test_ingest_invalid_hr_rejected(self, client, ingest_headers):
         patient_id = str(uuid.uuid4())
         response = client.post(
             "/api/v1/ingest",
@@ -172,6 +185,7 @@ class TestIngestEndpoint:
                     }
                 ],
             },
+            headers=ingest_headers,
         )
         assert response.status_code == 422
 

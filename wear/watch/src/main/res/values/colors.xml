@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- WMAX design tokens from contracts/types.ts -->
-    <color name="good">#2E7D5B</color>
-    <color name="attention">#C77A0A</color>
-    <color name="risk">#B3261E</color>
-    <color name="nodata">#8A8780</color>
+    <!-- WMAX Modern Design Tokens (Matching web-doctor, web-relative & mobile) -->
+    <color name="primary">#0284C7</color>
+    <color name="primary_cyan">#38BDF8</color>
+    <color name="primary_dark">#0369A1</color>
+    <color name="good">#10B981</color>
+    <color name="good_emerald">#10B981</color>
+    <color name="attention">#F59E0B</color>
+    <color name="attention_amber">#F59E0B</color>
+    <color name="risk">#EF4444</color>
+    <color name="risk_red">#EF4444</color>
+    <color name="nodata">#64748B</color>
     <color name="background">#000000</color>
-    <color name="surface">#1C1B1F</color>
-    <color name="text">#FAFAF8</color>
-    <color name="text_secondary">#C8C6C0</color>
+    <color name="surface">#0F172A</color>
+    <color name="surface_card">#1E293B</color>
+    <color name="surface_pill">#141E2E</color>
+    <color name="text">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
 </resources>
