@@ -1,4 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
+import {
+  Search,
+  X,
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  HelpCircle,
+  Clock,
+  ClipboardList,
+  ChevronRight,
+  RotateCcw,
+} from "lucide-react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { PatientSummary } from "../lib/types";
@@ -7,17 +19,31 @@ interface PatientsListProps {
   patients: PatientSummary[];
   onSelectPatient: (id: string) => void;
   lang: Lang;
+  // Hoisted to App.tsx — prevents reset on re-render/remount
+  districtFilter: string;
+  onDistrictFilterChange: (v: string) => void;
+  statusFilter: string;
+  onStatusFilterChange: (v: string) => void;
+  taskFilterOnly: boolean;
+  onTaskFilterChange: (v: boolean) => void;
+  searchQuery: string;
+  onSearchQueryChange: (v: string) => void;
 }
 
 export const PatientsList: React.FC<PatientsListProps> = ({
   patients,
   onSelectPatient,
   lang,
+  districtFilter,
+  onDistrictFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  taskFilterOnly,
+  onTaskFilterChange,
+  searchQuery,
+  onSearchQueryChange,
 }) => {
-  const [districtFilter, setDistrictFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [taskFilterOnly, setTaskFilterOnly] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  // useState lar olib tashlandi — hamma filter state App.tsx da
 
   const districts = Array.from(new Set(patients.map((p) => p.district)));
 
@@ -80,10 +106,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     searchQuery.trim().length > 0;
 
   const resetAllFilters = () => {
-    setDistrictFilter("all");
-    setStatusFilter("all");
-    setTaskFilterOnly(false);
-    setSearchQuery("");
+    onDistrictFilterChange("all");
+    onStatusFilterChange("all");
+    onTaskFilterChange(false);
+    onSearchQueryChange("");
   };
 
 
@@ -96,8 +122,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab ${statusFilter === "all" && !taskFilterOnly ? "active" : ""}`}
             onClick={() => {
-              setStatusFilter("all");
-              setTaskFilterOnly(false);
+              onStatusFilterChange("all");
+              onTaskFilterChange(false);
             }}
           >
             <span className="kpi-value">{patients.length}</span>
@@ -108,8 +134,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab kpi-red ${statusFilter === "red" ? "active" : ""}`}
             onClick={() => {
-              setStatusFilter(statusFilter === "red" ? "all" : "red");
-              setTaskFilterOnly(false);
+              onStatusFilterChange(statusFilter === "red" ? "all" : "red");
+              onTaskFilterChange(false);
             }}
           >
             <div className="kpi-top-tag">
@@ -123,7 +149,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab kpi-task ${taskFilterOnly ? "active" : ""}`}
             onClick={() => {
-              setTaskFilterOnly((prev) => !prev);
+              onTaskFilterChange(!taskFilterOnly);
             }}
           >
             <div className="kpi-top-tag">
@@ -137,8 +163,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab kpi-amber ${statusFilter === "amber" && !taskFilterOnly ? "active" : ""}`}
             onClick={() => {
-              setStatusFilter(statusFilter === "amber" ? "all" : "amber");
-              setTaskFilterOnly(false);
+              onStatusFilterChange(statusFilter === "amber" ? "all" : "amber");
+              onTaskFilterChange(false);
             }}
           >
             <div className="kpi-top-tag">
@@ -152,8 +178,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab kpi-green ${statusFilter === "green" && !taskFilterOnly ? "active" : ""}`}
             onClick={() => {
-              setStatusFilter(statusFilter === "green" ? "all" : "green");
-              setTaskFilterOnly(false);
+              onStatusFilterChange(statusFilter === "green" ? "all" : "green");
+              onTaskFilterChange(false);
             }}
           >
             <div className="kpi-top-tag">
@@ -167,8 +193,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             type="button"
             className={`triage-kpi-tab kpi-nodata ${statusFilter === "no_data" && !taskFilterOnly ? "active" : ""}`}
             onClick={() => {
-              setStatusFilter(statusFilter === "no_data" ? "all" : "no_data");
-              setTaskFilterOnly(false);
+              onStatusFilterChange(statusFilter === "no_data" ? "all" : "no_data");
+              onTaskFilterChange(false);
             }}
           >
             <div className="kpi-top-tag">
@@ -183,74 +209,75 @@ export const PatientsList: React.FC<PatientsListProps> = ({
       {/* 2. Official Filters Bar */}
       <div className="filters-control-bar-official">
         <div className="filter-search-box">
-          <svg className="search-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          <Search className="search-svg" size={15} />
           <input
             type="text"
             className="filter-search-input-official"
             placeholder={t("patients.search_placeholder", lang)}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
           />
           {searchQuery && (
             <button
               type="button"
               className="clear-search-btn-official"
-              onClick={() => setSearchQuery("")}
+              onClick={() => onSearchQueryChange("")}
+              aria-label="Qidiruvni tozalash"
             >
-              ✕
+              <X size={13} />
             </button>
           )}
         </div>
 
-        <div className="filter-select-group">
-          <label htmlFor="filter-district-select" className="filter-label-official">
-            {t("patients.filter_district_short", lang)}
-          </label>
-          <select
-            id="filter-district-select"
-            className="filter-select-official"
-            value={districtFilter}
-            onChange={(e) => setDistrictFilter(e.target.value)}
-          >
-            <option value="all">{t("patients.all_districts", lang)}</option>
-            {districts.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="filter-selects-row">
+          <div className="filter-select-group">
+            <label htmlFor="filter-district-select" className="filter-label-official">
+              {t("patients.filter_district_short", lang)}
+            </label>
+            <select
+              id="filter-district-select"
+              className="filter-select-official"
+              value={districtFilter}
+              onChange={(e) => onDistrictFilterChange(e.target.value)}
+            >
+              <option value="all">{t("patients.all_districts", lang)}</option>
+              {districts.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="filter-select-group">
-          <label htmlFor="filter-status-select" className="filter-label-official">
-            {t("patients.filter_status_short", lang)}
-          </label>
-          <select
-            id="filter-status-select"
-            className="filter-select-official"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">{t("patients.all_statuses", lang)}</option>
-            <option value="red">{t("state.red", lang)}</option>
-            <option value="no_data">{t("state.no_data", lang)}</option>
-            <option value="amber">{t("state.amber", lang)}</option>
-            <option value="green">{t("state.green", lang)}</option>
-          </select>
-        </div>
+          <div className="filter-select-group">
+            <label htmlFor="filter-status-select" className="filter-label-official">
+              {t("patients.filter_status_short", lang)}
+            </label>
+            <select
+              id="filter-status-select"
+              className="filter-select-official"
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange(e.target.value)}
+            >
+              <option value="all">{t("patients.all_statuses", lang)}</option>
+              <option value="red">{t("state.red", lang)}</option>
+              <option value="no_data">{t("state.no_data", lang)}</option>
+              <option value="amber">{t("state.amber", lang)}</option>
+              <option value="green">{t("state.green", lang)}</option>
+            </select>
+          </div>
 
-        {isFiltering && (
-          <button
-            type="button"
-            className="btn-official-reset"
-            onClick={resetAllFilters}
-          >
-            {t("patients.reset_filters", lang)} ({filteredPatients.length})
-          </button>
-        )}
+          {isFiltering && (
+            <button
+              type="button"
+              className="btn-official-reset"
+              onClick={resetAllFilters}
+            >
+              <RotateCcw size={12} style={{ marginRight: 4 }} />
+              {t("patients.reset_filters", lang)} ({filteredPatients.length})
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3. Official High Density Worklist Table */}
@@ -259,27 +286,14 @@ export const PatientsList: React.FC<PatientsListProps> = ({
           <li className="worklist-empty">
             <h2 className="worklist-empty-title">{t("patients.no_matches", lang)}</h2>
             <button type="button" className="btn-official-reset" onClick={resetAllFilters}>
+              <RotateCcw size={12} style={{ marginRight: 4 }} />
               {t("patients.clear_filters", lang)}
             </button>
           </li>
         ) : (
           filteredPatients.map((p) => {
-            const slope = p.trend?.slope ?? 0;
-            const trendArrow =
-              p.trend.direction === "worsening" ? "↗" : p.trend.direction === "improving" ? "↘" : "→";
-
-            const dueLabel = p.open_task
-              ? new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : lang === "en" ? "en-GB" : "uz-UZ", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(new Date(p.open_task.due_at))
-              : null;
-
-            const deviations = Object.entries(p.triggered_params ?? {})
-              .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-              .slice(0, 4);
+            const hasTask = p.open_task && p.open_task.status !== "done";
+            const isOverdue = p.open_task?.status === "overdue";
 
             return (
               <li key={p.id} className={`wl-row wl-${p.level}`}>
@@ -287,55 +301,57 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   type="button"
                   className="wl-open"
                   onClick={() => onSelectPatient(p.id)}
-                  aria-label={`${p.full_name} — ${t("patients.th_action", lang)}`}
+                  aria-label={`${p.full_name} — batafsil ko'rish`}
                 >
+                  {/* Left accent spine */}
                   <span className="wl-spine" aria-hidden="true" />
 
-                  <span className="wl-body">
-                    <span className="wl-line-top">
-                      <span className="wl-name">{p.full_name}</span>
-                      <span className={`wl-level wl-level-${p.level}`}>
-                        <span aria-hidden="true">
-                          {p.level === "red" ? "!" : p.level === "amber" ? "△" : p.level === "green" ? "✓" : "×"}
-                        </span>
-                        {t(`state.${p.level}`, lang)}
-                      </span>
-                      <span className="wl-meta">
-                        {p.age} {lang === "ru" ? "лет" : lang === "en" ? "yrs" : "yosh"} · {p.district}
-                      </span>
+                  {/* Left zone: name + meta */}
+                  <span className="wl-left">
+                    <span className="wl-name">{p.full_name}</span>
+                    <span className="wl-meta">
+                      {p.age} {lang === "ru" ? "лет" : lang === "en" ? "yrs" : "yosh"}
+                      <span className="wl-meta-sep">·</span>
+                      {p.district}
                     </span>
+                  </span>
 
-                    <span className="wl-dx">{p.diagnosis}</span>
-
-                    {deviations.length > 0 && (
-                      <span className="wl-devs">
-                        {deviations.map(([k, v]) => (
-                          <span key={k} className={`wl-dev ${v < 0 ? "down" : "up"}`}>
-                            <span className="wl-dev-k">{k}</span>
-                            <span className="wl-dev-v">
-                              {v > 0 ? "+" : ""}
-                              {v.toFixed(1)}σ
-                            </span>
-                          </span>
-                        ))}
+                  {/* Right zone: status badge + task pill */}
+                  <span className="wl-right">
+                    <span className={`wl-level wl-level-${p.level}`}>
+                      <span className="wl-level-icon" aria-hidden="true">
+                        {p.level === "red" ? (
+                          <AlertCircle size={12} strokeWidth={2.5} />
+                        ) : p.level === "amber" ? (
+                          <AlertTriangle size={12} strokeWidth={2.5} />
+                        ) : p.level === "green" ? (
+                          <CheckCircle2 size={12} strokeWidth={2.5} />
+                        ) : (
+                          <HelpCircle size={12} strokeWidth={2.5} />
+                        )}
+                      </span>
+                      {t(`state.${p.level}`, lang)}
+                    </span>
+                    {hasTask && (
+                      <span className={`wl-task-dot ${isOverdue ? "overdue" : ""}`}>
+                        {isOverdue ? (
+                          <>
+                            <Clock size={11} strokeWidth={2.2} />
+                            <span>Muddati o'tdi</span>
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardList size={11} strokeWidth={2.2} />
+                            <span>Patronaj</span>
+                          </>
+                        )}
                       </span>
                     )}
                   </span>
 
-                  <span className="wl-side">
-                    <span className="wl-score" title={t("patients.th_trend", lang)}>
-                      <span className="wl-score-v">{p.composite_score.toFixed(1)}</span>
-                      <span className="wl-score-t">
-                        {trendArrow} {slope > 0 ? "+" : ""}
-                        {slope.toFixed(2)}
-                      </span>
-                    </span>
-
-                    {dueLabel && (
-                      <span className={`wl-due ${p.open_task?.status === "overdue" ? "overdue" : ""}`}>
-                        {p.open_task?.status === "overdue" ? t("patients.overdue", lang) : dueLabel}
-                      </span>
-                    )}
+                  {/* Arrow */}
+                  <span className="wl-arrow" aria-hidden="true">
+                    <ChevronRight size={18} strokeWidth={2} />
                   </span>
                 </button>
               </li>

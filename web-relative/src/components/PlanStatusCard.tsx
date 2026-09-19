@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import type { Lang } from "../i18n";
+import { cn } from "../lib/utils";
+import { Diamond, CreditCard, CheckCircle, X } from "lucide-react";
 
 interface PlanStatusCardProps {
   lang: Lang;
 }
+
+const PLAN_LABELS = {
+  free: { uz: "Baza (Bepul)", ru: "Базовый (Бесплатно)" },
+  premium: { uz: "Premium (Tahliliy)", ru: "Премиум (Аналитика)" },
+  premium_doc: { uz: "Premium + Shifokor", ru: "Премиум + Врач" },
+};
 
 export const PlanStatusCard: React.FC<PlanStatusCardProps> = ({ lang }) => {
   const [currentPlan, setCurrentPlan] = useState<"free" | "premium" | "premium_doc">("premium");
@@ -20,231 +28,184 @@ export const PlanStatusCard: React.FC<PlanStatusCardProps> = ({ lang }) => {
     setTimeout(() => {
       setUpgradedSuccess(false);
       setShowUpgradeModal(false);
-    }, 1500);
+    }, 1600);
   };
 
+  const l = lang === "ru" ? "ru" : "uz";
+  const planLabel = PLAN_LABELS[currentPlan][l];
+  const isPremiumDoc = currentPlan === "premium_doc";
+
   return (
-    <div
-      style={{
-        background: "var(--bg-card, #ffffff)",
-        borderRadius: "14px",
-        padding: "16px",
-        margin: "12px 0",
-        border: "1px solid var(--border-color, #e2e8f0)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-            <span style={{ fontSize: "1.1rem" }}>💎</span>
-            <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>
-              {currentPlan === "free"
-                ? "Tarif: Free (Baza)"
-                : currentPlan === "premium"
-                ? "Tarif: Premium (Tahliliy)"
-                : "Tarif: Premium + Shifokor"}
-            </span>
-            {trialDaysLeft > 0 && (
-              <span
-                style={{
-                  background: "rgba(59, 130, 246, 0.12)",
-                  color: "#2563eb",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  padding: "2px 8px",
-                  borderRadius: "10px",
-                }}
-              >
-                {lang === "ru" ? `14 дней триал: осталось ${trialDaysLeft} дн.` : `14 kunlik trial: ${trialDaysLeft} kun qoldi`}
+    <>
+      <div className="mx-4 mb-2 rounded-2xl bg-white border border-slate-100 shadow-sm p-4 flex flex-col gap-3 animate-fade-up">
+        {/* Plan row */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Diamond size={16} className="text-blue-500" />
+              <span className="text-[14px] font-extrabold text-slate-800" style={{ fontFamily: "'Outfit',sans-serif" }}>
+                {planLabel}
               </span>
-            )}
+              {trialDaysLeft > 0 && (
+                <span className="text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
+                  {l === "ru" ? `Триал: ${trialDaysLeft} дн.` : `Trial: ${trialDaysLeft} kun`}
+                </span>
+              )}
+            </div>
+            <p className="text-[11.5px] text-slate-500 leading-snug max-w-[220px]">
+              {currentPlan === "premium"
+                ? l === "ru"
+                  ? "AI прогноз 72ч, дорогой журнал, PDF отчёт"
+                  : "AI 72-soatlik prognoz, dori tahlili, PDF hisobot"
+                : currentPlan === "premium_doc"
+                ? l === "ru"
+                  ? "24/7 кардиолог, звонок за 15 мин при красном сигнале"
+                  : "24/7 kardiolog, qizil signalda 15 daqiqada qo'ng'iroq"
+                : l === "ru" ? "Базовый мониторинг" : "Asosiy monitoring"}
+            </p>
           </div>
-          <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: "var(--color-muted, #64748b)" }}>
-            {currentPlan === "premium"
-              ? lang === "ru"
-                ? "Включено: AI прогноз на 72ч, отклик на лекарства, безлимитная история, PDF отчет"
-                : "Faol: AI 72-soatlik prognoz, dori ta'siri, cheksiz tarix, shifokor uchun PDF hisobot"
-              : lang === "ru"
-              ? "Включено: Круглосуточный дежурный кардиолог и экстренный вызов"
-              : "Faol: 24/7 Navbatchi kardiolog nazorati va qizil signalda qo'ng'iroq"}
-          </p>
+          <button
+            type="button"
+            onClick={() => setShowUpgradeModal(true)}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold px-3 py-2 rounded-xl transition-all active:scale-95 flex-shrink-0"
+          >
+            <CreditCard size={13} />
+            {l === "ru" ? "Управление" : "Boshqarish"}
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowUpgradeModal(true)}
-          style={{
-            background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "8px",
-            padding: "8px 14px",
-            fontSize: "0.8rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
-          }}
-        >
-          {lang === "ru" ? "Управление тарифом" : "Tarifni boshqarish"}
-        </button>
+        {/* Compliance strip */}
+        <div className={cn(
+          "flex items-start gap-2 rounded-xl px-3 py-2.5 border text-[11.5px] leading-snug",
+          isPremiumDoc
+            ? "bg-green-50 border-green-200 text-green-800"
+            : "bg-amber-50 border-amber-200 text-amber-800"
+        )}>
+          <span className="text-base flex-shrink-0">{isPremiumDoc ? "👨‍⚕️" : "ℹ️"}</span>
+          <span>
+            {isPremiumDoc
+              ? l === "ru"
+                ? "Дежурный кардиолог подключён. Позвонит в течение 15 минут при красном сигнале."
+                : "Navbatchi kardiolog ulangan. Qizil signalda 15 daqiqada qo'ng'iroq qilinadi."
+              : l === "ru"
+              ? "Личный врач не закреплён. При красном сигнале немедленно звоните 103."
+              : "Shifokor biriktirilmagan. Qizil holatda darhol 103 ga qo'ng'iroq qiling."}
+          </span>
+        </div>
       </div>
 
-      {/* R2 Compliance Banner: Shifokor biriktirilmaganligi yoki telemeditsina holati */}
-      <div
-        style={{
-          marginTop: "12px",
-          padding: "8px 12px",
-          background: currentPlan === "premium_doc" ? "rgba(16, 185, 129, 0.08)" : "rgba(245, 158, 11, 0.08)",
-          borderRadius: "8px",
-          border: currentPlan === "premium_doc" ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(245, 158, 11, 0.2)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          fontSize: "0.78rem",
-        }}
-      >
-        <span>{currentPlan === "premium_doc" ? "👨‍⚕️" : "ℹ️"}</span>
-        <span style={{ color: currentPlan === "premium_doc" ? "#065f46" : "#92400e" }}>
-          {currentPlan === "premium_doc"
-            ? lang === "ru"
-              ? "Дежурный врач подключен: при критическом отклонении поступит звонок в течение 15 минут."
-              : "Navbatchi shifokor ulangan: qizil signalda 15 daqiqa ichida qo'ng'iroq qilinadi."
-            : lang === "ru"
-              ? "Внимание (B2C): Личный врач не закреплен. Система мониторит показатели для осведомленности семьи. При красном сигнале срочно вызовите 103."
-              : "Eslatma (B2C): Shifokor biriktirilmagan. Tizim oilangiz xabardorligi uchun monitoring qiladi. Kritik qizil holatda darhol 103 ga qo'ng'iroq qiling."}
-        </span>
-      </div>
-
-      {/* Upgrade / Subscription Modal */}
+      {/* ── Upgrade Modal ── */}
       {showUpgradeModal && (
-        <div className="modal-backdrop" onClick={() => setShowUpgradeModal(false)}>
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowUpgradeModal(false)}
+        >
           <div
-            className="modal-card"
-            style={{ maxWidth: "520px", width: "92%" }}
+            className="bg-white rounded-3xl w-full max-w-[520px] p-6 shadow-2xl animate-fade-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h3 style={{ margin: 0 }}>
-                {lang === "ru" ? "Тарифы подписки WMAX" : "WMAX Obuna Tariflari"}
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[16px] font-extrabold text-slate-800" style={{ fontFamily: "'Outfit',sans-serif" }}>
+                {l === "ru" ? "Тарифы WMAX" : "WMAX Tariflari"}
               </h3>
-              <button className="modal-close-btn" onClick={() => setShowUpgradeModal(false)}>
-                ✕
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+              >
+                <X size={15} className="text-slate-500" />
               </button>
             </div>
 
-            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div
-                onClick={() => setSelectedUpgrade("premium")}
-                style={{
-                  border: selectedUpgrade === "premium" ? "2px solid #2563eb" : "1px solid #cbd5e1",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  cursor: "pointer",
-                  background: selectedUpgrade === "premium" ? "rgba(37, 99, 235, 0.04)" : "#fff",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 700 }}>Premium (Tahliliy)</span>
-                  <span style={{ fontWeight: 700, color: "#2563eb" }}>59 000 so'm / oy</span>
-                </div>
-                <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "4px 0 0 0" }}>
-                  AI 72-soatlik dekompensatsiya prognozi, dori ta'siri tahlili va shifokor uchun PDF-hisobot.
-                </p>
-              </div>
-
-              <div
-                onClick={() => setSelectedUpgrade("premium_doc")}
-                style={{
-                  border: selectedUpgrade === "premium_doc" ? "2px solid #2563eb" : "1px solid #cbd5e1",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  cursor: "pointer",
-                  background: selectedUpgrade === "premium_doc" ? "rgba(37, 99, 235, 0.04)" : "#fff",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 700 }}>Premium + Shifokor (Telemeditsina)</span>
-                  <span style={{ fontWeight: 700, color: "#2563eb" }}>249 000 so'm / oy</span>
-                </div>
-                <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "4px 0 0 0" }}>
-                  24/7 navbatchi kardiolog nazorati, qizil signalda 15 daqiqada shifokor qo'ng'irog'i, oyiga 2 marta video-konsultatsiya.
-                </p>
-              </div>
+            {/* Plan options */}
+            <div className="flex flex-col gap-3 mb-4">
+              {(["premium", "premium_doc"] as const).map((plan) => {
+                const isSelected = selectedUpgrade === plan;
+                return (
+                  <button
+                    key={plan}
+                    type="button"
+                    onClick={() => setSelectedUpgrade(plan)}
+                    className={cn(
+                      "text-left rounded-2xl p-4 border-2 transition-all",
+                      isSelected ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white hover:border-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[14px] font-bold text-slate-800">
+                        {PLAN_LABELS[plan][l]}
+                      </span>
+                      <span className="text-[14px] font-extrabold text-blue-600">
+                        {plan === "premium" ? "59 000" : "249 000"} {l === "ru" ? "сум/мес" : "so'm/oy"}
+                      </span>
+                    </div>
+                    <p className="text-[11.5px] text-slate-500 leading-snug">
+                      {plan === "premium"
+                        ? l === "ru"
+                          ? "AI прогноз 72ч, анализ лекарств, безлимитная история, PDF для врача."
+                          : "AI 72-soatlik prognoz, dori ta'siri tahlili, cheksiz tarix, PDF hisobot."
+                        : l === "ru"
+                        ? "24/7 кардиолог, вызов за 15 мин при критическом сигнале, 2 видеоконсультации в месяц."
+                        : "24/7 navbatchi kardiolog, qizil signalda 15 daqiqada chaqiruv, oyda 2 video-konsultatsiya."}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Payment Provider selector */}
-            <div style={{ marginTop: "16px" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600, display: "block", marginBottom: "6px" }}>
-                {lang === "ru" ? "Способ оплаты:" : "To'lov usuli:"}
+            {/* Payment provider */}
+            <div className="mb-5">
+              <label className="text-[12px] font-bold text-slate-600 mb-2 block">
+                {l === "ru" ? "Способ оплаты:" : "To'lov usuli:"}
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider("payme")}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: paymentProvider === "payme" ? "2px solid #00cccc" : "1px solid #cbd5e1",
-                    background: paymentProvider === "payme" ? "rgba(0, 204, 204, 0.08)" : "#fff",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Payme
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider("click")}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: paymentProvider === "click" ? "2px solid #0056b3" : "1px solid #cbd5e1",
-                    background: paymentProvider === "click" ? "rgba(0, 86, 179, 0.08)" : "#fff",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Click
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider("uzum")}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: paymentProvider === "uzum" ? "2px solid #7000ff" : "1px solid #cbd5e1",
-                    background: paymentProvider === "uzum" ? "rgba(112, 0, 255, 0.08)" : "#fff",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Uzum Bank
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {(["payme", "click", "uzum"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPaymentProvider(p)}
+                    className={cn(
+                      "py-2.5 rounded-xl border-2 font-bold text-[13px] transition-all",
+                      paymentProvider === p
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    )}
+                  >
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Success message */}
             {upgradedSuccess && (
-              <div style={{ marginTop: "12px", padding: "8px", background: "#ecfdf5", color: "#065f46", borderRadius: "6px", textAlign: "center", fontSize: "0.85rem", fontWeight: 600 }}>
-                ✅ To'lov muvaffaqiyatli amalga oshirildi! Tarif faollashtirildi.
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 mb-4 text-[13px] font-semibold">
+                <CheckCircle size={16} className="text-green-600" />
+                {l === "ru" ? "Оплата прошла! Тариф активирован." : "To'lov muvaffaqiyatli! Tarif faollashtirildi."}
               </div>
             )}
 
-            <div style={{ marginTop: "18px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-              <button className="btn btn-outline" onClick={() => setShowUpgradeModal(false)}>
-                Bekor qilish
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-[13px] hover:bg-slate-50 transition-colors"
+              >
+                {l === "ru" ? "Отмена" : "Bekor qilish"}
               </button>
               <button
-                className="btn btn-primary"
+                type="button"
                 onClick={handlePay}
-                style={{ background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff" }}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] transition-colors active:scale-95"
               >
-                {paymentProvider.toUpperCase()} orqali to'lash
+                {paymentProvider.toUpperCase()} {l === "ru" ? "оплатить" : "orqali to'lash"}
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

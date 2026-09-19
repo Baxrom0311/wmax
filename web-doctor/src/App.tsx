@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Check, AlertTriangle, RefreshCw, FlaskConical } from "lucide-react";
 import { Navbar } from "./components/Navbar";
 import type { NavTab } from "./components/Navbar";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
 import {
   clearTokens,
+  fetchActiveSos,
   fetchPatientDetail,
   fetchPatients,
   getStoredToken,
@@ -14,7 +16,7 @@ import {
   setDemoSession,
   startDemoDoctorSession,
 } from "./lib/api";
-import type { PatientDetail, PatientSummary, TokenPair } from "./lib/types";
+import type { PatientDetail, PatientSummary, SosEventItem, TokenPair } from "./lib/types";
 import { PatientsList } from "./pages/PatientsList";
 import { SosBanner } from "./components/SosBanner";
 
@@ -27,7 +29,17 @@ export const App: React.FC = () => {
   const [lang, setLang] = useState<Lang>("uz");
   const [token, setToken] = useState<string | null>(getStoredToken());
   const [user, setUser] = useState<TokenPair | null>(getStoredUser());
-  const [activeTab, setActiveTab] = useState<NavTab>("patients");
+  const [activeTab, setActiveTab] = useState<NavTab>(() => {
+    const saved = localStorage.getItem("wmax_active_tab") as NavTab | null;
+    const valid: NavTab[] = ["patients", "handoffs", "sos", "devices"];
+    return saved && valid.includes(saved) ? saved : "patients";
+  });
+
+  // Persist tab on every change
+  const handleTabChange = React.useCallback((tab: NavTab) => {
+    localStorage.setItem("wmax_active_tab", tab);
+    setActiveTab(tab);
+  }, []);
   const [isSosDispatcherOpen, setIsSosDispatcherOpen] = useState<boolean>(false);
   const [isDemo, setIsDemo] = useState<boolean>(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -38,9 +50,16 @@ export const App: React.FC = () => {
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [detailPatient, setDetailPatient] = useState<PatientDetail | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [_loading, setLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // PatientsList filter state — hoisted here to survive tab switches and data refresh
+  const [plDistrictFilter, setPlDistrictFilter] = useState<string>("all");
+  const [plStatusFilter, setPlStatusFilter] = useState<string>("all");
+  const [plTaskFilter, setPlTaskFilter] = useState<boolean>(false);
+  const [plSearchQuery, setPlSearchQuery] = useState<string>("");
+  const [sosCount, setSosCount] = useState<number>(2);
 
   // Login form state
   const [selectedRole, setSelectedRole] = useState<"doctor" | "nurse">("doctor");
@@ -59,6 +78,8 @@ export const App: React.FC = () => {
     setDetailPatient(null);
     setPatients([]);
     setFetchError(null);
+    localStorage.removeItem("wmax_active_tab");
+    setActiveTab("patients");
   }, []);
 
   const showToast = (msg: string) => {
@@ -86,17 +107,14 @@ export const App: React.FC = () => {
 
   const loadDetail = useCallback(async (id: string, silent = false) => {
     if (!silent) setLoading(true);
-    setFetchError(null);
+    if (!silent) setFetchError(null);  // faqat !silent da tozala
     try {
       const data = await fetchPatientDetail(id, isDemo);
       setDetailPatient(data);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg === "UNAUTHORIZED") {
-        handleLogout();
-        return;
-      }
-      setFetchError(t("error.server_connection", lang));
+      if (msg === "UNAUTHORIZED") { handleLogout(); return; }
+      if (!silent) setFetchError(t("error.server_connection", lang));
     } finally {
       if (!silent) setLoading(false);
     }
@@ -122,6 +140,22 @@ export const App: React.FC = () => {
     }, 15000);
     return () => clearInterval(interval);
   }, [token, selectedPatientId, loadDetail, loadPatients]);
+
+  // Keep active SOS counter reactive
+  useEffect(() => {
+    if (!token) return;
+    const checkSosCount = () => {
+      fetchActiveSos(isDemo)
+        .then((events: SosEventItem[]) => {
+          const count = events.filter((e: SosEventItem) => e.status !== "resolved" && e.status !== "cancelled").length;
+          setSosCount(count);
+        })
+        .catch(() => {});
+    };
+    checkSosCount();
+    const interval = setInterval(checkSosCount, 8000);
+    return () => clearInterval(interval);
+  }, [token, isDemo, isSosDispatcherOpen, activeTab]);
 
 
   useEffect(() => {
@@ -174,23 +208,28 @@ export const App: React.FC = () => {
           role={user?.role || "doctor"}
           onLogout={handleLogout}
           activeTab={activeTab}
+          openHandoffsCount={2}
+          activeSosCount={sosCount}
           onTabChange={(tab) => {
-            setActiveTab(tab);
+            handleTabChange(tab);
             setSelectedPatientId(null);
           }}
         />
       )}
 
-      {token && (
+      {token && activeTab !== "sos" && !isSosDispatcherOpen && (
         <SosBanner
-          onOpenDispatcher={() => setIsSosDispatcherOpen(true)}
+          onOpenDispatcher={() => {
+            setIsSosDispatcherOpen(true);
+            handleTabChange("sos");
+          }}
           isDemo={isDemo}
         />
       )}
 
       {toastMessage && (
         <div className="doc-toast-notification">
-          <span className="toast-icon">✓</span>
+          <span className="toast-icon"><Check size={16} /></span>
           <span>{toastMessage}</span>
         </div>
       )}
@@ -200,7 +239,7 @@ export const App: React.FC = () => {
         <SosDispatcher
           onClose={() => {
             setIsSosDispatcherOpen(false);
-            setActiveTab("patients");
+            handleTabChange("patients");
           }}
           isDemo={isDemo}
         />
@@ -327,35 +366,41 @@ export const App: React.FC = () => {
         </div>
       ) : fetchError && patients.length === 0 && !detailPatient ? (
         <div className="doc-fetch-error-card">
-          <div className="error-icon-circle">⚠️</div>
+          <div className="error-icon-circle"><AlertTriangle size={32} color="#ea580c" /></div>
           <h3>{fetchError}</h3>
           <div className="error-actions-row">
             <button
               type="button"
               className="btn-error-retry"
               onClick={() => (selectedPatientId ? loadDetail(selectedPatientId) : loadPatients())}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              🔄 {t("error.retry", lang)}
+              <RefreshCw size={14} />
+              <span>{t("error.retry", lang)}</span>
             </button>
             <button
               type="button"
               className="btn-error-switch-demo"
               onClick={() => handleLaunchDemo("doctor")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              🧪 {t("demo.enter_demo", lang)}
+              <FlaskConical size={14} />
+              <span>{t("demo.enter_demo", lang)}</span>
             </button>
           </div>
         </div>
-      ) : loading && !detailPatient && patients.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "var(--color-muted)" }}>
-          Yuklanmoqda...
-        </div>
       ) : activeTab === "handoffs" ? (
-        <HandoffsPage lang={lang} />
+        <HandoffsPage
+          lang={lang}
+          role={user?.role || "doctor"}
+          onSelectPatient={(id) => {
+            loadDetail(id);
+            setSelectedPatientId(id);
+          }}
+        />
       ) : activeTab === "devices" ? (
         <DeviceInventoryModal
-          isOpen
-          onClose={() => setActiveTab("patients")}
+          onClose={() => handleTabChange("patients")}
           lang={lang}
         />
       ) : selectedPatientId && detailPatient ? (
@@ -376,6 +421,14 @@ export const App: React.FC = () => {
             setSelectedPatientId(id);
           }}
           lang={lang}
+          districtFilter={plDistrictFilter}
+          onDistrictFilterChange={setPlDistrictFilter}
+          statusFilter={plStatusFilter}
+          onStatusFilterChange={setPlStatusFilter}
+          taskFilterOnly={plTaskFilter}
+          onTaskFilterChange={setPlTaskFilter}
+          searchQuery={plSearchQuery}
+          onSearchQueryChange={setPlSearchQuery}
         />
       )}
       </React.Suspense>

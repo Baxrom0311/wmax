@@ -1,4 +1,4 @@
-import type { PatientDetail, PatientSummary } from "./types";
+import type { PatientDetail, PatientSummary, SosEventItem } from "./types";
 
 export const MOCK_PATIENTS: PatientSummary[] = [
   {
@@ -258,3 +258,115 @@ export function getMockPatientDetail(id: string): PatientDetail {
     tasks: summary.open_task ? [summary.open_task] : [],
   };
 }
+
+export let MOCK_SOS_EVENTS: SosEventItem[] = [
+  {
+    id: "sos-001-red",
+    patient_id: "p-001-red",
+    patient_name: "Otabek Rahimov (68 yosh)",
+    raised_at: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+    status: "raised",
+    source: "watch_button",
+    address_snapshot: {
+      region: "Xorazm",
+      district: "Urganch",
+      street: "Al-Xorazmiy ko'chasi",
+      house: "45",
+      flat: "14",
+      landmark: "GUM savdo markazi va 1-son maktab orqasi",
+      entrance_note: "2-podyezd, 3-qavat, domofon: 14",
+      contact_phone: "+998 90 123 45 67 (Qarindoshi: Dilnoza)",
+    },
+    clinical_snapshot: {
+      blood_group: "A(II)",
+      rh: "Musbat (+)",
+      primary_diagnosis: "Yurak ishemik kasalligi (YIK). Zo'riqish stenokardiyasi FK III. Postinfarkt kardioskleroz",
+      allergies: [
+        { substance: "Penitsillin", reaction: "Anafilaktik shok / teri toshmasi" },
+      ],
+      active_medications: [
+        { name: "Bisoprolol", dose: "5 mg", frequency: "ertalab 1 mahal" },
+        { name: "Klopidogrel", dose: "75 mg", frequency: "kechqurun" },
+        { name: "Nitrosorbid", dose: "10 mg", frequency: "talab bo'yicha" },
+      ],
+    },
+    vitals_snapshot: {
+      hr: 128,
+      spo2: 85,
+      skin_temp: 37.8,
+      rr: 26,
+    },
+    device_lat: 41.5543,
+    device_lon: 60.6315,
+  },
+  {
+    id: "sos-002-amber",
+    patient_id: "p-002-amber",
+    patient_name: "Gulnora Matyoqubova (72 yosh)",
+    raised_at: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+    status: "acknowledged",
+    source: "auto_critical",
+    address_snapshot: {
+      region: "Xorazm",
+      district: "Xiva",
+      street: "Pahlavon Mahmud ko'chasi",
+      house: "12",
+      flat: "",
+      landmark: "Ichan Qal'a, Kalta Minor mehmonxonasi ro'parasi",
+      entrance_note: "Hovli uyi, ko'k temir darvoza",
+      contact_phone: "+998 91 987 65 43 (O'g'li: Jamshid)",
+    },
+    clinical_snapshot: {
+      blood_group: "O(I)",
+      rh: "Musbat (+)",
+      primary_diagnosis: "Gipertoniya kasalligi III bosqich. 2-tur qandli diabet. Ortostatik gipotenziya",
+      allergies: [
+        { substance: "Aspirin", reaction: "Me'da qonashi xavfi" },
+      ],
+      active_medications: [
+        { name: "Ramipril", dose: "2.5 mg", frequency: "kechqurun 1 mahal" },
+        { name: "Metformin", dose: "850 mg", frequency: "kuniga 2 mahal" },
+      ],
+    },
+    vitals_snapshot: {
+      hr: 98,
+      spo2: 93,
+      skin_temp: 36.6,
+      rr: 20,
+    },
+    device_lat: 41.3783,
+    device_lon: 60.3589,
+    acknowledged_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+  },
+];
+
+export function getMockActiveSos(): SosEventItem[] {
+  return [...MOCK_SOS_EVENTS.filter((e) => e.status !== "resolved" && e.status !== "cancelled")];
+}
+
+export function mockAcknowledgeSos(sosId: string): SosEventItem {
+  const item = MOCK_SOS_EVENTS.find((e) => e.id === sosId);
+  if (!item) throw new Error("SOS hodisasi topilmadi");
+  item.status = "acknowledged";
+  item.acknowledged_at = new Date().toISOString();
+  return { ...item };
+}
+
+export function mockDispatchSos103(sosId: string, ref?: string): SosEventItem {
+  const item = MOCK_SOS_EVENTS.find((e) => e.id === sosId);
+  if (!item) throw new Error("SOS hodisasi topilmadi");
+  item.status = "dispatched_103";
+  item.dispatched_at = new Date().toISOString();
+  item.dispatch_ref_103 = ref || `103-BRIGADE-${Math.floor(1000 + Math.random() * 9000)}`;
+  return { ...item };
+}
+
+export function mockResolveSos(sosId: string, note: string): SosEventItem {
+  const item = MOCK_SOS_EVENTS.find((e) => e.id === sosId);
+  if (!item) throw new Error("SOS hodisasi topilmadi");
+  item.status = "resolved";
+  item.resolved_at = new Date().toISOString();
+  item.resolution_note = note;
+  return { ...item };
+}
+

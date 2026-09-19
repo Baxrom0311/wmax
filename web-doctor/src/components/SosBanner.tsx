@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Siren, ArrowRight } from "lucide-react";
 import { fetchActiveSos } from "../lib/api";
 import type { SosEventItem } from "../lib/types";
 
@@ -41,23 +42,31 @@ export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }
   const raisedCount = activeEvents.filter((e) => e.status === "raised").length;
 
   return (
-    <div className="sos-global-top-banner">
-      <div className="sos-banner-pulse-dot" />
-      <div className="sos-banner-content">
-        <span className="sos-banner-title">
-          🚨 SHOSHILINCH SOS: {activeEvents.length} ta faol favqulodda holat!
-          {raisedCount > 0 && ` (${raisedCount} ta yangi kutmoqda)`}
-        </span>
-        <span className="sos-banner-sub">
-          Bemor zudlik bilan tibbiy yordam va 103 dispetcherlik aralashuvini talab qiladi.
-        </span>
+    <div className="sos-global-top-banner" role="alert">
+      <div className="sos-banner-left">
+        <div className="sos-banner-pulse-dot" aria-hidden="true" />
+        <div className="sos-banner-content">
+          <div className="sos-banner-title">
+            <Siren size={16} color="#fee2e2" />
+            <span className="sos-title-text">
+              SHOSHILINCH SOS: {activeEvents.length} ta faol favqulodda holat!
+            </span>
+            {raisedCount > 0 && (
+              <span className="sos-raised-tag">{raisedCount} ta yangi</span>
+            )}
+          </div>
+          <span className="sos-banner-sub">
+            Bemor zudlik bilan tibbiy yordam va 103 dispetcherlik aralashuvini talab qiladi.
+          </span>
+        </div>
       </div>
       <button
         type="button"
         className="btn-open-sos-dispatcher"
         onClick={onOpenDispatcher}
       >
-        Dispetcherni ochish →
+        <span>Dispetcherni ochish</span>
+        <ArrowRight size={14} />
       </button>
     </div>
   );

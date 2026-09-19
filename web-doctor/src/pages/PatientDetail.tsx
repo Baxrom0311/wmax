@@ -1,4 +1,18 @@
 import React, { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  Printer,
+  LogOut,
+  CheckCircle2,
+  Activity,
+  User,
+  Pill,
+  AlertTriangle,
+  Stethoscope,
+  Loader2,
+  Building2,
+  ExternalLink,
+} from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { NurseHandoverPanel } from "../components/NurseHandoverPanel";
 import { ParamChart } from "../components/ParamChart";
@@ -103,7 +117,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       {/* 1. Official Breadcrumb Navigation */}
       <div className="official-breadcrumb no-print">
         <button type="button" className="btn-back-link" onClick={onBack}>
-          <span className="back-arrow-icon">←</span>
+          <ArrowLeft size={14} style={{ marginRight: 6 }} />
           <span>Bemorlar ro'yxatiga qaytish</span>
         </button>
         <span className="breadcrumb-slash">/</span>
@@ -158,6 +172,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               onClick={handlePrint}
               title="Klinik epikrizni chop etish"
             >
+              <Printer size={14} style={{ marginRight: 6 }} />
               <span>Chop etish</span>
             </button>
 
@@ -167,6 +182,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 className="btn-clinical btn-discharge-official"
                 onClick={() => setIsDischargeModalOpen(true)}
               >
+                <LogOut size={14} style={{ marginRight: 6 }} />
                 <span>Statsionardan chiqarish</span>
               </button>
             )}
@@ -178,12 +194,14 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 onClick={() => setIsApproveModalOpen(true)}
                 disabled={approving}
               >
+                <CheckCircle2 size={14} style={{ marginRight: 6 }} />
                 <span>{approving ? t("common.saving", lang) : t("detail.approve_baseline", lang)}</span>
               </button>
             )}
 
             {patient.baseline_approved && (
               <span className="badge-baseline-confirmed">
+                <CheckCircle2 size={13} style={{ marginRight: 4 }} />
                 <span>{t("detail.baseline_approved", lang)}</span>
               </span>
             )}
@@ -197,28 +215,32 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
           className={`patient-nav-tab ${activeTab === "telemetry" ? "active" : ""}`}
           onClick={() => setActiveTab("telemetry")}
         >
-          {t("detail.tab_telemetry", lang)}
+          <Activity size={14} style={{ marginRight: 6 }} />
+          <span>{t("detail.tab_telemetry", lang)}</span>
         </button>
         <button
           type="button"
           className={`patient-nav-tab ${activeTab === "profile" ? "active" : ""}`}
           onClick={() => setActiveTab("profile")}
         >
-          {t("detail.tab_profile", lang)}
+          <User size={14} style={{ marginRight: 6 }} />
+          <span>{t("detail.tab_profile", lang)}</span>
         </button>
         <button
           type="button"
           className={`patient-nav-tab ${activeTab === "medications" ? "active" : ""}`}
           onClick={() => setActiveTab("medications")}
         >
-          {t("detail.tab_medications", lang)}
+          <Pill size={14} style={{ marginRight: 6 }} />
+          <span>{t("detail.tab_medications", lang)}</span>
         </button>
         <button
           type="button"
           className={`patient-nav-tab ${activeTab === "admissions" ? "active" : ""}`}
           onClick={() => setActiveTab("admissions")}
         >
-          {t("detail.tab_risks", lang)}
+          <AlertTriangle size={14} style={{ marginRight: 6 }} />
+          <span>{t("detail.tab_risks", lang)}</span>
         </button>
         <button
           type="button"
@@ -234,7 +256,8 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
             }
           }}
         >
-          {t("detail.tab_nurse", lang)}
+          <Stethoscope size={14} style={{ marginRight: 6 }} />
+          <span>{t("detail.tab_nurse", lang)}</span>
         </button>
       </div>
 
@@ -387,8 +410,10 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="addr-map-link"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
                     >
-                      Xaritada ↗
+                      <span>Xaritada</span>
+                      <ExternalLink size={12} />
                     </a>
                   </div>
                 )}
@@ -510,7 +535,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         <div className="tab-panel-card">
           {nurseLoading ? (
             <div className="nurse-loading-state">
-              <div className="nurse-loading-spinner">⌛</div>
+              <Loader2 className="spinner-rotate" size={28} color="#0284c7" />
               <p>AI SBAR xisoboti tayyorlanmoqda…</p>
             </div>
           ) : nurseHandover ? (
@@ -527,7 +552,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
             />
           ) : (
             <div className="nurse-empty-state">
-              <span className="nurse-empty-icon">🏥</span>
+              <span className="nurse-empty-icon"><Building2 size={36} color="#94a3b8" /></span>
               <h3>Hamshira SBAR Xisoboti mavjud emas</h3>
               <p>AI xizmati vaqtincha mavjud emas yoki bemor uchun yetarli ma'lumot yo'q.</p>
               <button

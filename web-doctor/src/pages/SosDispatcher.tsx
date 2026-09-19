@@ -1,4 +1,26 @@
 import React, { useCallback, useEffect, useState } from "react";
+import {
+  Siren,
+  RefreshCw,
+  ArrowLeft,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  MapPin,
+  Droplets,
+  AlertCircle,
+  Clock,
+  Send,
+  Watch,
+  Cpu,
+  Check,
+  Zap,
+  Target,
+  DoorOpen,
+  Globe,
+  ExternalLink,
+  Pill,
+} from "lucide-react";
 import { acknowledgeSos, dispatchSos103, fetchActiveSos, resolveSos } from "../lib/api";
 import type { SosEventItem } from "../lib/types";
 
@@ -80,24 +102,34 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
     <div className="sos-dispatcher-screen">
       <div className="sos-dispatcher-header">
         <div className="dispatcher-title-area">
-          <span className="dispatcher-badge-live">LIVE 103 DISPATCH</span>
-          <h2>🚨 Favqulodda SOS Signallari Boshqaruvi</h2>
-          <p>Kardiologik bemorlar uchun shoshilinch tez tibbiy yordam va lokatsiya dispetcheri</p>
+          <div className="sos-header-icon"><Siren size={26} color="#ef4444" /></div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
+              <h2 style={{ margin: 0 }}>Favqulodda SOS Boshqaruvi</h2>
+              <span className="dispatcher-badge-live">LIVE 103</span>
+            </div>
+            <p>Kardiologik bemorlar uchun tez tibbiy yordam va lokatsiya dispetcheri</p>
+          </div>
         </div>
         <div className="dispatcher-actions">
           <button type="button" className="btn-refresh-sos" onClick={loadSos}>
-            🔄 Yangilash
+            <RefreshCw size={14} style={{ marginRight: 6 }} />
+            <span>Yangilash</span>
           </button>
           <button type="button" className="btn-close-dispatcher" onClick={onClose}>
-            ✕ Ro'yxatga qaytish
+            <ArrowLeft size={14} style={{ marginRight: 6 }} />
+            <span>Ro'yxatga qaytish</span>
           </button>
         </div>
       </div>
 
       {actionError && (
         <div className="dispatcher-error-bar">
-          ⚠️ {actionError}
-          <button type="button" onClick={() => setActionError(null)}>✕</button>
+          <AlertTriangle size={16} />
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)}>
+            <X size={14} />
+          </button>
         </div>
       )}
 
@@ -105,7 +137,7 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
         <div className="dispatcher-loading">Yuklanmoqda...</div>
       ) : events.length === 0 ? (
         <div className="dispatcher-empty-card">
-          <span className="empty-check-icon">✓</span>
+          <span className="empty-check-icon"><CheckCircle2 size={40} color="#16a34a" /></span>
           <h3>Hozirda faol SOS signallari yo'q</h3>
           <p>Barcha bemorlar barqaror yoki avvalgi signallar muvaffaqiyatli bartaraf etilgan.</p>
         </div>
@@ -136,7 +168,8 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                     </span>
                   </div>
                   <div className="event-item-address">
-                    📍 {addr.street || addr.district || "Manzil"}, {addr.landmark || ""}
+                    <MapPin size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                    <span>{addr.street || addr.district || "Manzil"}, {addr.landmark || ""}</span>
                   </div>
                   <div className="event-item-meta">
                     <span>Manba: {evt.source}</span>
@@ -152,19 +185,50 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
             <div className="dispatcher-event-detail">
               <div className="detail-top-card">
                 <div className="detail-patient-identity">
-                  <h3>{activeEvent.patient_name || "Bemor"}</h3>
-                  <div className="detail-tags-row">
+                  <div className="detail-name-row">
+                    <h3>{activeEvent.patient_name || "Bemor"}</h3>
                     <span className="detail-tag-blood">
-                      🩸 Qon guruhi: {activeEvent.clinical_snapshot?.blood_group || "Noma'lum"}{" "}
-                      {activeEvent.clinical_snapshot?.rh ? `(${activeEvent.clinical_snapshot.rh})` : ""}
+                      <Droplets size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                      <span>Qon guruhi: {activeEvent.clinical_snapshot?.blood_group || "Noma'lum"}{" "}
+                      {activeEvent.clinical_snapshot?.rh ? `(${activeEvent.clinical_snapshot.rh})` : ""}</span>
                     </span>
-                    <span className="detail-tag-status">
-                      Holat: {activeEvent.status.toUpperCase()}
+                    <span className={`detail-tag-status status-${activeEvent.status}`}>
+                      {activeEvent.status === "raised" ? (
+                        <>
+                          <AlertCircle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                          <span>YANGI CHAQIRUV</span>
+                        </>
+                      ) : activeEvent.status === "acknowledged" ? (
+                        <>
+                          <Clock size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                          <span>QABUL QILINDI</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                          <span>103 YUBORILDI</span>
+                        </>
+                      )}
                     </span>
                     <span className="detail-tag-source">
-                      Turi: {activeEvent.source}
+                      {activeEvent.source === "watch_button" ? (
+                        <>
+                          <Watch size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                          <span>Soat SOS tugmasi</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cpu size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                          <span>Avto / Akselerometr</span>
+                        </>
+                      )}
                     </span>
                   </div>
+                  {activeEvent.clinical_snapshot?.primary_diagnosis && (
+                    <p className="detail-patient-diagnosis">
+                      <strong>Tashxis:</strong> {activeEvent.clinical_snapshot.primary_diagnosis}
+                    </p>
+                  )}
                 </div>
 
                 {/* Dispatch action buttons */}
@@ -176,7 +240,8 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                       disabled={actionInProgress === activeEvent.id}
                       onClick={() => handleAcknowledge(activeEvent.id)}
                     >
-                      ✓ Qabul qilish
+                      <Check size={14} style={{ marginRight: 6 }} />
+                      <span>Chaqiruvni qabul qilish</span>
                     </button>
                   )}
 
@@ -186,14 +251,89 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                     disabled={actionInProgress === activeEvent.id}
                     onClick={() => handleDispatch103(activeEvent.id)}
                   >
-                    🚑 103 Brigadasini yo'naltirish
+                    <Send size={14} style={{ marginRight: 6 }} />
+                    <span>103 Brigadasini yo'naltirish</span>
                   </button>
                 </div>
               </div>
 
+              {/* Emergency Vitals Card */}
+              {activeEvent.vitals_snapshot && (
+                <div className="detail-section-card vitals-sos-card">
+                  <h4>
+                    <Zap size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                    <span>Favqulodda Telemetriya (Aqlli soatdan olingan oxirgi o'lchovlar)</span>
+                  </h4>
+                  <div className="sos-vitals-grid">
+                    <div className="sos-vital-box">
+                      <span className="sos-vital-label">SpO2 (Kislorod)</span>
+                      <span className={`sos-vital-value ${activeEvent.vitals_snapshot.spo2 < 90 ? "danger" : "normal"}`}>
+                        {activeEvent.vitals_snapshot.spo2}%
+                      </span>
+                      <span className="sos-vital-note">
+                        {activeEvent.vitals_snapshot.spo2 < 90 ? (
+                          <>
+                            <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                            <span>Gipoksiya xavfi</span>
+                          </>
+                        ) : (
+                          "Normal"
+                        )}
+                      </span>
+                    </div>
+                    <div className="sos-vital-box">
+                      <span className="sos-vital-label">Puls (Yurak urishi)</span>
+                      <span className={`sos-vital-value ${activeEvent.vitals_snapshot.hr > 100 ? "danger" : "normal"}`}>
+                        {activeEvent.vitals_snapshot.hr} bpm
+                      </span>
+                      <span className="sos-vital-note">
+                        {activeEvent.vitals_snapshot.hr > 100 ? (
+                          <>
+                            <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                            <span>Taxikardiya</span>
+                          </>
+                        ) : (
+                          "Normal"
+                        )}
+                      </span>
+                    </div>
+                    {activeEvent.vitals_snapshot.skin_temp && (
+                      <div className="sos-vital-box">
+                        <span className="sos-vital-label">Teri harorati</span>
+                        <span className="sos-vital-value normal">
+                          {activeEvent.vitals_snapshot.skin_temp}°C
+                        </span>
+                        <span className="sos-vital-note">Barqaror</span>
+                      </div>
+                    )}
+                    {activeEvent.vitals_snapshot.rr && (
+                      <div className="sos-vital-box">
+                        <span className="sos-vital-label">Nafas soni (RR)</span>
+                        <span className={`sos-vital-value ${activeEvent.vitals_snapshot.rr > 22 ? "danger" : "normal"}`}>
+                          {activeEvent.vitals_snapshot.rr}/daq
+                        </span>
+                        <span className="sos-vital-note">
+                          {activeEvent.vitals_snapshot.rr > 22 ? (
+                            <>
+                              <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                              <span>Tezlashgan</span>
+                            </>
+                          ) : (
+                            "Normal"
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Address & GPS Card */}
               <div className="detail-section-card">
-                <h4>📍 Yashash manzili va Orientir (103 brigadasi uchun)</h4>
+                <h4>
+                  <MapPin size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  <span>Yashash manzili va Orientir (103 brigadasi uchun)</span>
+                </h4>
                 <div className="address-display-box">
                   <p className="address-line-primary">
                     <strong>
@@ -204,12 +344,14 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                   </p>
                   {activeEvent.address_snapshot?.landmark && (
                     <p className="address-line-sub">
-                      🎯 <strong>Mo'ljal:</strong> {activeEvent.address_snapshot.landmark}
+                      <Target size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                      <strong>Mo'ljal:</strong> {activeEvent.address_snapshot.landmark}
                     </p>
                   )}
                   {activeEvent.address_snapshot?.entrance_note && (
                     <p className="address-line-sub">
-                      🚪 <strong>Podyezd / Kirish eslatmasi:</strong> {activeEvent.address_snapshot.entrance_note}
+                      <DoorOpen size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                      <strong>Podyezd / Kirish eslatmasi:</strong> {activeEvent.address_snapshot.entrance_note}
                     </p>
                   )}
                 </div>
@@ -217,7 +359,8 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                 {activeEvent.device_lat && activeEvent.device_lon && (
                   <div className="gps-location-bar">
                     <span>
-                      🌐 GPS koordinatalar: {activeEvent.device_lat.toFixed(6)}, {activeEvent.device_lon.toFixed(6)}
+                      <Globe size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                      GPS koordinatalar: {activeEvent.device_lat.toFixed(6)}, {activeEvent.device_lon.toFixed(6)}
                     </span>
                     <a
                       href={`https://maps.google.com/?q=${activeEvent.device_lat},${activeEvent.device_lon}`}
@@ -225,7 +368,7 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                       rel="noopener noreferrer"
                       className="btn-map-link"
                     >
-                      Google Xaritada ochish ↗
+                      Google Xaritada ochish <ExternalLink size={12} style={{ marginLeft: 4, verticalAlign: "middle" }} />
                     </a>
                   </div>
                 )}
@@ -233,7 +376,10 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
 
               {/* Clinical Snapshot Card */}
               <div className="detail-section-card">
-                <h4>💊 Shoshilinch Klinik Ko'rsatkichlar</h4>
+                <h4>
+                  <Pill size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  <span>Shoshilinch Klinik Ko'rsatkichlar</span>
+                </h4>
                 <div className="clinical-snap-grid">
                   <div className="snap-col">
                     <h5>Allergiyalar:</h5>
@@ -241,7 +387,8 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
                       <ul className="allergies-list-badges">
                         {activeEvent.clinical_snapshot.allergies.map((a: any, idx: number) => (
                           <li key={idx} className="allergy-badge-danger">
-                            ⚠️ {a.substance || a} ({a.reaction || "og'ir"})
+                            <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                            <span>{a.substance || a} ({a.reaction || "og'ir"})</span>
                           </li>
                         ))}
                       </ul>
@@ -269,7 +416,10 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo })
 
               {/* Resolution Form Card */}
               <div className="detail-section-card resolution-card">
-                <h4>✓ Hodisani Yakunlash / Yopish</h4>
+                <h4>
+                  <CheckCircle2 size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  <span>Hodisani Yakunlash / Yopish</span>
+                </h4>
                 <div className="resolution-input-row">
                   <input
                     type="text"

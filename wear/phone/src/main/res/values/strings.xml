@@ -1,26 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WMAX Hamroh</string>
-    <string name="title_watch_status">Aqlli soat aloqasi</string>
-    <string name="title_offline_queue">Oflayn navbat buferi (Room DB)</string>
-    <string name="title_server_sync">Server sinxronizatsiyasi</string>
-    <string name="title_latest_reading">Oxirgi qabul qilingan o\'lchov</string>
-    <string name="status_connected">Ulangan</string>
-    <string name="status_disconnected">Ulanmagan</string>
-    <string name="queue_items">%1$d ta o\'lchov jo\'natishga tayyor</string>
-    <string name="sync_now">Hozir sinxronlash</string>
-    <string name="syncing">Sinxronlanmoqda...</string>
-    <string name="last_sync_time">Oxirgi sinxron: %1$s</string>
-    <string name="no_sync_yet">Hali sinxron qilinmagan</string>
-    <string name="patient_id_label">Bemor ID:</string>
-    <string name="backend_url_label">Backend manzili:</string>
-    <string name="settings_title">Bemor va server</string>
-    <string name="phone_label">Bemor telefon raqami</string>
-    <string name="pin_label">Bemor PIN kodi</string>
-    <string name="login_action">Kirish va soatni biriktirish</string>
-    <string name="login_success">%1$s hisobiga biriktirildi</string>
-    <string name="login_failed">Kirish amalga oshmadi. Telefon, PIN va serverni tekshiring.</string>
-    <string name="patient_bound">Bemor ID: %1$s</string>
-    <string name="patient_not_bound">Soat hali bemorga biriktirilmagan</string>
-    <string name="device_key_label">Qurilma ingest kaliti</string>
+    <string name="watch_status_label">Aqlli soat</string>
+    <string name="watch_connected">Ulangan</string>
+    <string name="watch_disconnected">Ulanmagan</string>
+    <string name="vitals_card_label">So\'nggi o\'lchov</string>
+    <string name="vitals_waiting">Soatdan o\'lchov kutilmoqda…</string>
+    <string name="vitals_hr">Puls</string>
+    <string name="vitals_spo2">SpO2</string>
+    <string name="vitals_steps">Qadam</string>
+    <string name="vitals_worn_yes">Taqilgan</string>
+    <string name="vitals_worn_no">Yechilgan</string>
+    <string name="queue_card_label">O\'lchovlar navbati</string>
+    <string name="queue_items">%1$d ta o\'lchov kutmoqda</string>
+    <string name="queue_empty">Hamma o\'lchov yuborildi ✓</string>
+    <string name="btn_sync">Yuborish</string>
+    <string name="btn_syncing">Yuborilmoqda…</string>
+    <string name="login_card_label">Bemor hisobi</string>
+    <string name="phone_label">Telefon raqami</string>
+    <string name="pin_label">PIN-kod</string>
+    <string name="login_action">Kirish va biriktirish</string>
+    <string name="login_success">✓ %1$s ulandi</string>
+    <string name="login_failed">Xato: telefon yoki PIN noto\'g\'ri</string>
+    <string name="patient_not_bound">Soat hali biriktirilmagan</string>
+    <string name="patient_bound">Bemor: %1$s</string>
+    <string name="backend_url_label">Server manzili</string>
+    <string name="device_key_label">Qurilma kaliti</string>
+
+    <!-- Onboarding & Promo -->
+    <string name="onboarding_badge">AQLLI BEMOR MONITORINGI</string>
+    <string name="onboarding_title">Sog\'lig\'ingiz har soniya shifokor nazoratida</string>
+    <string name="onboarding_desc">WMAX sun\'iy intellekti va shifokorlar guruhi sizning holatingizni masofadan uzluksiz kuzatib boradi.</string>
+    <string name="features_section_title">Aqlli soat nima qila oladi?</string>
+
+    <string name="watch_cap_universal_title">Ixtiyoriy Wear OS soatiga mos</string>
+    <string name="watch_cap_universal_desc">Alohida qimmat apparat sotib olish shart emas. O\'zingizdagi ixtiyoriy Samsung Galaxy Watch, Pixel Watch yoki boshqa Wear OS soatiga ulanadi.</string>
+
+    <string name="watch_cap_hr_title">24/7 Doimiy Puls va Aritmiya</string>
+    <string name="watch_cap_hr_desc">Yurak urish tezligini har daqiqa o\'lchaydi. Taxikardiya, bradikardiya va xavfli ritm buzilishlarini zudlik bilan aniqlaydi.</string>
+
+    <string name="watch_cap_spo2_title">SpO2 — Qondagi kislorod miqdori</string>
+    <string name="watch_cap_spo2_desc">Gipoksiya va nafas qisilishini uyquda ham, kunduzgi faollikda ham uzluksiz nazorat qiladi.</string>
+
+    <string name="watch_cap_hrv_title">HRV va Stress / Charchoq indeksi</string>
+    <string name="watch_cap_hrv_desc">Yurak ritmi variatsiyasi (RMSSD) orqali yurak-qon tomir va asab tizimi zo\'riqishini baholaydi.</string>
+
+    <string name="watch_cap_temp_title">Tana harorati va Nafas chastotasi</string>
+    <string name="watch_cap_temp_desc">Yashirin shamollash, infeksiya yoki nafas dekompensatsiyasining dastlabki alomatlarini erta bosqichda sezadi.</string>
+
+    <string name="watch_cap_ai_title">AI Erta Ogohlantirish (DekomMode)</string>
+    <string name="watch_cap_ai_desc">Kasallik xuruji yoki infarkt xavfini asoratlar boshlanishidan 12–24 soat oldin aniqlab, asoratlarning oldini oladi.</string>
+
+    <string name="watch_cap_sos_title">Bir bosishda SOS chaqiruv</string>
+    <string name="watch_cap_sos_desc">Holat to\'satdan yomonlashganda soatdagi SOS tugmasi orqali shifokor va oila a\'zolaringizga zudlik bilan signal yuboradi.</string>
+
+    <string name="watch_cap_offline_title">Oflayn rejim (Internetsiz ham ishlaydi)</string>
+    <string name="watch_cap_offline_desc">Internet uzilib qolsa ham o\'lchovlar soat va telefonda saqlanadi, aloqa tiklanganda avtomatik serverga yetkaziladi.</string>
+
+    <string name="login_section_title">Hisobga kirish</string>
+    <string name="login_section_subtitle">Shifokoringiz bergan telefon va PIN-kod orqali kiring</string>
+    <string name="btn_logging_in">Kirilmoqda…</string>
+
+    <!-- Authenticated Dashboard -->
+    <string name="monitoring_active">Monitoring faol</string>
+    <string name="greeting_patient">Salom, %1$s</string>
+    <string name="patient_id_label">ID: %1$s</string>
+    <string name="btn_logout">Chiqish</string>
+    <string name="logout_dialog_title">Hisobdan chiqish</string>
+    <string name="logout_dialog_msg">Rostdan ham bu hisobdan chiqmoqchimisiz? O\'lchovlar yuborilishi to\'xtatiladi.</string>
+    <string name="btn_cancel">Bekor qilish</string>
+    <string name="btn_confirm">Tasdiqlash</string>
+
+    <!-- SOS -->
+    <string name="sos_card_title">Shoshilinch yordam</string>
+    <string name="sos_btn_label">🚨 SOS — Yordam chaqirish</string>
+    <string name="sos_dialog_title">SOS signali yuborilsinmi?</string>
+    <string name="sos_dialog_msg">Shifokor va yaqinlaringizga favqulodda yordam chaqiruv xabari darhol yuboriladi.</string>
+    <string name="sos_sending">Yuborilmoqda…</string>
+    <string name="sos_success">✓ SOS signali muvaffaqiyatli yuborildi!</string>
+    <string name="sos_failed">SOS yuborishda xatolik yuz berdi</string>
+
+    <!-- Advanced Settings -->
+    <string name="advanced_settings_title">Kengaytirilgan sozlamalar</string>
+    <string name="btn_save_url">Saqlash</string>
+    <string name="url_saved">Server manzili saqlandi</string>
 </resources>

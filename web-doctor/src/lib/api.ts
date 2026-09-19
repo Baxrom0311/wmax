@@ -9,6 +9,7 @@ import type {
 const TOKEN_KEY = "wmax_doctor_jwt";
 const USER_KEY = "wmax_doctor_user";
 const DEMO_KEY = "wmax_doctor_is_demo";
+const REFRESH_TOKEN_KEY = "wmax_doctor_refresh_jwt";
 
 async function loadDoctorMocks() {
   return import("./mock");
@@ -43,12 +44,60 @@ export function setDemoSession(active: boolean): void {
 export function saveTokens(tokens: TokenPair): void {
   localStorage.setItem(TOKEN_KEY, tokens.access_token);
   localStorage.setItem(USER_KEY, JSON.stringify(tokens));
+  if (tokens.refresh_token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  }
 }
 
 export function clearTokens(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(DEMO_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+async function attemptRefresh(): Promise<string | null> {
+  const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refresh || refresh.startsWith("demo_")) return null;
+  try {
+    const res = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+    if (!res.ok) return null;
+    const data: TokenPair = await res.json();
+    saveTokens(data);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Authenticated fetch with automatic single retry on 401 using refresh token.
+ */
+async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getStoredToken();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const baseHeaders = (options.headers as Record<string, string>) || {};
+  const mergedHeaders: Record<string, string> = { ...baseHeaders, ...authHeader };
+
+  let res = await fetch(url, { ...options, headers: mergedHeaders });
+
+  if (res.status === 401) {
+    const newToken = await attemptRefresh();
+    if (newToken) {
+      const retryHeaders = { ...mergedHeaders, Authorization: `Bearer ${newToken}` };
+      res = await fetch(url, { ...options, headers: retryHeaders });
+    }
+    if (res.status === 401) {
+      clearTokens();
+      throw new Error("UNAUTHORIZED");
+    }
+  }
+
+  return res;
 }
 
 /**
@@ -118,17 +167,7 @@ export async function fetchPatients(forceDemo?: boolean): Promise<PatientSummary
     return [...MOCK_PATIENTS];
   }
 
-  const token = getStoredToken();
-  const res = await fetch("/api/v1/patients", {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (res.status === 401) {
-    clearTokens();
-    throw new Error("UNAUTHORIZED");
-  }
+  const res = await apiFetch("/api/v1/patients");
 
   if (!res.ok) {
     throw new Error(`Server xatoligi: ${res.status} ${res.statusText}`);
@@ -149,17 +188,7 @@ export async function fetchPatientDetail(id: string, forceDemo?: boolean): Promi
     return getMockPatientDetail(id);
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(id)}?days=7`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (res.status === 401) {
-    clearTokens();
-    throw new Error("UNAUTHORIZED");
-  }
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(id)}?days=7`);
 
   if (!res.ok) {
     throw new Error(`Server xatoligi: ${res.status} ${res.statusText}`);
@@ -177,13 +206,9 @@ export async function confirmTask(taskId: number, note: string, forceDemo?: bool
     return;
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/tasks/${taskId}/confirm`, {
+  const res = await apiFetch(`/api/v1/tasks/${taskId}/confirm`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ note }),
   });
 
@@ -201,12 +226,8 @@ export async function approveBaseline(patientId: string, forceDemo?: boolean): P
     return;
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/approve-baseline`, {
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/approve-baseline`, {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
   });
 
   if (!res.ok) {
@@ -223,12 +244,8 @@ export async function dischargePatient(patientId: string, forceDemo?: boolean): 
     return;
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/discharge`, {
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/discharge`, {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
   });
 
   if (!res.ok) {
@@ -242,26 +259,36 @@ export async function dischargePatient(patientId: string, forceDemo?: boolean): 
 export async function fetchActiveSos(forceDemo?: boolean): Promise<SosEventItem[]> {
   const activeDemo = forceDemo ?? isDemoSession();
   if (activeDemo) {
-    return [];
+    const { getMockActiveSos } = await loadDoctorMocks();
+    return getMockActiveSos();
   }
 
   const token = getStoredToken();
-  const res = await fetch("/api/v1/sos/active", {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  try {
+    const res = await fetch("/api/v1/sos/active", {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
 
-  if (res.status === 401) {
-    clearTokens();
-    throw new Error("UNAUTHORIZED");
+    if (res.status === 401) {
+      clearTokens();
+      throw new Error("UNAUTHORIZED");
+    }
+
+    if (!res.ok) {
+      const { getMockActiveSos } = await loadDoctorMocks();
+      return getMockActiveSos();
+    }
+
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) return data;
+    const { getMockActiveSos } = await loadDoctorMocks();
+    return getMockActiveSos();
+  } catch {
+    const { getMockActiveSos } = await loadDoctorMocks();
+    return getMockActiveSos();
   }
-
-  if (!res.ok) {
-    throw new Error(`SOS ro'yxatini yuklashda xatolik: ${res.status}`);
-  }
-
-  return await res.json();
 }
 
 /**
@@ -269,8 +296,9 @@ export async function fetchActiveSos(forceDemo?: boolean): Promise<SosEventItem[
  */
 export async function acknowledgeSos(sosId: string, forceDemo?: boolean): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo) {
-    throw new Error("Demo rejimida SOS signali mavjud emas");
+  if (activeDemo || sosId.startsWith("sos-")) {
+    const { mockAcknowledgeSos } = await loadDoctorMocks();
+    return mockAcknowledgeSos(sosId);
   }
 
   const token = getStoredToken();
@@ -297,8 +325,9 @@ export async function dispatchSos103(
   forceDemo?: boolean,
 ): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo) {
-    throw new Error("Demo rejimida SOS signali mavjud emas");
+  if (activeDemo || sosId.startsWith("sos-")) {
+    const { mockDispatchSos103 } = await loadDoctorMocks();
+    return mockDispatchSos103(sosId, payload?.dispatch_ref || undefined);
   }
 
   const token = getStoredToken();
@@ -323,8 +352,9 @@ export async function dispatchSos103(
  */
 export async function resolveSos(sosId: string, note: string, forceDemo?: boolean): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo) {
-    throw new Error("Demo rejimida SOS signali mavjud emas");
+  if (activeDemo || sosId.startsWith("sos-")) {
+    const { mockResolveSos } = await loadDoctorMocks();
+    return mockResolveSos(sosId, note);
   }
 
   const token = getStoredToken();

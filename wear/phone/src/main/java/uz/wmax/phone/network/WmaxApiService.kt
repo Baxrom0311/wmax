@@ -52,11 +52,14 @@ interface WmaxApiService {
 
     companion object {
         const val DEFAULT_BASE_URL = "https://wmax.boos.uz/"
+        const val DEFAULT_INGEST_KEY = "dev_ingest_secret_key_wmax"
 
-        fun create(baseUrl: String = DEFAULT_BASE_URL, apiKey: String? = null): WmaxApiService {
+        fun create(baseUrl: String = DEFAULT_BASE_URL, apiKey: String? = DEFAULT_INGEST_KEY): WmaxApiService {
             val logging = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
+
+            val effectiveKey = if (!apiKey.isNullOrBlank()) apiKey else DEFAULT_INGEST_KEY
 
             val clientBuilder = OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
@@ -64,10 +67,10 @@ interface WmaxApiService {
                 .writeTimeout(15, TimeUnit.SECONDS)
                 .addInterceptor(logging)
 
-            if (!apiKey.isNullOrBlank()) {
+            if (!effectiveKey.isNullOrBlank()) {
                 clientBuilder.addInterceptor { chain ->
                     val req = chain.request().newBuilder()
-                        .addHeader("X-Ingest-Key", apiKey)
+                        .addHeader("X-Ingest-Key", effectiveKey)
                         .build()
                     chain.proceed(req)
                 }

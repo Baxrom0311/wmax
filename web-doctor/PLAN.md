@@ -8,7 +8,7 @@ Chegaralar: Faqat `web-doctor/`. `web-relative/`, `backend/`, `contracts/` ga te
 
 ## 1. Konsepsiya va Maqsad
 
-Oilaviy shifokor va patronaj hamshiralar uchun yuqori zichlikdagi, aniq, professional klinik boshqaruv stoli (Clinical Workstation).
+Oilaviy shifokor va patronaj hamshiralar uchun pas zichlikdagi, aniq, professional klinik boshqaruv stoli (Clinical Workstation).
 Shifokor 100-300 bemor orasidan aynan bugun kimga birinchi navbatda e'tibor qaratish kerakligini 3 soniyada tushunadi. 24 soatlik aktiv chaqiruvlarni boshqaradi, 7 kunlik ko'p parametrli koridorlarni tahlil qiladi va shaxsiy normativ bazani tasdiqlaydi (`Human-in-the-loop`).
 
 ---

@@ -1,4 +1,15 @@
 import React, { useCallback, useState } from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Zap,
+  CheckCircle2,
+  Stethoscope,
+  Pill,
+  Watch,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
 import type { NurseHandoverSBAR, NurseChecklistItem } from "../lib/types";
 import type { Lang } from "../i18n";
 
@@ -10,17 +21,36 @@ interface NurseHandoverPanelProps {
 }
 
 const PRIORITY_CONFIG = {
-  critical: { label: "SHOSHILINCH", color: "#dc2626", bg: "#fff1f2", icon: "🚨" },
-  high: { label: "YUQORI", color: "#ea580c", bg: "#fff7ed", icon: "⚠️" },
-  medium: { label: "O'RTA", color: "#d97706", bg: "#fffbeb", icon: "⚡" },
-  low: { label: "PAST", color: "#65a30d", bg: "#f7fee7", icon: "✅" },
+  critical: { label: "SHOSHILINCH", color: "#dc2626", bg: "#fff1f2" },
+  high: { label: "YUQORI", color: "#ea580c", bg: "#fff7ed" },
+  medium: { label: "O'RTA", color: "#d97706", bg: "#fffbeb" },
+  low: { label: "PAST", color: "#65a30d", bg: "#f7fee7" },
 } as const;
 
-const CATEGORY_ICON: Record<NurseChecklistItem["category"], string> = {
-  vitals: "🩺",
-  medication: "💊",
-  device: "⌚",
-  observation: "👁️",
+const renderPriorityIcon = (priority: "critical" | "high" | "medium" | "low") => {
+  switch (priority) {
+    case "critical":
+      return <AlertCircle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />;
+    case "high":
+      return <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />;
+    case "medium":
+      return <Zap size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />;
+    case "low":
+      return <CheckCircle2 size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />;
+  }
+};
+
+const renderCategoryIcon = (cat: NurseChecklistItem["category"]) => {
+  switch (cat) {
+    case "vitals":
+      return <Stethoscope size={15} />;
+    case "medication":
+      return <Pill size={15} />;
+    case "device":
+      return <Watch size={15} />;
+    case "observation":
+      return <Eye size={15} />;
+  }
 };
 
 const URGENCY_CONFIG = {
@@ -84,8 +114,10 @@ export const NurseHandoverPanel: React.FC<NurseHandoverPanelProps> = ({
                 className="btn-nurse-refresh"
                 onClick={handleRefresh}
                 disabled={refreshing}
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
               >
-                {refreshing ? "Yangilanmoqda..." : "Yangilash"}
+                <RefreshCw size={12} className={refreshing ? "spinner-rotate" : ""} />
+                <span>{refreshing ? "Yangilanmoqda..." : "Yangilash"}</span>
               </button>
             )}
           </div>
@@ -95,7 +127,10 @@ export const NurseHandoverPanel: React.FC<NurseHandoverPanelProps> = ({
           {handover.vital_flags && handover.vital_flags.length > 0 && (
             <div className="vital-flags-row">
               {handover.vital_flags.map((flag) => (
-                <span key={flag} className="vital-flag-tag">⚠ {flag}</span>
+                <span key={flag} className="vital-flag-tag" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <AlertTriangle size={11} />
+                  <span>{flag}</span>
+                </span>
               ))}
             </div>
           )}
@@ -207,23 +242,27 @@ export const NurseHandoverPanel: React.FC<NurseHandoverPanelProps> = ({
                   onChange={() => toggleChecklistItem(item.id)}
                   className="nurse-checkbox"
                 />
-                <span className="checklist-category-icon">{CATEGORY_ICON[item.category]}</span>
+                <span className="checklist-category-icon" style={{ display: "inline-flex", alignItems: "center" }}>
+                  {renderCategoryIcon(item.category)}
+                </span>
                 <span className={`checklist-task-text ${item.completed ? "line-through" : ""}`}>
                   {item.task}
                 </span>
                 <span
                   className="checklist-priority-badge"
-                  style={{ color: priority.color, background: priority.bg }}
+                  style={{ color: priority.color, background: priority.bg, display: "inline-flex", alignItems: "center", gap: 4 }}
                 >
-                  {priority.icon} {priority.label}
+                  {renderPriorityIcon(item.priority)}
+                  <span>{priority.label}</span>
                 </span>
               </label>
             );
           })}
 
           {completedCount === totalCount && totalCount > 0 && (
-            <div className="nurse-checklist-complete">
-              ✅ Barcha vazifalar bajarildi
+            <div className="nurse-checklist-complete" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <CheckCircle2 size={16} color="#16a34a" />
+              <span>Barcha vazifalar bajarildi</span>
             </div>
           )}
         </div>
