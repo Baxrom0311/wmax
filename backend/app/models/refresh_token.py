@@ -14,7 +14,7 @@ class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
     __table_args__ = (
         CheckConstraint(
-            "num_nonnulls(user_id, relative_id) = 1", name="chk_owner"
+            "num_nonnulls(user_id, relative_id, patient_id) = 1", name="chk_owner"
         ),
     )
 
@@ -25,6 +25,9 @@ class RefreshToken(Base):
     relative_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("relatives.id", ondelete="CASCADE"), nullable=True
     )
+    patient_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=True
+    )
     token_hash: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -33,3 +36,4 @@ class RefreshToken(Base):
 
     user = relationship("User", lazy="selectin")
     relative = relationship("Relative", lazy="selectin")
+    patient = relationship("Patient", lazy="selectin")

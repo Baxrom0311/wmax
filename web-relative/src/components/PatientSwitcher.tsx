@@ -2,7 +2,7 @@ import React from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { RelativePatientItem } from "../lib/types";
-import { LEVEL_COLOR } from "../lib/types";
+import { LEVEL_COLOR, LEVEL_WORD_KEY } from "../lib/types";
 
 interface PatientSwitcherProps {
   patients: RelativePatientItem[];
@@ -35,12 +35,19 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
             .slice(0, 2)
             .join("");
 
+          const handleCardClick = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tg = (window as any).Telegram?.WebApp?.HapticFeedback;
+            if (tg) tg.selectionChanged();
+            onSelect(p);
+          };
+
           return (
             <button
               key={p.id}
               type="button"
               className={`patient-card-btn ${isActive ? "active" : ""}`}
-              onClick={() => onSelect(p)}
+              onClick={handleCardClick}
               style={isActive ? { borderColor: statusColor, boxShadow: `0 4px 14px ${statusColor}22` } : undefined}
             >
               <div
@@ -54,7 +61,15 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
                 {initials}
               </div>
               <div className="patient-btn-info">
-                <span className="patient-rel-tag">{p.relationship || t("patients.select", lang)}</span>
+                <div className="patient-btn-header-line">
+                  <span className="patient-rel-tag">{p.relationship || t("patients.select", lang)}</span>
+                  <span
+                    className="patient-level-mini-badge"
+                    style={{ color: statusColor, backgroundColor: `${statusColor}18` }}
+                  >
+                    {t(LEVEL_WORD_KEY[p.level], lang)}
+                  </span>
+                </div>
                 <span className="patient-btn-name">{p.full_name}</span>
               </div>
               <span

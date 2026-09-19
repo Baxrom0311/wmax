@@ -1,6 +1,6 @@
-# Alerting Rules for NAZORAT Production Stack
+# Alerting Rules for WMAX Production Stack
 groups:
-  - name: nazorat_infrastructure_alerts
+  - name: wmax_infrastructure_alerts
     rules:
       # 1. API Availability
       - alert: ApiDown
@@ -9,7 +9,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "NAZORAT FastAPI backend is DOWN"
+          summary: "WMAX FastAPI backend is DOWN"
           description: "FastAPI container has been unreachable for more than 1 minute."
 
       # 2. High HTTP 5xx Error Rate
@@ -32,22 +32,22 @@ groups:
           summary: "FastAPI p95 latency is high (> 1.5s)"
           description: "95th percentile response time is above 1.5 seconds."
 
-      # 4. Gemini AI High Latency
-      - alert: GeminiAiHighLatency
-        expr: rate(gemini_request_duration_seconds_sum[5m]) / rate(gemini_request_duration_seconds_count[5m]) > 4.0
+      # 4. LLM provider high latency
+      - alert: AiProviderHighLatency
+        expr: sum(rate(ai_request_duration_seconds_sum[5m])) / sum(rate(ai_request_duration_seconds_count[5m])) > 4.0
         for: 3m
         labels:
           severity: warning
         annotations:
-          summary: "Google Gemini AI latency is high (> 4s)"
-          description: "Average latency for Gemini inference exceeds 4 seconds."
+          summary: "LLM provider latency is high (> 4s)"
+          description: "Average inference latency (AI_PROVIDER) exceeds 4 seconds."
 
-      # 5. Gemini AI Circuit Breaker Open
-      - alert: GeminiCircuitBreakerOpen
-        expr: gemini_circuit_breaker_state == 1
+      # 5. LLM provider circuit breaker open
+      - alert: AiCircuitBreakerOpen
+        expr: max(ai_circuit_breaker_state) by (provider) == 1
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Gemini Circuit Breaker is OPEN"
-          description: "Gemini AI calls are falling back to rule-based engine due to repeated errors."
+          summary: "AI provider circuit breaker is OPEN ({{ $labels.provider }})"
+          description: "LLM calls are falling back to the rule-based engine after repeated errors."

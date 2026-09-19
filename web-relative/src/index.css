@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NAZORAT · Caregiver Companion (web-relative)
+   WMAX · Caregiver Companion (web-relative)
    Clean Clinical Light Design System (Apple Health Inspired)
    ========================================================================== */
 
@@ -76,6 +76,19 @@ body {
   line-height: 1.5;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(2, 132, 199, 0.28);
+  outline-offset: 2px;
+}
+
 h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, .composite-badge strong {
   font-family: "Outfit", sans-serif;
 }
@@ -90,6 +103,19 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
   flex-direction: column;
   position: relative;
   padding-bottom: max(40px, env(safe-area-inset-bottom, 24px));
+}
+
+.section-loading {
+  min-height: 180px;
+  margin: 12px 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* ==========================================================================
@@ -1227,6 +1253,50 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
   gap: 20px;
 }
 
+.login-role-tabs-relative {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.role-tab-btn {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.role-tab-btn.active {
+  border-color: var(--border-subtle);
+  background: #fff;
+  color: var(--color-primary-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.login-demo-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.login-demo-divider .divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
 .login-header {
   text-align: center;
   display: flex;
@@ -1502,6 +1572,17 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
    TELEGRAM MINI APP MOBILE RESPONSIVE OPTIMIZATION (<= 520px)
    ========================================================================== */
 @media (max-width: 520px) {
+  .app-header { padding-inline: 14px; }
+  .brand-badge { display: none; }
+  .login-container {
+    width: auto;
+    margin: 24px 12px;
+    padding: 26px 20px;
+    border-radius: 20px;
+  }
+  .login-title { font-size: 21px; }
+  .login-desc { font-size: 13px; }
+  .lang-btn { padding-inline: 7px; }
   .hero-prognosis-wrapper,
   .vitals-section,
   .problems-section,
@@ -1559,3 +1640,245 @@ h1, h2, h3, h4, .brand-title, .orb-status-text, .vital-number, .val-col-number, 
   }
 }
 
+/* ==========================================================================
+   ENHANCED PATIENT SWITCHER MINI BADGE
+   ========================================================================== */
+.patient-btn-header-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.patient-level-mini-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+
+/* ==========================================================================
+   VITAL DIRECTIONAL TREND ARROWS
+   ========================================================================== */
+.vital-trend-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  margin-left: 6px;
+}
+
+.vital-trend-arrow.attention {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.vital-trend-arrow.risk {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   ENHANCED NO DATA WARNING CARD (CAREGIVER CENTRIC)
+   ========================================================================== */
+.no-data-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-left: 5px solid #64748b;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+  animation: fade-in-up 0.3s ease;
+}
+
+.no-data-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.no-data-icon {
+  font-size: 22px;
+}
+
+.no-data-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.no-data-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.no-data-desc {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.no-data-hint {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.no-data-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  width: fit-content;
+  margin-top: 8px;
+  transition: all 0.15s ease;
+}
+
+.no-data-call-btn:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   14. ENVIRONMENT & DEMO ISOLATION STYLES
+   ========================================================================== */
+.demo-mode-alert-banner {
+  background: #fffbeb;
+  border-bottom: 2px solid #f59e0b;
+  color: #92400e;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 500;
+  z-index: 1000;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+}
+
+.demo-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-exit-demo {
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.btn-exit-demo:hover {
+  background: #d97706;
+}
+
+.relative-error-card {
+  max-width: 440px;
+  margin: 60px auto;
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  padding: 28px 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.1);
+}
+
+.relative-error-card .error-icon-circle {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.relative-error-card h3 {
+  font-size: 15px;
+  color: #1e293b;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.btn-retry-relative {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-retry-relative:hover {
+  background: #0369a1;
+}
+
+.btn-back-login {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-back-login:hover {
+  background: #f1f5f9;
+}
+
+.demo-switcher-wrapper {
+  margin: 24px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-switcher-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

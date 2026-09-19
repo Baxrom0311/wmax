@@ -1,4 +1,4 @@
-name: NAZORAT Enterprise CI/CD Pipeline
+name: WMAX Enterprise CI/CD Pipeline
 
 on:
   push:
@@ -68,11 +68,12 @@ jobs:
 
       - name: Run Backend Pytest Suite
         env:
-          PYTHONPATH: .:/srv:./backend:./contracts
-          DATABASE_URL: sqlite+aiosqlite:///:memory:
+          PYTHONPATH: .:./backend:./contracts
+          ENV: testing
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
           JWT_SECRET: test_secret_32_bytes_long_string_12345
         run: |
-          pytest -v backend/algo/tests || echo "Pytest completed"
+          pytest -q
 
   # -------------------------------------------------------------
   # Job 3: Docker Multi-Stage Build & Security Scan
@@ -94,7 +95,7 @@ jobs:
           context: .
           file: backend/Dockerfile
           push: false
-          tags: nazorat/api:latest
+          tags: wmax/api:latest
 
       - name: Build Nginx Gateway Image
         uses: docker/build-push-action@v5
@@ -102,7 +103,7 @@ jobs:
           context: ./docker/nginx
           file: ./docker/nginx/Dockerfile
           push: false
-          tags: nazorat/nginx:latest
+          tags: wmax/nginx:latest
 
   # -------------------------------------------------------------
   # Job 4: Zero-Downtime Deployment & Automated Rollback
@@ -125,33 +126,43 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          TARGET_DIR: /opt/nazorat
+          TARGET_DIR: /opt/wmax
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "${SSH_HOST}" >> ~/.ssh/known_hosts
 
+          # --delete keeps the server a mirror of the repo, so every path that
+          # lives ONLY on the server must be excluded. Missing `.env` here would
+          # wipe the production secrets on the first deploy.
           rsync -az --delete \
+            --exclude '.env' \
+            --exclude '.env.*' \
             --exclude '.git' \
             --exclude 'node_modules' \
             --exclude '.venv' \
+            --exclude '__pycache__' \
+            --exclude '.pytest_cache' \
             --exclude 'pgdata' \
             --exclude 'redisdata' \
             --exclude 'caddy_data' \
             --exclude 'nginx_logs' \
             --exclude 'certbot_data' \
+            --exclude 'backups' \
+            --exclude '.deploy_state' \
             --exclude 'dist' \
             --exclude 'build' \
+            --exclude 'wear' \
             ./ "${SSH_USER}@${SSH_HOST}:${TARGET_DIR}/"
 
       - name: Execute Zero-Downtime Deploy & Rollback Guard
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          TARGET_DIR: /opt/nazorat
+          TARGET_DIR: /opt/wmax
         run: |
           ssh "${SSH_USER}@${SSH_HOST}" << 'EOF'
             set -euo pipefail
-            cd /opt/nazorat
+            cd /opt/wmax
             
             # Execute automated deployment with auto-rollback on failure
             if ! ./scripts/deploy.sh; then
@@ -163,3 +174,20 @@ jobs:
             # Run final comprehensive health checks
             ./scripts/healthcheck.sh
           EOF
+
+      - name: Verify the live site answers through the domain
+        run: |
+          # A healthy container is not the same as a reachable site: nginx,
+          # DNS or TLS can still be broken. Check what a user actually hits.
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://wmax.boos.uz/api/v1/health || true)
+            if [ "$code" = "200" ]; then
+              echo "✓ https://wmax.boos.uz/api/v1/health -> 200"
+              curl -s https://wmax.boos.uz/api/v1/health
+              exit 0
+            fi
+            echo "  urinish $i: HTTP $code — 10s kutish"
+            sleep 10
+          done
+          echo "✗ Sayt deploy'dan keyin javob bermadi" >&2
+          exit 1

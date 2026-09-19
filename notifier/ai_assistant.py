@@ -5,15 +5,13 @@ import os
 import re
 from typing import Any
 
-import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger("nazorat.notifier.ai")
+logger = logging.getLogger("wmax.notifier.ai")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+# Provider tanlovi va kalitlar app.core.config orqali boshqariladi (AI_PROVIDER).
 
 EMERGENCY_KEYWORDS = [
     # Uzbek
@@ -77,7 +75,7 @@ def format_gibberish_response(patient_name: str) -> str:
     """Polite guidance message in Sentence Case."""
     return (
         "Kechirasiz, xabaringizni to'liq tushuna olmadim. 😊\n\n"
-        f"Men <b>NAZORAT</b> tizimining shaxsiy tibbiy assistentiman va sizga <b>{patient_name}</b>ning "
+        f"Men <b>WMAX</b> tizimining shaxsiy tibbiy assistentiman va sizga <b>{patient_name}</b>ning "
         "salomatlik ko'rsatkichlari bo'yicha yordam bera olaman.\n\n"
         "<b>Sizga qanday yordam bera olaman?</b> Masalan, mendan quyidagilarni so'rashingiz mumkin:\n\n"
         "• 💬 <i>«Dadamning hozirgi ahvoli qanday?»</i>\n"
@@ -90,7 +88,7 @@ def format_gibberish_response(patient_name: str) -> str:
 
 
 def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
-    """System prompt grounding Gemini with real patient status, clinical ICD diagnoses, and 3-language rules."""
+    """System prompt grounding LLM with real patient status, clinical ICD diagnoses, and 3-language rules."""
     hr = vitals.get("hr", 86)
     spo2 = vitals.get("spo2", 92)
     temp = vitals.get("skin_temp", 36.6)
@@ -98,22 +96,27 @@ def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
     sleep = vitals.get("sleep_hours", 5.4)
     steps = vitals.get("steps", 1840)
     level = vitals.get("level", "amber")
+    age = vitals.get("age", 62)
+    diagnosis = vitals.get(
+        "diagnosis",
+        "Yurak ishemik kasalligi (YIK). Zo'riqish stenokardiyasi FK III. Postinfarkt kardioskleroz. Surunkali yurak yetishmovchiligi (SYuYe) IIB.",
+    )
+    doctor_name = vitals.get("doctor_name", "Dr. Bahrom Alimov")
+    doctor_phone = vitals.get("doctor_phone", "+998 90 123 45 67")
 
     return (
-        f"Sen — 'NAZORAT (WMAX)' aqlli klinik telemonitoring tizimining sun'iy intellekt assistentisan.\n"
-        f"Bemor: {patient_name}, 62 yosh.\n"
-        f"Klinik tashxis: Yurak ishemik kasalligi (YIK). Zo'riqish stenokardiyasi FK III. "
-        f"Postinfarkt kardioskleroz (2024). Surunkali yurak yetishmovchiligi (SYuYe) IIB bosqich, NYHA III. "
-        f"Sinusli taxikardiya va paroksizmal gipoksemiya epizodlari.\n\n"
+        f"Sen — 'WMAX' aqlli klinik telemonitoring tizimining sun'iy intellekt assistentisan.\n"
+        f"Bemor: {patient_name}, {age} yosh.\n"
+        f"Klinik tashxis: {diagnosis}.\n\n"
         f"Aqlli soatdan olingan eng so'nggi real telemetrik ko'rsatkichlar:\n"
         f"- Yurak urishi (ChSS / Puls): {hr} bpm (fiziologik me'yor: 60-90 bpm)\n"
-        f"- Arterial kislorod (SpO2): {spo2}% (klinik me'yor: 95-100%, 92% — yengil darajadagi gipoksemiya, sariq signal)\n"
+        f"- Arterial kislorod (SpO2): {spo2}% (klinik me'yor: 95-100%)\n"
         f"- Tana harorati: {temp}°C (me'yor: 36.0-37.2°C)\n"
         f"- Nafas chastotasi (ChDD): {rr}/daq (me'yor: 12-20/daq)\n"
-        f"- Tungi uyqu: {sleep} soat (klinik norma: 7-8 soat, uyqu tanqisligi yurak faoliyatiga yuklama beradi)\n"
+        f"- Tungi uyqu: {sleep} soat (klinik norma: 7-8 soat)\n"
         f"- Kunlik faollik: {steps} qadam\n"
-        f"- Tizimli triaj holati: {level.capitalize()} (Subkompensatsiya / Kuzatuv)\n"
-        f"- Davolovchi kardiolog: Dr. Bahrom Alimov (+998 90 123 45 67)\n\n"
+        f"- Tizimli triaj holati: {str(level).capitalize()}\n"
+        f"- Davolovchi kardiolog: {doctor_name} ({doctor_phone})\n\n"
         "SENING QAT'IY QOIDALARING:\n"
         "1. QAT'IY TIL QOIDASI (CRITICAL LANGUAGE RULE): Foydalanuvchi yozgan tilni darhol aniqlang. "
         "Agar foydalanuvchi Rus tilida yozsa — javobingiz 100% RUS TILIDA bo'lishi SHART! "
@@ -131,50 +134,46 @@ def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
     )
 
 
-async def ask_gemini(user_message: str, patient_name: str, vitals: dict[str, Any]) -> str | None:
-    """Call Google Gemini Flash REST API with grounded patient context."""
-    if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY is not set.")
+async def ask_ai(user_message: str, patient_name: str, vitals: dict[str, Any]) -> str | None:
+    """Asks the configured LLM (AI_PROVIDER) with grounded patient context.
+
+    Reuses the backend's provider clients so retry, circuit breaking and token
+    metrics behave identically here and in the clinical prognosis path.
+    Returns None on any failure — the caller falls back to the rule engine.
+    """
+    try:
+        from app.ai.factory import build_ai_provider
+    except ImportError:
+        logger.error("AI provider package unavailable in notifier image.")
         return None
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    system_prompt = build_system_prompt(patient_name, vitals)
-
-    payload = {
-        "system_instruction": {
-            "parts": [{"text": system_prompt}]
-        },
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": user_message}]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 600,
-        }
-    }
 
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts and "text" in parts[0]:
-                        return parts[0]["text"].strip()
-            logger.error("Gemini API returned status %s: %s", resp.status_code, resp.text[:300])
-            return None
-    except Exception as err:
-        logger.exception("Exception querying Gemini API: %s", err)
+        provider = build_ai_provider()
+    except ValueError as err:
+        logger.error("AI provider misconfigured: %s", err)
         return None
+
+    try:
+        answer = await provider.generate_text(
+            prompt=user_message,
+            system_instruction=build_system_prompt(patient_name, vitals),
+            temperature=0.3,
+            max_tokens=600,
+        )
+    except Exception as err:
+        logger.warning("AI assistant query failed (%s) — using rule engine.", err)
+        return None
+
+    answer = (answer or "").strip()
+    return answer or None
+
+
+# Nomi o'zgardi (ask_gemini -> ask_ai). Eski nom bilan chaqiruvlar buzilmasligi uchun.
+ask_gemini = ask_ai
 
 
 def rule_based_fallback(text: str, patient_name: str, vitals: dict[str, Any]) -> str:
-    """Smart multilingual offline rule engine when Gemini API is unavailable or offline."""
+    """Smart multilingual offline rule engine when the LLM is unavailable."""
     t = text.lower().strip()
     hr = vitals.get("hr", 86)
     spo2 = vitals.get("spo2", 92)
@@ -287,10 +286,22 @@ async def handle_user_query(text: str, patient_name: str, vitals: dict[str, Any]
     if is_gibberish(text):
         return format_gibberish_response(patient_name)
 
-    # 3. Gemini AI
-    ai_answer = await ask_gemini(text, patient_name, vitals)
+    # 3. Prompt injection / Rule bypass check
+    try:
+        from app.ai.guardrails import detect_prompt_injection
+        is_inj, _ = detect_prompt_injection(text)
+        if is_inj:
+            return (
+                "Xavfsizlik qoidalariga ko'ra bunday so'rovlarni bajarish mumkin emas. "
+                f"Men faqat <b>{patient_name}</b>ning klinik holati va telemetriyasi bo'yicha yordam bera olaman."
+            )
+    except ImportError:
+        pass
+
+    # 4. LLM AI
+    ai_answer = await ask_ai(text, patient_name, vitals)
     if ai_answer:
         return ai_answer
 
-    # 4. Fallback
+    # 5. Fallback
     return rule_based_fallback(text, patient_name, vitals)

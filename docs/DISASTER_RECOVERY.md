@@ -1,6 +1,6 @@
-# NAZORAT Enterprise — Disaster Recovery & SRE Runbook
+# WMAX Enterprise — Disaster Recovery & SRE Runbook
 
-Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyatlar (avariya, server qulashi, ma'lumotlar buzilishi, xakerlik hujumlari) vaqtida tizimni tiklash bo'yicha rasmiy **Disaster Recovery (DR)** qo'llanmasidir.
+Ushbu hujjat **WMAX** telemonitoring tizimining kutilmagan favqulodda vaziyatlar (avariya, server qulashi, ma'lumotlar buzilishi, xakerlik hujumlari) vaqtida tizimni tiklash bo'yicha rasmiy **Disaster Recovery (DR)** qo'llanmasidir.
 
 ---
 
@@ -22,8 +22,8 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
 1. Yangi Ubuntu 24.04 LTS VPS oching.
 2. Repozitoriyni klonlang:
    ```bash
-   git clone <repo_url> /opt/nazorat
-   cd /opt/nazorat
+   git clone <repo_url> /opt/wmax
+   cd /opt/wmax
    ```
 3. Serverni 1 buyruq bilan avtomatik sozlang:
    ```bash
@@ -36,7 +36,7 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
    ```
 5. Bazani zaxiradan tiklang:
    ```bash
-   ./scripts/restore.sh backups/nazorat_db_oxirgi.sql.gz
+   ./scripts/restore.sh backups/wmax_db_oxirgi.sql.gz
    ```
 6. SSL sertifikatini oling va konteynerlarni yoqing:
    ```bash
@@ -56,12 +56,12 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
    ```
 2. Zaxira nusxasini tekshirish (Dry-Run Test):
    ```bash
-   ./scripts/restore.sh backups/nazorat_db_20260918_120000.sql.gz --test
+   ./scripts/restore.sh backups/wmax_db_20260918_120000.sql.gz --test
    ```
    *Agar test muvaffaqiyatli o'tsa (`RESTORE TEST PASSED`)*:
 3. Haqiqiy bazaga tiklashni bajaring:
    ```bash
-   ./scripts/restore.sh backups/nazorat_db_20260918_120000.sql.gz
+   ./scripts/restore.sh backups/wmax_db_20260918_120000.sql.gz
    ```
 4. API va Worker servislarni qayta ishga tushiring:
    ```bash
@@ -89,7 +89,7 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
    ```
 4. Oxirgi SQL dumpni import qiling:
    ```bash
-   ./scripts/restore.sh backups/nazorat_db_LATEST.sql.gz
+   ./scripts/restore.sh backups/wmax_db_LATEST.sql.gz
    ```
 5. Qolgan servislarni ko'taring:
    ```bash
@@ -108,8 +108,8 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
    ```
 2. Agar sertifikat buzilgan bo'lsa:
    ```bash
-   docker compose -f docker/compose/docker-compose.yml exec certbot certbot delete --cert-name nazorat
-   ./ops/scripts/init-letsencrypt.sh
+   docker compose -f docker/compose/docker-compose.yml exec certbot certbot delete --cert-name wmax
+   ./scripts/init_ssl.sh
    ```
 
 ---
@@ -129,7 +129,7 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
 3. **Postgres Password:**
    - Baza ichida parolni almashtiring:
      ```bash
-     docker compose -f docker/compose/docker-compose.yml exec postgres psql -U nazorat -c "ALTER USER nazorat WITH PASSWORD 'yangi_parol';"
+     docker compose -f docker/compose/docker-compose.yml exec postgres psql -U wmax -c "ALTER USER wmax WITH PASSWORD 'yangi_parol';"
      ```
    - `.env` dagi `POSTGRES_PASSWORD` va `DATABASE_URL` ni yangilang.
    - `docker compose -f docker/compose/docker-compose.yml restart api worker` bajaring.
@@ -139,6 +139,6 @@ Ushbu hujjat **NAZORAT** telemonitoring tizimining kutilmagan favqulodda vaziyat
 ## 3. Zaxiralash Monitoringi
 Kunlik zaxira olinayotganini tekshirish uchun:
 ```bash
-systemctl status nazorat-backup.timer
-journalctl -u nazorat-backup.service -n 50 --no-pager
+systemctl status wmax-backup.timer
+journalctl -u wmax-backup.service -n 50 --no-pager
 ```

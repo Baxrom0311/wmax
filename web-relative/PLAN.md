@@ -44,7 +44,7 @@ Qarovchi bir yoki bir nechta bemorning (masalan, otasi va onasi) holatini bitta 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ [LOGO] NAZORAT Qarovchi Portali       [UZ | RU]  [Chiqish]  │
+│ [LOGO] WMAX Qarovchi Portali       [UZ | RU]  [Chiqish]  │
 ├─────────────────────────────────────────────────────────────┤
 │ 1. KO'P BEMORLIK SWITCHER (Multi-Patient Switcher Card)     │
 │    [ Otam: Olim aka (Diqqat) ]  [ Onam: Salomat opa (Yaxshi) ]│

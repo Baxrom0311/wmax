@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NAZORAT Enterprise Zero-Downtime Deployment Script
+# WMAX Enterprise Zero-Downtime Deployment Script
 # Role: Principal SRE / Release Engineer
 # Usage: ./scripts/deploy.sh
 
@@ -12,7 +12,7 @@ COMPOSE_FILE="${ROOT_DIR}/docker/compose/docker-compose.yml"
 cd "${ROOT_DIR}"
 
 echo "========================================================"
-echo "  NAZORAT Enterprise Deployment: $(date)"
+echo "  WMAX Enterprise Deployment: $(date)"
 echo "========================================================"
 
 # 1. Environment & Secret Pre-flight Validation

@@ -21,11 +21,14 @@ interface InteractiveMetricsProps {
 
 type TimeRange = "24h" | "3d" | "7d";
 
-const PARAM_TABS: Record<string, { labelKey: string; unit: string; color: string }> = {
+const PARAM_TABS: Record<string, { labelKey: string; unit: string; color: string; altParam?: string }> = {
   hr_mean: { labelKey: "metrics.tab_hr", unit: "bpm", color: COLORS.risk },
   spo2: { labelKey: "metrics.tab_spo2", unit: "%", color: COLORS.good },
   rmssd: { labelKey: "metrics.tab_rmssd", unit: "ms", color: COLORS.attention },
   skin_temp: { labelKey: "metrics.tab_temp", unit: "°C", color: "#65558F" },
+  rr_est: { labelKey: "metrics.tab_rr", unit: "/daq", color: "#0284c7", altParam: "rr" },
+  sleep_frag: { labelKey: "metrics.tab_sleep", unit: "soat", color: "#7c3aed", altParam: "sleep_hours" },
+  steps: { labelKey: "metrics.tab_steps", unit: "qadam", color: "#16a34a" },
 };
 
 // O'zbekcha qisqa kun nomlari
@@ -45,7 +48,13 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
   const [activeParam, setActiveParam] = useState<string>("spo2");
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
 
-  const currentSeries = series.find((s) => s.param === activeParam) || series[0];
+  const currentSeries =
+    series.find(
+      (s) =>
+        s.param === activeParam ||
+        (PARAM_TABS[activeParam]?.altParam && s.param === PARAM_TABS[activeParam].altParam)
+    ) || series[0];
+
   const meta = PARAM_TABS[activeParam] || {
     labelKey: activeParam,
     unit: "",
@@ -78,6 +87,11 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
     if (tg) tg.selectionChanged();
   };
 
+  // Only render tabs that have available series data
+  const availableTabs = Object.entries(PARAM_TABS).filter(([key, tab]) =>
+    series.some((s) => s.param === key || (tab.altParam && s.param === tab.altParam))
+  );
+
   return (
     <div className="metrics-interactive-section">
       <div className="metrics-header-row">
@@ -100,9 +114,11 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
 
       {/* Metric Tabs — fixed spacing */}
       <div className="metric-tabs-row">
-        {Object.entries(PARAM_TABS).map(([key, tab]) => {
+        {availableTabs.map(([key, tab]) => {
           const isSelected = activeParam === key;
-          const s = series.find((item) => item.param === key);
+          const s = series.find(
+            (item) => item.param === key || (tab.altParam && item.param === tab.altParam)
+          );
           const latestVal = s?.points[s.points.length - 1]?.value;
 
           return (

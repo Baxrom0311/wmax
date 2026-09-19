@@ -279,6 +279,7 @@ class PatientService:
             recent_vitals=recent_vitals,
             deviated_params=triggered,
             slope=trend_res.slope,
+            patient_id=str(patient.id),
         )
 
         return PatientDetail(
@@ -344,3 +345,23 @@ class PatientService:
         now = datetime.now(timezone.utc)
         await self.patient_repo.approve_baseline(patient_id, approved_by, now)
         await self.session.commit()
+
+    async def rotate_relative_token(
+        self, patient_id: uuid.UUID, relative_id: uuid.UUID
+    ) -> dict[str, str]:
+        """Doctor rotates caregiver access token (R13)."""
+        import secrets
+        from app.repositories.relative_repo import RelativeRepository
+        relative_repo = RelativeRepository(self.session)
+        relative = await relative_repo.get_by_id_and_patient(relative_id, patient_id)
+        if not relative:
+            raise NotFoundException("Yaqin kishi havolasi", relative_id)
+
+        new_token = secrets.token_urlsafe(32)
+        await relative_repo.update_access_token(relative, new_token)
+        await self.session.commit()
+        return {
+            "access_token": new_token,
+            "detail": "Qarovchi havolasi muvaffaqiyatli yangilandi",
+        }
+

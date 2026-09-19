@@ -9,14 +9,19 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
+from algo_interface import AlertResult
 from app.core.db import get_db_context
+from app.core.metrics import alerts_total
 from app.models.alert import Alert
 from app.models.patient import Patient
 from app.models.reading import Reading
 from app.models.task import Task
 from app.repositories.alert_repo import AlertRepository
 
-logger = logging.getLogger("nazorat.workers.escalation")
+logger = logging.getLogger("wmax.workers.escalation")
+
+# This worker only advances state. The notifier service watches `reminded_at`,
+# `escalated_at` and `no_data` alerts and does the actual messaging.
 
 
 async def check_task_escalations(session: AsyncSession) -> None:
@@ -60,7 +65,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
 
     for task in tasks_to_escalate:
         logger.error(
-            "CRITICAL: Task %s for patient %s expired at %s! Escalating to duty supervisor.",
+            "Task %s for patient %s expired at %s — marked overdue for escalation.",
             task.id,
             task.patient_id,
             task.due_at.isoformat(),
@@ -104,11 +109,14 @@ async def check_patient_silence(session: AsyncSession) -> None:
                 await alert_repo.insert_idempotent(
                     patient_id=patient.id,
                     ts=now,
-                    level="no_data",
-                    composite_score=0.0,
-                    triggered_params={},
-                    reason="silence_no_data",
+                    result=AlertResult(
+                        level="no_data",
+                        composite_score=0.0,
+                        triggered_params={},
+                        reason="silence_no_data",
+                    ),
                 )
+                alerts_total.labels(level="no_data").inc()
 
 
 async def run_escalation_worker(interval_seconds: int = 60) -> None:

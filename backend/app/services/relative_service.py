@@ -7,8 +7,9 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
-from algo_interface import AlertLevel
-from app.core.exceptions import NotFoundException
+from algo_interface import AlertLevel, BaselineEntry, ReadingVec, TrendResult
+from app.core.config import settings
+from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.patient import Patient
 from app.models.relative import Relative
 from app.models.user import User
@@ -37,6 +38,18 @@ from app.services.clinical_math import (
     detect_problems_pure,
 )
 
+def is_access_token_expired(created_at: datetime | None) -> bool:
+    """Caregiver deep-link tokens age out after RELATIVE_TOKEN_TTL_DAYS."""
+    ttl_days = settings.RELATIVE_TOKEN_TTL_DAYS
+    if ttl_days <= 0 or created_at is None:
+        return False
+
+    issued = created_at
+    if issued.tzinfo is None:
+        issued = issued.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - issued > timedelta(days=ttl_days)
+
+
 LEVEL_WORD_MAP: dict[str, str] = {
     "green": "state.good",
     "amber": "state.attention",
@@ -58,11 +71,26 @@ class RelativeService:
         self.alert_repo = AlertRepository(session)
         self.task_repo = TaskRepository(session)
 
-    async def get_relative_view(self, token: str) -> RelativeView:
-        """Assembles rich patient status for caregiver view via secure access token."""
+    async def get_relative_view(
+        self, token: str, caregiver_phone: str | None = None
+    ) -> RelativeView:
+        """Assembles rich patient status for the caregiver behind `token`.
+
+        The access token identifies the link; `caregiver_phone` comes from the
+        authenticated session and must match the record the link points at, so
+        a leaked URL alone does not expose a patient's clinical history.
+        """
         relative = await self.relative_repo.get_by_token(token)
         if not relative:
             raise NotFoundException(message="Yaqin kishi havolasi topilmadi", resource_name="Relative")
+
+        if caregiver_phone is not None and relative.phone != caregiver_phone:
+            raise ForbiddenException("Bu havola sizga tegishli emas")
+
+        if is_access_token_expired(relative.created_at):
+            raise ForbiddenException(
+                "Havola muddati tugagan. Iltimos, qaytadan kiring."
+            )
 
         patient = await self.patient_repo.get_by_id(relative.patient_id)
         if not patient:
@@ -83,10 +111,6 @@ class RelativeService:
         baselines = await self.baseline_repo.get_by_patient(patient.id)
         alerts = await self.alert_repo.get_recent(patient.id, limit=10)
         tasks = await self.task_repo.get_tasks(limit=5)
-
-        # Detect problems and compute prognosis
-        problems = detect_problems_pure(readings, baselines)
-        prognosis = compute_prognosis_pure(readings, baselines, alerts)
 
         # Multi-param series assembly
         baselines_by_param = {b.param: b for b in baselines}
@@ -162,6 +186,48 @@ class RelativeService:
             if cur_level == "red"
             else "rec.continue_monitoring",
             days_used=7,
+        )
+
+        # Root-cause breakdown needs the latest reading vector and the patient's
+        # own baselines; the prognosis then grades it against the current level.
+        # Both must run after `cur_level` and `trend` exist.
+        latest_reading = readings[-1] if readings else None
+        latest_vec = (
+            ReadingVec(
+                ts=latest_reading.ts,
+                hr_mean=latest_reading.hr_mean,
+                spo2=latest_reading.spo2,
+                skin_temp=latest_reading.skin_temp,
+                rmssd=latest_reading.rmssd,
+                rr_est=latest_reading.rr_est,
+                steps=latest_reading.steps,
+                sleep_frag=latest_reading.sleep_frag,
+                worn=latest_reading.worn,
+            )
+            if latest_reading
+            else ReadingVec(ts=now)
+        )
+        baseline_entries = [
+            BaselineEntry(
+                param=b.param,
+                time_window=b.time_window,
+                median=b.median,
+                mad=b.mad,
+                n_samples=b.n_samples,
+            )
+            for b in baselines
+        ]
+
+        problems = detect_problems_pure(latest_vec, baseline_entries)
+        prognosis = compute_prognosis_pure(
+            cur_level,
+            TrendResult(
+                slope=trend.slope,
+                direction=trend.direction,
+                recommendation_key=trend.recommendation_key,
+                days_used=trend.days_used,
+            ),
+            problems,
         )
 
         latest_r = readings[-1] if readings else None

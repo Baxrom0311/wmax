@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NAZORAT Let's Encrypt SSL Automated Renewal Script
+# WMAX Let's Encrypt SSL Automated Renewal Script
 # Usage: ./scripts/renew_ssl.sh
 
 set -euo pipefail

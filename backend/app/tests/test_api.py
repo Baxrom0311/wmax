@@ -1,5 +1,5 @@
 """
-Integration test suite for NAZORAT API endpoints.
+Integration test suite for WMAX API endpoints.
 Uses TestClient (synchronous ASGI testing) with mocked DB sessions.
 """
 from __future__ import annotations
@@ -66,7 +66,7 @@ class TestAuthEndpoints:
     def test_login_with_demo_credentials(self, client):
         response = client.post(
             "/api/v1/auth/login",
-            json={"phone": "+998901234567", "password": "nazorat123"},
+            json={"phone": "+998901234567", "password": "wmax123"},
         )
         # Should be 200 or 503 (DB not available in unit test), not 401
         assert response.status_code in (200, 422, 500, 503)
@@ -81,14 +81,14 @@ class TestAuthEndpoints:
     def test_login_missing_phone_returns_422(self, client):
         response = client.post(
             "/api/v1/auth/login",
-            json={"password": "nazorat123"},
+            json={"password": "wmax123"},
         )
         assert response.status_code == 422
 
     def test_login_response_has_token_fields(self, client):
         response = client.post(
             "/api/v1/auth/login",
-            json={"phone": "+998901234567", "password": "nazorat123"},
+            json={"phone": "+998901234567", "password": "wmax123"},
         )
         if response.status_code == 200:
             data = response.json()

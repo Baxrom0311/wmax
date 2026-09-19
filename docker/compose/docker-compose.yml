@@ -1,4 +1,4 @@
-# NAZORAT Enterprise Production Docker Compose Stack
+# WMAX Enterprise Production Docker Compose Stack
 # Architecture: FastAPI + PostgreSQL + Redis + Gemini AI + Prometheus + Grafana + Loki + Nginx
 
 services:
@@ -9,18 +9,16 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-nazorat}
+      POSTGRES_USER: ${POSTGRES_USER:-wmax}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-nazorat}
+      POSTGRES_DB: ${POSTGRES_DB:-wmax}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ../postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ../../contracts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-      - ../../contracts/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nazorat} -d ${POSTGRES_DB:-nazorat}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wmax} -d ${POSTGRES_DB:-wmax}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,8 +26,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 1024M
+          cpus: "${PG_CPUS:-0.6}"
+          memory: ${PG_MEM:-288M}
     logging:
       driver: "json-file"
       options:
@@ -57,8 +55,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 256M
+          cpus: "${REDIS_CPUS:-0.2}"
+          memory: ${REDIS_MEM:-64M}
     logging:
       driver: "json-file"
       options:
@@ -75,12 +73,14 @@ services:
     build:
       context: ../..
       dockerfile: backend/Dockerfile
+    ports:
+      - "127.0.0.1:8090:8000"
     restart: always
     env_file:
       - path: ../../.env
         required: false
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-nazorat}:${POSTGRES_PASSWORD:-change_me_in_prod}@postgres:5432/${POSTGRES_DB:-nazorat}}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-wmax}:${POSTGRES_PASSWORD:-change_me_in_prod}@postgres:5432/${POSTGRES_DB:-wmax}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       TZ_LOCAL: ${TZ_LOCAL:-Asia/Tashkent}
@@ -98,8 +98,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 768M
+          cpus: "${API_CPUS:-0.8}"
+          memory: ${API_MEM:-320M}
     logging:
       driver: "json-file"
       options:
@@ -123,9 +123,15 @@ services:
       - path: ../../.env
         required: false
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-nazorat}:${POSTGRES_PASSWORD:-change_me_in_prod}@postgres:5432/${POSTGRES_DB:-nazorat}}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-wmax}:${POSTGRES_PASSWORD:-change_me_in_prod}@postgres:5432/${POSTGRES_DB:-wmax}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      # Same image as `api`, which already applied the migrations on startup.
+      # Two processes racing `alembic upgrade head` would deadlock on the lock table.
+      RUN_MIGRATIONS: "false"
+      # Background workers live inside the API process and elect a single leader
+      # via a Postgres advisory lock; the notifier must not start its own.
+      ENABLE_WORKERS: "false"
     depends_on:
       postgres:
         condition: service_healthy
@@ -136,8 +142,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 256M
+          cpus: "${WORKER_CPUS:-0.3}"
+          memory: ${WORKER_MEM:-160M}
     logging:
       driver: "json-file"
       options:
@@ -154,11 +160,13 @@ services:
     build:
       context: ../../web-doctor
       dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8091:80"
     restart: always
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: ${WEB_MEM:-48M}
     logging:
       driver: "json-file"
       options:
@@ -174,11 +182,13 @@ services:
     build:
       context: ../../web-relative
       dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8092:80"
     restart: always
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: ${WEB_MEM:-48M}
     logging:
       driver: "json-file"
       options:
@@ -191,6 +201,7 @@ services:
   # 7. Enterprise Reverse Proxy & SSL Gateway (Nginx)
   # -------------------------------------------------------------
   nginx:
+    profiles: ["edge"]
     build:
       context: ../nginx
       dockerfile: Dockerfile
@@ -220,8 +231,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 256M
+          cpus: "${NGINX_CPUS:-0.3}"
+          memory: ${NGINX_MEM:-96M}
     logging:
       driver: "json-file"
       options:
@@ -235,6 +246,7 @@ services:
   # 8. Let's Encrypt SSL Automation Daemon (Certbot)
   # -------------------------------------------------------------
   certbot:
+    profiles: ["edge"]
     image: certbot/certbot:latest
     restart: unless-stopped
     volumes:
@@ -249,6 +261,7 @@ services:
   # 9. Metrics Collection (Prometheus)
   # -------------------------------------------------------------
   prometheus:
+    profiles: ["monitoring"]
     image: prom/prometheus:v2.54.1
     restart: always
     volumes:
@@ -274,13 +287,14 @@ services:
   # 10. Dashboards & Visualization (Grafana)
   # -------------------------------------------------------------
   grafana:
+    profiles: ["monitoring"]
     image: grafana/grafana:11.2.0
     restart: always
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-nazorat_admin_2026}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-wmax_admin_2026}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://${DOMAIN:-nazorat.example.uz}/grafana/
+      - GF_SERVER_ROOT_URL=https://${DOMAIN:-wmax.example.uz}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana
@@ -302,6 +316,7 @@ services:
   # 11. Centralized Log Ingestion (Loki)
   # -------------------------------------------------------------
   loki:
+    profiles: ["monitoring"]
     image: grafana/loki:3.1.1
     restart: always
     volumes:
@@ -320,6 +335,7 @@ services:
   # 12. Container Log Shipper & Sensitive Data Masking (Promtail)
   # -------------------------------------------------------------
   promtail:
+    profiles: ["monitoring"]
     image: grafana/promtail:3.1.1
     restart: always
     volumes:

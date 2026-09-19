@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger("nazorat.notifier.telegram")
+logger = logging.getLogger("wmax.notifier.telegram")
 
 from .admin_store import (
     SUPER_ADMIN_ID,
@@ -92,7 +92,7 @@ def format_admin_panel(user_id: int | str) -> tuple[str, dict]:
     admins_cnt = len(get_all_admins())
 
     text = (
-        f"⚙️ <b>NAZORAT (WMAX) — Boshqaruv paneli</b>\n\n"
+        f"⚙️ <b>WMAX — Boshqaruv paneli</b>\n\n"
         f"👤 Sizning rolingiz: {role_badge}\n"
         f"🆔 Telegram ID: <code>{user_id}</code>\n"
         f"👥 Ro'yxatdagi adminlar: <b>{admins_cnt} nafar</b>\n\n"
@@ -126,7 +126,7 @@ def format_sysinfo() -> str:
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     admins_cnt = len(get_all_admins())
     return (
-        f"📊 <b>NAZORAT (WMAX) — Tizim holati</b>\n\n"
+        f"📊 <b>WMAX — Tizim holati</b>\n\n"
         f"🟢 API Server: <code>Faol (Online)</code>\n"
         f"🟢 AI Assistent: <code>Gemini 3.5 Flash-Lite (Faol)</code>\n"
         f"🟢 Telemetriya oqimi: <code>Sinxronizatsiyada</code>\n"
@@ -180,7 +180,7 @@ def format_doctor_alert(
     params_str = "\n".join(params_lines) if params_lines else "  Ma'lumot yo'q"
 
     return (
-        f"\U0001f6a8 <b>NAZORAT: QIZIL SIGNAL</b>\n\n"
+        f"\U0001f6a8 <b>WMAX: QIZIL SIGNAL</b>\n\n"
         f"\U0001f464 <b>Bemor:</b> {patient_name} ({age} yosh)\n"
         f"\U0001f4cd {district}\n"
         f"\U0001f3e5 <b>Tashxis:</b> {diagnosis}\n"
@@ -269,7 +269,7 @@ def format_status_response(patient_name: str, vitals: dict) -> str:
 
 WELCOME_TEXT = (
     "Assalomu alaykum, <b>{user_name}</b>! 🏥\n\n"
-    "Bu <b>NAZORAT (WMAX)</b> — Masofaviy klinik telemonitoring va erta ogohlantirish tizimining rasmiy boti.\n\n"
+    "Bu <b>WMAX</b> — Masofaviy klinik telemonitoring va erta ogohlantirish tizimining rasmiy boti.\n\n"
     "📱 <b>Imkoniyatlar:</b>\n"
     "• Bemor portalini to'g'ridan-to'g'ri Telegram ichida ochish\n"
     "• Real vaqt klinik ogohlantirishlari\n"
@@ -282,7 +282,7 @@ WELCOME_TEXT = (
 )
 
 HELP_TEXT = (
-    "❓ <b>NAZORAT Bot — Yordam va imkoniyatlar</b>\n\n"
+    "❓ <b>WMAX Bot — Yordam va imkoniyatlar</b>\n\n"
     "<b>Asosiy buyruqlar:</b>\n"
     "/start — Botni ishga tushirish\n"
     "/status — Bemorning joriy klinik ko'rsatkichlari\n"
@@ -458,7 +458,7 @@ async def poll_telegram_messages() -> None:
                                         await send_telegram_message(
                                             target_id,
                                             f"🎉 Assalomu alaykum, <b>{target_name}</b>!\n\n"
-                                            f"Sizga <b>NAZORAT (WMAX)</b> tizimida administratorlik huquqi berildi.\n"
+                                            f"Sizga <b>WMAX</b> tizimida administratorlik huquqi berildi.\n"
                                             f"Admin panelni ochish uchun /admin buyrug'ini yuboring.",
                                             _persistent_reply_keyboard(target_id),
                                         )
@@ -488,7 +488,7 @@ async def poll_telegram_messages() -> None:
                             if len(parts) < 2:
                                 await send_telegram_message(chat_id, "ℹ️ Foydalanish: <code>/broadcast &lt;xabar matni&gt;</code>")
                             else:
-                                broadcast_msg = f"📢 <b>Rasmiy xabarnoma (NAZORAT):</b>\n\n{parts[1]}"
+                                broadcast_msg = f"📢 <b>Rasmiy xabarnoma (WMAX):</b>\n\n{parts[1]}"
                                 admins = get_all_admins()
                                 sent_cnt = 0
                                 for a in admins:

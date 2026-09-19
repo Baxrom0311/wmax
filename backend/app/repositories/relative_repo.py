@@ -34,3 +34,24 @@ class RelativeRepository:
         )
         res = await self.session.execute(stmt)
         return [(row[0], row[1]) for row in res.all()]
+
+    async def get_by_id_and_patient(
+        self, relative_id: uuid.UUID, patient_id: uuid.UUID
+    ) -> Relative | None:
+        stmt = select(Relative).where(
+            Relative.id == relative_id,
+            Relative.patient_id == patient_id,
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def update_access_token(
+        self, relative: Relative, new_token: str
+    ) -> Relative:
+        from datetime import datetime, timezone
+        relative.access_token = new_token
+        relative.created_at = datetime.now(timezone.utc)
+        self.session.add(relative)
+        await self.session.flush()
+        return relative
+

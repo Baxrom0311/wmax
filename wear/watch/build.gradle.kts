@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "uz.nazorat.watch"
+    namespace = "uz.wmax.watch"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "uz.nazorat.watch"
+        applicationId = "uz.wmax.watch"
         minSdk = 30
         targetSdk = 34
         versionCode = 1
@@ -54,6 +54,7 @@ dependencies {
     // Coroutines & Guava for ListenableFuture interop
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.guava)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.guava)
 
     // JSON serialization

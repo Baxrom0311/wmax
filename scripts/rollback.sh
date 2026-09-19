@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NAZORAT Automated Rollback Script
+# WMAX Automated Rollback Script
 # Role: Principal SRE / Incident Commander
 # Usage: ./scripts/rollback.sh
 
@@ -20,7 +20,7 @@ echo "[1/4] Restarting containers in safe fallback configuration..."
 docker compose -f "${COMPOSE_FILE}" restart api worker nginx
 
 # 2. Check if latest pre-deploy backup exists for DB restoration
-LATEST_BACKUP=$(find "${ROOT_DIR}/backups" -name "nazorat_db_*.sql.gz" -type f | sort -r | head -n 1 || true)
+LATEST_BACKUP=$(find "${ROOT_DIR}/backups" -name "wmax_db_*.sql.gz" -type f | sort -r | head -n 1 || true)
 
 if [ -n "${LATEST_BACKUP}" ] && [ -f "${LATEST_BACKUP}" ]; then
   echo "[2/4] Latest pre-deploy backup found: ${LATEST_BACKUP}"

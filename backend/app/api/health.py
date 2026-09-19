@@ -15,6 +15,7 @@ import time
 from fastapi import APIRouter, Response, status
 
 from app.core.db import check_db_connection
+from app.core.metrics import render_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +78,5 @@ async def liveness_probe():
 @router.get("/metrics")
 async def metrics():
     """Prometheus exposition format endpoint."""
-    try:
-        from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-
-        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
-    except ImportError:
-        # Fallback if prometheus_client is not installed in the environment
-        body = (
-            "# HELP app_up Application availability\n"
-            "# TYPE app_up gauge\n"
-            "app_up 1\n"
-        )
-        return Response(content=body, media_type="text/plain; version=0.0.4")
+    body, content_type = render_metrics()
+    return Response(content=body, media_type=content_type)

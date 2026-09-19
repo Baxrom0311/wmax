@@ -120,6 +120,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{formatVal(hr)}</span>
             <span className="vital-unit">{t("vitals.bpm", lang)}</span>
+            {hrStatus !== "good" && hr !== null && (
+              <span className={`vital-trend-arrow ${hrStatus}`}>{hr > 85 ? "↑" : "↓"}</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_hr", lang)}</span>
@@ -140,6 +143,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{formatVal(spo2)}</span>
             <span className="vital-unit">%</span>
+            {spo2Status !== "good" && spo2 !== null && (
+              <span className={`vital-trend-arrow ${spo2Status}`}>↓</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_spo2", lang)}</span>
@@ -160,6 +166,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{formatVal(temp)}</span>
             <span className="vital-unit">°C</span>
+            {tempStatus !== "good" && temp !== null && (
+              <span className={`vital-trend-arrow ${tempStatus}`}>{temp > 37.2 ? "↑" : "↓"}</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_temp", lang)}</span>
@@ -180,6 +189,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{formatVal(rr)}</span>
             <span className="vital-unit">{t("vitals.breaths", lang)}</span>
+            {rrStatus !== "good" && rr !== null && (
+              <span className={`vital-trend-arrow ${rrStatus}`}>{rr > 20 ? "↑" : "↓"}</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_rr", lang)}</span>
@@ -200,6 +212,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
           <div className="vital-val-row">
             <span className="vital-number">{formatVal(sleep)}</span>
             <span className="vital-unit">{t("vitals.hours", lang)}</span>
+            {sleepStatus !== "good" && sleep !== null && (
+              <span className={`vital-trend-arrow ${sleepStatus}`}>↓</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.norm_prefix", lang)} {t("vitals.norm_sleep", lang)}</span>
@@ -222,6 +237,9 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
               {steps !== null && steps !== undefined ? steps.toLocaleString() : "—"}
             </span>
             <span className="vital-unit">{t("vitals.steps_unit", lang)}</span>
+            {stepsStatus !== "good" && steps !== null && (
+              <span className={`vital-trend-arrow ${stepsStatus}`}>↓</span>
+            )}
           </div>
           <div className="vital-sub-note">
             <span>{t("vitals.steps_target", lang)}</span>

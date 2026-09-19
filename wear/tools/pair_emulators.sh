@@ -34,8 +34,8 @@ echo ""
 echo "🛡️ Granting runtime sensor permissions to WMAX Soat..."
 for dev in $DEVICES; do
     echo "  Applying to device $dev..."
-    adb -s "$dev" shell pm grant uz.nazorat.watch android.permission.BODY_SENSORS 2>/dev/null || true
-    adb -s "$dev" shell pm grant uz.nazorat.watch android.permission.ACTIVITY_RECOGNITION 2>/dev/null || true
+    adb -s "$dev" shell pm grant uz.wmax.watch android.permission.BODY_SENSORS 2>/dev/null || true
+    adb -s "$dev" shell pm grant uz.wmax.watch android.permission.ACTIVITY_RECOGNITION 2>/dev/null || true
 done
 
 echo ""

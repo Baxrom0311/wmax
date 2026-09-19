@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "uz.nazorat.phone"
+    namespace = "uz.wmax.phone"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "uz.nazorat.phone"
+        applicationId = "uz.wmax.phone"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -70,4 +70,5 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
 }

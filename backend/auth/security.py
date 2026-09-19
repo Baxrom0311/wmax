@@ -7,7 +7,7 @@ from typing import Any
 import bcrypt
 import jwt
 
-JWT_SECRET = os.getenv("JWT_SECRET", "change_me_32_bytes_min_super_secret_nazorat")
+JWT_SECRET = os.getenv("JWT_SECRET", "change_me_32_bytes_min_super_secret_wmax")
 JWT_ALG = os.getenv("JWT_ALG", "HS256")
 ACCESS_TOKEN_TTL_MIN = int(os.getenv("ACCESS_TOKEN_TTL_MIN", "60"))
 REFRESH_TOKEN_TTL_DAYS = int(os.getenv("REFRESH_TOKEN_TTL_DAYS", "30"))

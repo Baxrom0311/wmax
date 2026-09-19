@@ -19,6 +19,11 @@ class PatientRepository:
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
+    async def get_by_phone(self, phone: str) -> Patient | None:
+        stmt = select(Patient).where(Patient.phone == phone)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def get_all(
         self, district: str | None = None
     ) -> Sequence[Patient]:

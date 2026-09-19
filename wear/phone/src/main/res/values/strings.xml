@@ -14,4 +14,13 @@
     <string name="no_sync_yet">Hali sinxron qilinmagan</string>
     <string name="patient_id_label">Bemor ID:</string>
     <string name="backend_url_label">Backend manzili:</string>
+    <string name="settings_title">Bemor va server</string>
+    <string name="phone_label">Bemor telefon raqami</string>
+    <string name="pin_label">Bemor PIN kodi</string>
+    <string name="login_action">Kirish va soatni biriktirish</string>
+    <string name="login_success">%1$s hisobiga biriktirildi</string>
+    <string name="login_failed">Kirish amalga oshmadi. Telefon, PIN va serverni tekshiring.</string>
+    <string name="patient_bound">Bemor ID: %1$s</string>
+    <string name="patient_not_bound">Soat hali bemorga biriktirilmagan</string>
+    <string name="device_key_label">Qurilma ingest kaliti</string>
 </resources>

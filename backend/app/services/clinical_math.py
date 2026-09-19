@@ -321,7 +321,7 @@ def compute_prognosis_pure(
         summary = (
             "Holatda salbiy o'zgarishlar sezilmoqda. 72 soat ichida yomonlashuv ehtimoli mavjud."
         )
-        rec = "Bemorning dam olishini ta'minlang, dori-darmonlar qabulini nazorat qiling va shifokorga xabar bering."
+        rec = "Bemorning dam olishini ta'minlang, dori-darmonlar qabulini monitoring qiling va shifokorga xabar bering."
     elif level == "no_data":
         risk_level = "low"
         prob = 0

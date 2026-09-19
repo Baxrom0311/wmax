@@ -1,11 +1,11 @@
 """
-Pytest configuration and fixtures for NAZORAT backend tests.
+Pytest configuration and fixtures for WMAX backend tests.
 
 Provides:
   - sys.path setup so all app.* and contracts imports resolve
   - async event loop configuration
   - DB session fixtures (SQLite in-memory for unit tests)
-  - Auth token fixture
+  - Auth token fixtures (doctor, nurse, relative)
 """
 from __future__ import annotations
 
@@ -25,9 +25,10 @@ for p in [str(_root), str(_backend), str(_contracts)]:
         sys.path.insert(0, p)
 
 # Set DATABASE_URL to avoid pydantic-settings errors in unit tests
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://nazorat:test@localhost:5432/nazorat_test")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://wmax:test@localhost:5432/wmax_test")
 os.environ.setdefault("JWT_SECRET", "test_secret_key_at_least_32_chars_long_for_pytest")
 os.environ.setdefault("ENV", "testing")
+os.environ.setdefault("ENABLE_WORKERS", "false")
 
 import pytest
 
@@ -40,6 +41,20 @@ def event_loop_policy():
     """Use the default asyncio event loop policy."""
     import asyncio
     return asyncio.DefaultEventLoopPolicy()
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter auto-clean
+# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    try:
+        from app.core.rate_limit import login_limiter
+        login_limiter.clear()
+        yield
+        login_limiter.clear()
+    except Exception:
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -71,9 +86,32 @@ def nurse_token() -> str:
         return "test_token_unavailable"
 
 
+@pytest.fixture(scope="session")
+def relative_token() -> str:
+    """Valid JWT access token for a caregiver relative user."""
+    try:
+        from app.core.security import create_access_token
+        return create_access_token(
+            subject="aaaaaaaa-1111-1111-1111-111111111111",
+            claims={"role": "relative", "full_name": "Test Qarovchi", "district": None, "phone": "+998901110011"},
+        )
+    except Exception:
+        return "test_token_unavailable"
+
+
 @pytest.fixture
 def auth_headers(doctor_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {doctor_token}"}
+
+
+@pytest.fixture
+def nurse_headers(nurse_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {nurse_token}"}
+
+
+@pytest.fixture
+def relative_headers(relative_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {relative_token}"}
 
 
 # ---------------------------------------------------------------------------

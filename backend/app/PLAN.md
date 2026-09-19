@@ -22,7 +22,9 @@ FastAPI async serverini qurish, PostgreSQL bilan SQLAlchemy 2.0 orqali ishlash, 
   - `get_session()` dependency.
 
 ### 2.2 ORM Modellar (`backend/app/models/`)
-> MUHIM: `contracts/schema.sql` ga 100% mos bo'lsin. Alembic ishlatilmaydi, `Base.metadata.create_all()` chaqirilmaydi.
+> MUHIM: modellar sxemaning yagona haqiqati. O'zgarish qilsang, Alembic
+> migratsiyasini avtogeneratsiya qil: `cd backend && alembic revision --autogenerate`.
+> `Base.metadata.create_all()` chaqirilmaydi — sxema faqat migratsiya orqali.
 - [x] `models/base.py`: SQLAlchemy `DeclarativeBase`.
 - [x] `models/user.py`: `User` (id UUID, full_name, phone UNIQUE, password_hash, role: doctor/nurse/admin, district).
 - [x] `models/patient.py`: `Patient` (id UUID, full_name, age, sex, diagnosis, district, discharge_date, phase: calib/learning/full, baseline_approved_by/at, doctor_id, nurse_id, device_id).

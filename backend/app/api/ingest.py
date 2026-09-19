@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.device import verify_ingest_key
 from app.core.db import get_session
 from app.schemas.reading import IngestBatch, IngestResult
 from app.services.pipeline_service import PipelineService
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/api/v1", tags=["ingest"])
     response_model=IngestResult,
     status_code=status.HTTP_200_OK,
     summary="Batch upload of 5-minute aggregates. Idempotent (UNIQUE patient_id, ts).",
+    dependencies=[Depends(verify_ingest_key)],
 )
 async def ingest_batch(
     batch: IngestBatch,

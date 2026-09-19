@@ -18,16 +18,19 @@ const translations: Record<Lang, Record<string, string>> = {
     "trend.worsening": "Salbiy tendensiya kuzatilmoqda",
 
     // Header & Login
-    "app.title": "NAZORAT",
+    "app.title": "WMAX",
     "app.subtitle": "Qarovchi portali (Pro)",
     "login.title": "Qarovchi portali",
-    "login.desc": "Bemorlaringiz salomatligini masofadan nazorat qiling",
+    "login.desc": "Bemorlaringiz salomatligini masofadan monitoring qiling",
     "login.phone_label": "Telefon raqamingiz",
     "login.phone_placeholder": "+998 90 123 45 67",
     "login.pin_label": "6 xonali PIN kod",
     "login.pin_placeholder": "112233",
     "login.submit": "Kirish",
     "login.error": "Telefon yoki PIN noto'g'ri",
+    "login.role_relative": "Oila a'zosi",
+    "login.role_patient": "Bemor",
+    "common.or": "yoki",
     "login.hint": "Demo kirish: PIN 112233",
     "logout": "Chiqish",
 
@@ -62,6 +65,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "metrics.tab_temp": "Harorat",
     "metrics.tab_rr": "Nafas",
     "metrics.tab_sleep": "Uyqu",
+    "metrics.tab_steps": "Qadamlar",
     "metrics.baseline_corridor": "Shaxsiy me'yor koridori",
     "metrics.reading": "O'lchov",
     "metrics.deviation_zone": "Og'ish zonasi",
@@ -78,6 +82,9 @@ const translations: Record<Lang, Record<string, string>> = {
     // No Data Protection
     "no_data.title": "Soatdan ma'lumot kelmayapti",
     "no_data.desc": "Aqlli soat 45 daqiqadan beri ma'lumot uzatmayapti. Soat yechilgan yoki batareya quvvati tugagan bo'lishi mumkin. Iltimos, bemor bilan bog'lanib, soatni taqishini iltimos qiling.",
+    "no_data.call_btn": "Bemorga qo'ng'iroq qilish",
+    "no_data.last_seen": "Oxirgi signal: {t}",
+    "no_data.battery_hint": "Soat zaryadini yoki to'g'ri taqilganligini tekshirishni so'rang.",
 
     // Vitals Section (Apple Health / Oura Ring style)
     "vitals.title": "Joriy fiziologik ko'rsatkichlar",
@@ -112,6 +119,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "updated.just_now": "Hozirgina yangilandi",
     "updated.mins_ago": "{m} daqiqa oldin",
     "updated.hours_ago": "{h} soat oldin",
+    "demo.banner_title": "SINOV VA DEMO REJIMI",
+    "demo.banner_text": "Ko'rsatilayotgan ko'rsatkichlar namoyish uchun. Haqiqiy bemor ma'lumotlari emas.",
+    "demo.switch_to_prod": "Haqiqiy tizimga o'tish",
+    "demo.enter_demo": "🧪 Alohida Demo rejimida sinab ko'rish",
+    "demo.stage_label": "Klinik holatni almashtirish (Demo):",
+    "error.fetch_failed": "Bemor ma'lumotlarini yuklab bo'lmadi. Havola eskirgan yoki server bilan aloqa uzilgan.",
+    "error.retry": "Qayta yuklash",
+    "error.back_to_login": "Boshqa hisob bilan kirish",
   },
   ru: {
     // Backend emitted keys
@@ -128,7 +143,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "trend.worsening": "Наблюдается отрицательный тренд",
 
     // Header & Login
-    "app.title": "НАЗОРАТ",
+    "app.title": "WMAX",
     "app.subtitle": "Портал близких (Pro)",
     "login.title": "Портал близких",
     "login.desc": "Дистанционный мониторинг здоровья ваших близких",
@@ -138,6 +153,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "login.pin_placeholder": "112233",
     "login.submit": "Войти",
     "login.error": "Неверный телефон или PIN",
+    "login.role_relative": "Член семьи",
+    "login.role_patient": "Пациент",
+    "common.or": "или",
     "login.hint": "Демо вход: PIN 112233",
     "logout": "Выйти",
 
@@ -172,6 +190,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "metrics.tab_temp": "Температура",
     "metrics.tab_rr": "Дыхание",
     "metrics.tab_sleep": "Сон",
+    "metrics.tab_steps": "Шаги",
     "metrics.baseline_corridor": "Коридор нормы",
     "metrics.reading": "Измерение",
     "metrics.deviation_zone": "Зона отклонения",
@@ -188,6 +207,9 @@ const translations: Record<Lang, Record<string, string>> = {
     // No Data Protection
     "no_data.title": "Нет данных с умных часов",
     "no_data.desc": "Умные часы не передают данные более 45 минут. Часы сняты или разрядились. Пожалуйста, свяжитесь с близким и попросите надеть часы.",
+    "no_data.call_btn": "Позвонить близкому",
+    "no_data.last_seen": "Последний сигнал: {t}",
+    "no_data.battery_hint": "Проверьте заряд часов или попросите правильно надеть их.",
 
     // Vitals Section (Apple Health / Oura Ring style)
     "vitals.title": "Текущие физиологические показатели",
@@ -222,6 +244,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "updated.just_now": "Обновлено только что",
     "updated.mins_ago": "{m} мин. назад",
     "updated.hours_ago": "{h} ч. назад",
+    "demo.banner_title": "ТЕСТОВЫЙ И ДЕМО РЕЖИМ",
+    "demo.banner_text": "Отображаются демонстрационные показатели. Не являются реальными клиническими данными.",
+    "demo.switch_to_prod": "Перейти в реальный режим",
+    "demo.enter_demo": "🧪 Открыть в отдельном Демо-режиме",
+    "demo.stage_label": "Переключить тестовое состояние (Демо):",
+    "error.fetch_failed": "Не удалось загрузить данные пациента. Ссылка устарела или сервер недоступен.",
+    "error.retry": "Повторить загрузку",
+    "error.back_to_login": "Войти с другим аккаунтом",
   },
   en: {
     // Backend emitted keys
@@ -238,7 +268,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "trend.worsening": "Adverse hemodynamic shift observed",
 
     // Header & Login
-    "app.title": "NAZORAT",
+    "app.title": "WMAX",
     "app.subtitle": "Caregiver portal (Pro)",
     "login.title": "Caregiver portal",
     "login.desc": "Remote telemonitoring and decompensation early warning for family members",
@@ -248,6 +278,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "login.pin_placeholder": "112233",
     "login.submit": "Sign in",
     "login.error": "Incorrect telephone number or PIN",
+    "login.role_relative": "Family member",
+    "login.role_patient": "Patient",
+    "common.or": "or",
     "login.hint": "Demo sign-in: PIN 112233",
     "logout": "Sign out",
 
@@ -282,6 +315,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "metrics.tab_temp": "Temperature",
     "metrics.tab_rr": "Respiration",
     "metrics.tab_sleep": "Sleep",
+    "metrics.tab_steps": "Steps",
     "metrics.baseline_corridor": "Normal baseline corridor",
     "metrics.reading": "Measurement",
     "metrics.deviation_zone": "Deviation zone",
@@ -298,6 +332,9 @@ const translations: Record<Lang, Record<string, string>> = {
     // No Data Protection
     "no_data.title": "Smartwatch telemetry disconnected",
     "no_data.desc": "The wearable device has not transmitted data for over 45 minutes. The watch may be unclasped or battery depleted. Please verify device placement on the patient.",
+    "no_data.call_btn": "Call loved one",
+    "no_data.last_seen": "Last reading: {t}",
+    "no_data.battery_hint": "Please check device battery or ensure the watch is worn snugly.",
 
     // Vitals Section (Apple Health / Oura Ring style)
     "vitals.title": "Current physiological parameters",
@@ -332,6 +369,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "updated.just_now": "Updated just now",
     "updated.mins_ago": "{m} minutes ago",
     "updated.hours_ago": "{h} hours ago",
+    "demo.banner_title": "DEMO & TEST MODE",
+    "demo.banner_text": "Displaying demonstration metrics. Not actual patient data.",
+    "demo.switch_to_prod": "Switch to Live Mode",
+    "demo.enter_demo": "🧪 Launch standalone Demo Mode",
+    "demo.stage_label": "Switch simulated risk status (Demo):",
+    "error.fetch_failed": "Could not retrieve patient data. Link may be expired or server unreachable.",
+    "error.retry": "Retry",
+    "error.back_to_login": "Sign in with another account",
   },
 };
 

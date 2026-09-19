@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WMAX Часы</string>
+    <string name="bpm">уд/мин</string>
+    <string name="heart_rate">ПУЛЬС</string>
+    <string name="monitoring_active">Мониторинг активен</string>
+    <string name="phone_disconnected">Телефон не подключен</string>
+    <string name="sensor_permission_required">Нужен доступ к датчику</string>
+    <string name="sos_hold">Удерживайте 3 секунды</string>
+    <string name="sos_sending">Отправка SOS</string>
+    <string name="sos_help_notice">Врач получит уведомление</string>
+    <string name="cancel">Отменить</string>
+    <string name="sos_sent">SOS отправлен</string>
+    <string name="sos_sent_notice">Врач получил уведомление</string>
+    <string name="understood">Понятно</string>
+</resources>

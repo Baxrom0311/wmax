@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.schemas.alert import Alert
-from app.schemas.common import AlertLevel, Role
+from app.schemas.common import AlertLevel, AuthRole
 from app.schemas.problem import ProblemItem, PrognosisInfo
 from app.schemas.series import ParamSeries
 from app.schemas.task import Task
@@ -67,7 +67,7 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     expires_in: int
-    role: Role
+    role: AuthRole
     full_name: str
 
 

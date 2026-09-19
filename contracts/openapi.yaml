@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: NAZORAT API
+  title: WMAX API
   version: "1.0.0"
   description: |
     FROZEN CONTRACT. A1 implements /ingest, /patients, /tasks.
@@ -29,7 +29,7 @@ components:
       enum: [created, sent, seen, done, overdue]
     Role:
       type: string
-      enum: [doctor, nurse, admin]
+      enum: [doctor, nurse, admin, relative]
 
     ReadingIn:
       type: object

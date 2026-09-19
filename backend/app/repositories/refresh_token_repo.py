@@ -19,12 +19,21 @@ class RefreshTokenRepository:
         expires_at: datetime,
         user_id: uuid.UUID | None = None,
         relative_id: uuid.UUID | None = None,
+        patient_id: uuid.UUID | None = None,
     ) -> RefreshToken:
+        """Stores a refresh token against exactly one owner column.
+
+        `refresh_tokens` has three mutually exclusive owner columns guarded by a
+        CHECK constraint, each with its own foreign key. Writing a caregiver's id
+        into `user_id` violates the users FK — the owner column must match the
+        principal's kind.
+        """
         token_entry = RefreshToken(
             token_hash=token_hash,
             expires_at=expires_at,
             user_id=user_id,
             relative_id=relative_id,
+            patient_id=patient_id,
             revoked=False,
         )
         self.session.add(token_entry)

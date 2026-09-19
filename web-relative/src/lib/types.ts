@@ -1,5 +1,5 @@
 // =====================================================================
-// NAZORAT — frontend contract. FROZEN.
+// WMAX — frontend contract. FROZEN.
 // Mirrors contracts/openapi.yaml. A3 (web-doctor) and A4 (web-relative)
 // COPY this file into their own src/ (no cross-folder imports) and must
 // not change the shapes.
@@ -9,7 +9,8 @@ export type AlertLevel = "green" | "amber" | "red" | "no_data";
 export type Phase = "calib" | "learning" | "full";
 export type TrendDirection = "improving" | "stable" | "worsening";
 export type TaskStatus = "created" | "sent" | "seen" | "done" | "overdue";
-export type Role = "doctor" | "nurse" | "admin";
+export type Role = "doctor" | "nurse" | "admin" | "dispatcher";
+export type AuthRole = Role | "relative" | "patient";
 
 // ---- design tokens (identical in both apps) ----
 export const COLORS = {
@@ -173,7 +174,7 @@ export interface TokenPair {
   access_token: string;
   refresh_token: string;
   expires_in: number;
-  role: Role;
+  role: AuthRole;
   full_name: string;
 }
 
@@ -182,3 +183,137 @@ export interface RelativeLoginResponse extends TokenPair {
 }
 
 export const API_BASE = "/api/v1";
+
+// =====================================================================
+// V2 SOS & CLINICAL DOMAIN EXTENSIONS
+// =====================================================================
+
+export type SosStatus = "raised" | "acknowledged" | "dispatched_103" | "cancelled" | "resolved";
+export type SosSource = "watch_button" | "phone_app" | "relative_portal" | "auto_critical";
+
+export interface AddressItem {
+  id: string;
+  patient_id: string;
+  kind: "home" | "temporary" | "work" | "other";
+  region: string;
+  district: string;
+  mahalla?: string | null;
+  street?: string | null;
+  house?: string | null;
+  flat?: string | null;
+  landmark?: string | null;
+  entrance_note?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  geo_source?: "manual" | "device_gps" | "geocoded" | null;
+  geo_accuracy_m?: number | null;
+  is_primary: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConditionItem {
+  id: string;
+  patient_id: string;
+  icd10: string;
+  name_uz: string;
+  name_ru?: string | null;
+  kind: "primary" | "comorbidity" | "past";
+  severity_note?: string | null;
+  diagnosed_at?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MedicationItem {
+  id: string;
+  patient_id: string;
+  name: string;
+  dose?: string | null;
+  frequency?: string | null;
+  route?: string | null;
+  affects_params: Record<string, "lowers" | "raises">;
+  started_at?: string | null;
+  stopped_at?: string | null;
+  stop_reason?: string | null;
+  prescribed_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllergyItem {
+  id: string;
+  patient_id: string;
+  substance: string;
+  reaction?: string | null;
+  severity: "mild" | "moderate" | "severe" | "life_threatening";
+  created_at: string;
+}
+
+export interface MeasurementItem {
+  id: string;
+  patient_id: string;
+  measured_at: string;
+  weight_kg?: number | null;
+  height_cm?: number | null;
+  systolic_bp?: number | null;
+  diastolic_bp?: number | null;
+  waist_circ_cm?: number | null;
+  source: "clinic" | "patient" | "relative" | "smart_scale";
+  created_at: string;
+}
+
+export interface RiskFactorsItem {
+  id?: string;
+  patient_id: string;
+  smoking: "never" | "former" | "current";
+  alcohol: "none" | "occasional" | "heavy";
+  diabetes: boolean;
+  ckd: boolean;
+  mobility: "independent" | "with_aid" | "bedridden";
+  lives_alone: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdmissionItem {
+  id: string;
+  patient_id: string;
+  admitted_at: string;
+  discharged_at?: string | null;
+  facility?: string | null;
+  department?: string | null;
+  reason?: string | null;
+  discharge_summary?: string | null;
+  readmission_within_30d: boolean;
+}
+
+export interface SosEventItem {
+  id: string;
+  patient_id: string;
+  patient_name?: string;
+  raised_at: string;
+  status: SosStatus;
+  source: SosSource;
+  address_snapshot: Record<string, any>;
+  clinical_snapshot: Record<string, any>;
+  vitals_snapshot?: Record<string, any> | null;
+  device_lat?: number | null;
+  device_lon?: number | null;
+  dispatched_at?: string | null;
+  dispatch_ref_103?: string | null;
+  acknowledged_at?: string | null;
+  resolved_at?: string | null;
+  resolution_note?: string | null;
+}
+
+export interface PatientFullProfile {
+  patient: PatientSummary;
+  addresses: AddressItem[];
+  conditions: ConditionItem[];
+  medications: MedicationItem[];
+  allergies: AllergyItem[];
+  measurements: MeasurementItem[];
+  risk_factors: RiskFactorsItem | null;
+  admissions: AdmissionItem[];
+}

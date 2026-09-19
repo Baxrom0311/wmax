@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import CurrentUser, get_current_user
+from app.auth.deps import CurrentUser, require_clinician, require_doctor
 from app.core.db import get_session
 from app.schemas.common import AlertLevel
 from app.schemas.patient import PatientDetail, PatientSummary
@@ -24,7 +24,7 @@ async def list_patients(
     district: str | None = Query(None, description="Filter by district"),
     level: AlertLevel | None = Query(None, description="Filter by alert level"),
     session: AsyncSession = Depends(get_session),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_clinician),
 ) -> list[PatientSummary]:
     service = PatientService(session)
     return await service.get_worklist(district=district, level=level)
@@ -39,7 +39,7 @@ async def get_patient_detail(
     id: uuid.UUID,
     days: int = Query(7, ge=1, le=30, description="History window in days"),
     session: AsyncSession = Depends(get_session),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_clinician),
 ) -> PatientDetail:
     service = PatientService(session)
     return await service.get_patient_detail(id, days=days)
@@ -54,7 +54,7 @@ async def get_patient_detail(
 async def discharge_patient(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_doctor),
 ) -> TaskSchema:
     service = PatientService(session)
     return await service.discharge_patient(id, doctor_id=current_user.id)
@@ -67,8 +67,23 @@ async def discharge_patient(
 async def approve_baseline(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_doctor),
 ) -> dict[str, str]:
     service = PatientService(session)
     await service.approve_baseline(id, approved_by=current_user.id)
     return {"detail": "Shaxsiy baza muvaffaqiyatli tasdiqlandi"}
+
+
+@router.post(
+    "/{id}/relatives/{relative_id}/rotate-token",
+    summary="Doctor rotates caregiver access token (R13).",
+)
+async def rotate_relative_token(
+    id: uuid.UUID,
+    relative_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_doctor),
+) -> dict[str, str]:
+    service = PatientService(session)
+    return await service.rotate_relative_token(id, relative_id)
+

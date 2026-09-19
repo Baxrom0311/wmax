@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NAZORAT Enterprise Server Provisioning Script
+# WMAX Enterprise Server Provisioning Script
 # Target: Ubuntu 24.04 LTS
 # Role: Principal DevOps & Security Engineer
 # Usage: sudo ./scripts/setup_server.sh
@@ -15,7 +15,7 @@ DEPLOY_USER="deploy"
 TIMEZONE="Asia/Tashkent"
 
 echo "========================================================"
-echo "  NAZORAT Enterprise Server Provisioning (Ubuntu 24.04)"
+echo "  WMAX Enterprise Server Provisioning (Ubuntu 24.04)"
 echo "========================================================"
 
 # 1. System Timezone & Locale
@@ -98,7 +98,7 @@ fi
 
 # 6. Kernel Network & Security Hardening
 echo "[6/9] Applying sysctl kernel hardening..."
-cat << 'EOF' > /etc/sysctl.d/99-nazorat-security.conf
+cat << 'EOF' > /etc/sysctl.d/99-wmax-security.conf
 net.core.somaxconn = 65535
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 1024 65535
@@ -155,8 +155,8 @@ cat << 'EOF' > /etc/logrotate.d/docker-containers
 }
 EOF
 
-mkdir -p /opt/nazorat/backups /opt/nazorat/logs
-chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/nazorat
+mkdir -p /opt/wmax/backups /opt/wmax/logs
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/wmax
 
 echo "========================================================"
 echo "[✓] Enterprise Provisioning Complete!"

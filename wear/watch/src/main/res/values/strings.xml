@@ -12,4 +12,15 @@
     <string name="send_to_phone">Telefonga jo\'natish</string>
     <string name="sensor_worn">Soat taqilgan</string>
     <string name="sensor_offbody">Soat yechilgan</string>
+    <string name="heart_rate">YURAK URISHI</string>
+    <string name="monitoring_active">Monitoring faol</string>
+    <string name="phone_disconnected">Telefon ulanmagan</string>
+    <string name="sensor_permission_required">Sensor ruxsati kerak</string>
+    <string name="sos_hold">3 soniya ushlang</string>
+    <string name="sos_sending">SOS yuborilmoqda</string>
+    <string name="sos_help_notice">Shifokorga xabar beriladi</string>
+    <string name="cancel">Bekor qilish</string>
+    <string name="sos_sent">SOS yuborildi</string>
+    <string name="sos_sent_notice">Shifokorga xabar yetkazildi</string>
+    <string name="understood">Tushunarli</string>
 </resources>

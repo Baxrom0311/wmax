@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("nazorat.notifier.admin_store")
+logger = logging.getLogger("wmax.notifier.admin_store")
 
 SUPER_ADMIN_ID: int = int(os.getenv("SUPER_ADMIN_ID", "6956456422"))
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=WMAX Database Automated Daily Backup Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/wmax
+ExecStart=/opt/wmax/scripts/backup.sh /opt/wmax/backups
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,11 @@
+[Unit]
+Description=WMAX Daily Database Backup Timer
+Requires=wmax-backup.service
+
+[Timer]
+# Runs daily at 03:30 AM (local Tashkent time)
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

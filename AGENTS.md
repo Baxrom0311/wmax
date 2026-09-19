@@ -1,4 +1,4 @@
-# NAZORAT — parallel qurilish qoidalari
+# WMAX — parallel qurilish qoidalari
 
 Bu faylni **har bir agent** ishni boshlashdan oldin o'qiydi.
 
@@ -49,11 +49,19 @@ Bu faylni **har bir agent** ishni boshlashdan oldin o'qiydi.
 - **ORM hamma joyda.** `backend/app` — SQLAlchemy. `notifier` **bir xil image**da
   ishlaydi (`command: python -m notifier.main`) va **o'sha modellarni import qiladi**.
   Nusxa yo'q, drift yo'q. A6 `app.models` dan faqat **o'qiydi**, yozmaydi.
-- **Alembic yo'q.** `contracts/schema.sql` — yagona haqiqat. Sxema o'zgarsa:
-  `docker compose down -v && docker compose up -d`.
-- **Uchta `requirements.txt`**: `backend/`, `backend/algo/`, `backend/auth/`,
+- **Sxema boshqaruvi.** Yagona haqiqat — `backend/app/models/` (SQLAlchemy ORM).
+  Sxema o'zgarishi **faqat** Alembic migratsiyasi orqali:
+  `cd backend && alembic revision --autogenerate -m "..."` → ko'rib chiq → commit.
+  `alembic check` CI'da ORM va migratsiyalar farqini ushlaydi.
+  `contracts/schema.sql` **o'chirildi** — qo'lda yozilgan SQL ORM bilan ayrilib
+  ketib, uchta bir-biriga zid manba hosil qilgan edi. Migratsiyalar konteyner
+  ishga tushganda `backend/entrypoint.sh` orqali qo'llanadi, Postgres initdb
+  mount'i orqali emas (initdb faqat yangi volume'da ishlaydi va mavjud
+  o'rnatishni jimgina eski sxemada qoldiradi).
+  Demo ma'lumot: `python scripts/seed_demo.py` — u ham ORM orqali yozadi.
+- **To'rtta `requirements.txt`**: `backend/`, `backend/algo/`, `backend/auth/`,
   va `notifier/`. Har agent faqat o'zinikiga yozadi. `backend/Dockerfile`
-  to'rttasini ham o'rnatadi va **MUZLATILGAN**.
+  multi-stage build orqali xavfsiz ishlaydi.
 - **Import shakli** (PYTHONPATH `/srv:/srv/backend:/srv/contracts`):
   ```python
   from app.models import Patient          # A1
@@ -67,5 +75,5 @@ Bu faylni **har bir agent** ishni boshlashdan oldin o'qiydi.
 - **i18n:** backend **tayyor jumla qaytarmaydi**, faqat kalit
   (`rec.contact_today`, `state.good`). Tarjima frontendda, uz + ru.
   Kalitlar ro'yxati: `contracts/types.ts` -> `I18N_KEYS`.
-- **Demo hisoblari:** shifokor `+998901234567` / `nazorat123`,
-  hamshira `+998901234568` / `nazorat123`, yaqin kishi PIN `112233`.
+- **Demo hisoblari:** shifokor `+998901234567` / `wmax123`,
+  hamshira `+998901234568` / `wmax123`, yaqin kishi PIN `112233` (faqat `ENABLE_DEMO_ACCOUNTS=true` bo'lganda).

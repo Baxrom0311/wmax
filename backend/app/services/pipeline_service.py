@@ -24,6 +24,7 @@ from algo_interface import (
     TrendResult,
 )
 from app.core.exceptions import NotFoundException
+from app.core.metrics import alerts_total, readings_ingested_total
 from app.models.patient import Patient
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
@@ -34,149 +35,10 @@ from app.services.clinical_math import compute_trend_pure
 
 logger = logging.getLogger(__name__)
 
-# Dynamic import from algo package, with contract-compliant fallback
-try:
-    from algo.baseline import compute_baselines, compute_zscores  # type: ignore
-    from algo.signal import evaluate_alert  # type: ignore
-    from algo.trend import compute_trend  # type: ignore
-except ImportError:
-    logger.info("backend.algo modules not found, using contract-compliant pure fallback")
-
-    def compute_baselines(readings: list[ReadingVec]) -> list[BaselineEntry]:
-        import statistics
-
-        entries: list[BaselineEntry] = []
-        for param in ["hr_mean", "spo2", "skin_temp", "rmssd", "rr_est", "steps", "sleep_frag"]:
-            for window in range(4):
-                vals = [
-                    getattr(r, param)
-                    for r in readings
-                    if r.worn
-                    and getattr(r, param) is not None
-                    and timewin.window_of(r.ts) == window
-                ]
-                if vals:
-                    med = float(statistics.median(vals))
-                    mad = float(statistics.median([abs(v - med) for v in vals])) or 1.0
-                    entries.append(
-                        BaselineEntry(
-                            param=param,
-                            time_window=window,
-                            median=med,
-                            mad=mad,
-                            n_samples=len(vals),
-                        )
-                    )
-        return entries
-
-    def compute_zscores(reading: ReadingVec, baselines: list[BaselineEntry]) -> dict[str, float]:
-        window = timewin.window_of(reading.ts)
-        zscores: dict[str, float] = {}
-        for b in baselines:
-            if b.time_window == window:
-                val = getattr(reading, b.param, None)
-                if val is not None:
-                    mad_val = max(b.mad, 1e-3)
-                    zscores[b.param] = (val - b.median) / (1.4826 * mad_val)
-        return zscores
-
-    def evaluate_alert(
-        reading: ReadingVec,
-        baselines: list[BaselineEntry],
-        recent_zscores: list[dict[str, float]],
-        phase: str,
-        anomaly_score: float | None = None,
-    ) -> AlertResult:
-        if not reading.worn:
-            return AlertResult(
-                level="no_data",
-                composite_score=0.0,
-                triggered_params={},
-                reason="not_worn",
-                anomaly_score=anomaly_score,
-            )
-
-        spo2 = reading.spo2
-        hr = reading.hr_mean
-        steps = reading.steps or 0
-
-        # Hard clinical overrides (instant, bypass persistence)
-        if spo2 is not None and spo2 < CRITICAL_SPO2:
-            return AlertResult(
-                level="red",
-                composite_score=5.0,
-                triggered_params={"spo2": -3.0},
-                reason="critical_spo2",
-                anomaly_score=anomaly_score,
-            )
-        if hr is not None and hr > CRITICAL_HR_AT_REST and steps <= REST_STEPS_MAX:
-            return AlertResult(
-                level="red",
-                composite_score=5.0,
-                triggered_params={"hr_mean": 3.5},
-                reason="critical_hr_at_rest",
-                anomaly_score=anomaly_score,
-            )
-
-        current_z = compute_zscores(reading, baselines)
-        all_z = list(recent_zscores) + [current_z]
-
-        composite = 0.0
-        triggered: dict[str, float] = {}
-
-        for p, z in current_z.items():
-            if p == "hr_mean" and steps > REST_STEPS_MAX:
-                continue
-
-            direction = PARAM_DIRECTION.get(p, 0)
-            z_eff = max(0.0, z * direction) if direction != 0 else abs(z)
-
-            if z_eff > Z_DEADZONE:
-                # Persistence check: must persist across 3 consecutive windows if available
-                persisted = True
-                if len(all_z) >= 3:
-                    for prev_z in all_z[-3:]:
-                        prev_val = prev_z.get(p)
-                        if prev_val is None:
-                            persisted = False
-                            break
-                        prev_eff = max(0.0, prev_val * direction) if direction != 0 else abs(prev_val)
-                        if prev_eff <= Z_DEADZONE:
-                            persisted = False
-                            break
-
-                if persisted:
-                    triggered[p] = round(z, 2)
-                    composite += WEIGHTS.get(p, 1.0) * (z_eff - Z_DEADZONE)
-
-        level = "green"
-        reason = "normal"
-        if phase == "calib":
-            level = "green"
-            reason = "calibrating"
-        elif composite >= RED_THRESHOLD and len(triggered) >= MIN_TRIGGERED_PARAMS:
-            level = "red"
-            reason = "composite_threshold_red"
-        elif composite >= AMBER_THRESHOLD and len(triggered) >= MIN_TRIGGERED_PARAMS:
-            level = "green" if phase == "learning" else "amber"
-            reason = "composite_threshold_amber"
-
-        return AlertResult(
-            level=level,
-            composite_score=round(composite, 2),
-            triggered_params=triggered,
-            reason=reason,
-            anomaly_score=anomaly_score,
-        )
-
-    def compute_trend(daily_raw_scores: list[tuple[int, float]]) -> TrendResult:
-        res = compute_trend_pure(daily_raw_scores)
-        return TrendResult(
-            slope=res.slope,
-            direction=res.direction,
-            recommendation_key=res.recommendation_key,
-            days_used=res.days_used,
-        )
+# Direct imports from algo package (A2 integration point)
+from algo.baseline import compute_baselines, compute_zscores
+from algo.signal import evaluate_alert
+from algo.trend import compute_trend
 
 
 class PipelineService:
@@ -217,6 +79,7 @@ class PipelineService:
 
         accepted = await self.reading_repo.insert_batch_idempotent(reading_dicts)
         duplicates = max(0, len(reading_dicts) - accepted)
+        readings_ingested_total.inc(accepted)
 
         # Run clinical evaluation pipeline
         alert_result = await self.evaluate_patient(batch.patient_id)
@@ -255,13 +118,16 @@ class PipelineService:
 
         # 45 minutes of silence -> no_data, not green
         if timewin.is_no_data(latest_reading.ts, now):
-            await self.alert_repo.insert_idempotent(
-                patient_id=patient_id,
-                ts=latest_reading.ts,
+            no_data_result = AlertResult(
                 level="no_data",
                 composite_score=0.0,
                 triggered_params={},
                 reason="silence_no_data",
+            )
+            await self.alert_repo.insert_idempotent(
+                patient_id=patient_id,
+                ts=latest_reading.ts,
+                result=no_data_result,
             )
             return AlertResult(
                 level="no_data",
@@ -289,19 +155,34 @@ class PipelineService:
             for r in readings
         ]
 
-        # Recalculate personal baselines
-        baselines = compute_baselines(vecs)
-        baseline_dicts = [
-            {
-                "param": b.param,
-                "time_window": b.time_window,
-                "median": b.median,
-                "mad": b.mad,
-                "n_samples": b.n_samples,
-            }
-            for b in baselines
-        ]
-        await self.baseline_repo.upsert_baselines(patient_id, baseline_dicts)
+        # Personal baseline — learned, then frozen.
+        #
+        # While the patient is still being learned, the baseline is recomputed
+        # from recent readings. Once a doctor signs it off
+        # (`baseline_approved_at`), it is *loaded* rather than recomputed:
+        # continuing to recompute lets the reference drift along with a
+        # deteriorating patient, so their new and worse state quietly becomes
+        # "normal" and the signal never fires. That is the exact failure this
+        # system exists to prevent.
+        #
+        # The repository reads attributes off BaselineEntry directly, so the
+        # old dict conversion here raised AttributeError on every call —
+        # baselines were never persisted at all.
+        stored = await self.baseline_repo.get_by_patient(patient_id)
+        if patient.baseline_approved_at is not None and stored:
+            baselines = [
+                BaselineEntry(
+                    param=b.param,
+                    time_window=b.time_window,
+                    median=b.median,
+                    mad=b.mad,
+                    n_samples=b.n_samples,
+                )
+                for b in stored
+            ]
+        else:
+            baselines = compute_baselines(vecs)
+            await self.baseline_repo.upsert_baselines(patient_id, baselines)
 
         # Recent z-scores for 15-minute persistence check
         recent_vecs = vecs[-3:-1] if len(vecs) >= 3 else []
@@ -319,12 +200,9 @@ class PipelineService:
         await self.alert_repo.insert_idempotent(
             patient_id=patient_id,
             ts=latest_reading.ts,
-            level=alert_result.level,
-            composite_score=alert_result.composite_score,
-            triggered_params=alert_result.triggered_params,
-            anomaly_score=alert_result.anomaly_score,
-            reason=alert_result.reason,
+            result=alert_result,
         )
+        alerts_total.labels(level=alert_result.level).inc()
 
         return alert_result
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Пациент и сервер</string>
+    <string name="phone_label">Номер телефона пациента</string>
+    <string name="pin_label">PIN-код пациента</string>
+    <string name="login_action">Войти и привязать часы</string>
+    <string name="login_success">Привязано к аккаунту %1$s</string>
+    <string name="login_failed">Не удалось войти. Проверьте телефон, PIN и сервер.</string>
+    <string name="patient_bound">ID пациента: %1$s</string>
+    <string name="patient_not_bound">Часы еще не привязаны к пациенту</string>
+    <string name="device_key_label">Ключ загрузки устройства</string>
+</resources>

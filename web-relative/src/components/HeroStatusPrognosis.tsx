@@ -32,6 +32,7 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
 
   const formatLastUpdated = (isoDate: string | null) => {
     if (!isoDate) return t("updated.just_now", lang);
+    // oxlint-disable-next-line react/purity -- relative timestamp intentionally reads wall-clock time
     const diffMins = Math.max(1, Math.round((Date.now() - new Date(isoDate).getTime()) / 60000));
     if (diffMins < 60) {
       return t("updated.mins_ago", lang, { m: diffMins });

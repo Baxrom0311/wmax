@@ -3,7 +3,7 @@
 #   ./deploy.sh root@<droplet-ip>
 set -euo pipefail
 TARGET="${1:?Foydalanish: ./deploy.sh root@<droplet-ip>}"
-REMOTE_DIR="/opt/nazorat"
+REMOTE_DIR="/opt/wmax"
 
 echo "→ Fayllar yuborilmoqda..."
 rsync -az --delete \

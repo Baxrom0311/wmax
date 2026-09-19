@@ -70,7 +70,7 @@ def _get_url() -> str:
         raise RuntimeError(
             "DATABASE_URL environment variable is not set. "
             "Export it before running alembic, e.g.: "
-            "export DATABASE_URL=postgresql+asyncpg://nazorat:pass@localhost:5432/nazorat"
+            "export DATABASE_URL=postgresql+asyncpg://wmax:pass@localhost:5432/wmax"
         )
     # Ensure the driver is asyncpg (alembic needs it for async runs).
     if url.startswith("postgresql://"):

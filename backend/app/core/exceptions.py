@@ -64,6 +64,9 @@ class ValidationAppException(BaseAppException):
         )
 
 
+ValidationException = ValidationAppException
+
+
 class UnauthorizedException(BaseAppException):
     def __init__(self, message: str = "Autentifikatsiya talab qilinadi"):
         super().__init__(

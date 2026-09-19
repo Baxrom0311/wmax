@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NAZORAT Comprehensive System Health Check Script
+# WMAX Comprehensive System Health Check Script
 # Role: Principal SRE / Monitoring Engineer
 # Usage: ./scripts/healthcheck.sh
 
@@ -10,7 +10,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker/compose/docker-compose.yml"
 
 echo "========================================================"
-echo "  NAZORAT Enterprise Health Check Audit: $(date)"
+echo "  WMAX Enterprise Health Check Audit: $(date)"
 echo "========================================================"
 
 FAILED=0

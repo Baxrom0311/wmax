@@ -1,5 +1,5 @@
 """
-Pytest test suite for NAZORAT clinical math engine.
+Pytest test suite for WMAX clinical math engine.
 
 Tests are pure Python (no DB, no network) — they run against
 app.services.clinical_math functions and algo_interface constants.
@@ -333,3 +333,37 @@ class TestTimewin:
             assert result in (0, 1, 2, 3)  # Must be a valid window
         except (ImportError, Exception):
             pytest.skip("timewin not available")
+
+
+# ---------------------------------------------------------------------------
+# Baseline freezing — regression guard
+# ---------------------------------------------------------------------------
+def test_approved_baseline_is_loaded_not_recomputed():
+    """A signed-off baseline must not drift with new readings.
+
+    Recomputing over the full window lets a deteriorating patient's own decline
+    redefine their "normal", so the signal never fires. The pipeline loads the
+    stored baseline whenever `baseline_approved_at` is set.
+    """
+    import inspect
+    from app.services import pipeline_service
+
+    src = inspect.getsource(pipeline_service.PipelineService.evaluate_patient)
+    assert "baseline_approved_at is not None" in src, (
+        "evaluate_patient must branch on baseline_approved_at"
+    )
+    # The recompute path must sit in the `else` branch, never unconditionally.
+    recompute_idx = src.index("compute_baselines(vecs)")
+    branch_idx = src.index("baseline_approved_at is not None")
+    assert branch_idx < recompute_idx, "recompute must be guarded by the approval check"
+
+
+def test_alert_repo_signature_matches_pipeline_call():
+    """Guards the AlertResult-vs-kwargs mismatch that broke every alert insert."""
+    import inspect
+    from app.repositories.alert_repo import AlertRepository
+
+    params = inspect.signature(AlertRepository.insert_idempotent).parameters
+    assert set(params) == {"self", "patient_id", "ts", "result"}, (
+        "call sites pass result=AlertResult(...); keep the signature in sync"
+    )

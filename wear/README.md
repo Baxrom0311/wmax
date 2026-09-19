@@ -30,12 +30,12 @@ Ushbu modul **WMAX** platformasining qurilma qatlamidir:
    │ Datchiklar: Heart Rate (bpm), SpO2, Akselerometr (qadamlar), Off-body
    │ Agregatsiya: 1 daqiqalik o'lchovlar -> 5 daqiqalik darcha yig'indisi
    ▼
-[Data Layer API: /nazorat/reading_batch]
+[Data Layer API: /wmax/reading_batch]
    │
    ▼
 [Android telefon (Hamroh ilova)]
    │
-   ├── Room DB buferi (nazorat_phone_buffer.db) — 0 ta ma'lumot yo'qolishi
+   ├── Room DB buferi (wmax_phone_buffer.db) — 0 ta ma'lumot yo'qolishi
    │   (Internet uzilsa ham o'lchovlar xavfsiz saqlanadi)
    ▼
 [WorkManager: SyncWorker]

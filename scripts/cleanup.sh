@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# NAZORAT Safe System Resource Cleanup Script
+# WMAX Safe System Resource Cleanup Script
 # Usage: ./scripts/cleanup.sh
 
 set -euo pipefail
 
 echo "========================================================"
-echo "  NAZORAT Safe Maintenance Cleanup: $(date)"
+echo "  WMAX Safe Maintenance Cleanup: $(date)"
 echo "========================================================"
 
 echo "[1/4] Pruning stopped containers..."
