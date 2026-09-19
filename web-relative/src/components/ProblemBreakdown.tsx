@@ -107,9 +107,7 @@ export const ProblemBreakdown: React.FC<ProblemBreakdownProps> = ({ problems, la
                     prob.severity === "moderate" ? "text-amber-500" : "text-blue-400"
                   } />
                   <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full border", s.badge)}>
-                    {prob.severity === "severe" ? (lang === "ru" ? "Тяжёлое" : "Og'ir") :
-                     prob.severity === "moderate" ? (lang === "ru" ? "Умеренное" : "O'rta") :
-                     (lang === "ru" ? "Лёгкое" : "Yengil")}
+                    {t(`problems.severity_${prob.severity}`, lang)}
                   </span>
                 </div>
               </div>

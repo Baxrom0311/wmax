@@ -13,6 +13,8 @@ import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { ParamSeries } from "../lib/types";
 import { COLORS } from "../lib/types";
+import { cn } from "../lib/utils";
+import { Activity } from "lucide-react";
 
 interface InteractiveMetricsProps {
   series: ParamSeries[];
@@ -93,18 +95,35 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
   );
 
   return (
-    <div className="metrics-interactive-section">
-      <div className="metrics-header-row">
-        <h3 className="section-title">{t("metrics.title", lang)}</h3>
+    <div className="px-4 pb-4 flex flex-col gap-3 animate-fade-up">
+      {/* Header Row */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Activity size={16} className="text-blue-600" />
+          <h3
+            className="text-[14px] font-bold text-slate-800"
+            style={{ fontFamily: "'Outfit',sans-serif" }}
+          >
+            {t("metrics.title", lang)}
+          </h3>
+        </div>
 
         {/* Time Filter — iOS Segment Control style */}
-        <div className="time-filter-group">
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
           {(["24h", "3d", "7d"] as TimeRange[]).map((range) => (
             <button
               key={range}
               type="button"
-              className={`range-btn ${timeRange === range ? "active" : ""}`}
-              onClick={() => { setTimeRange(range); haptic(); }}
+              className={cn(
+                "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer",
+                timeRange === range
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+              onClick={() => {
+                setTimeRange(range);
+                haptic();
+              }}
             >
               {t(`metrics.range_${range}`, lang)}
             </button>
@@ -112,8 +131,8 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
         </div>
       </div>
 
-      {/* Metric Tabs — fixed spacing */}
-      <div className="metric-tabs-row">
+      {/* Metric Tabs — horizontal scrollable pills */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
         {availableTabs.map(([key, tab]) => {
           const isSelected = activeParam === key;
           const s = series.find(
@@ -125,14 +144,22 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
             <button
               key={key}
               type="button"
-              className={`metric-tab-pill ${isSelected ? "active" : ""}`}
-              onClick={() => { setActiveParam(key); haptic(); }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12px] font-bold whitespace-nowrap transition-all cursor-pointer flex-shrink-0",
+                isSelected
+                  ? "bg-blue-50 border-blue-300 text-blue-700 shadow-xs"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              )}
+              onClick={() => {
+                setActiveParam(key);
+                haptic();
+              }}
             >
-              <span className="tab-pill-label">{t(tab.labelKey, lang)}</span>
+              <span>{t(tab.labelKey, lang)}</span>
               {latestVal !== undefined && latestVal !== null && (
-                <span className="tab-pill-val">
+                <span className="text-[11px] font-extrabold opacity-85">
                   {typeof latestVal === "number" ? latestVal.toFixed(1) : latestVal}
-                  <span className="tab-pill-unit"> {tab.unit}</span>
+                  <span className="text-[10px] font-normal"> {tab.unit}</span>
                 </span>
               )}
             </button>
@@ -140,20 +167,20 @@ export const InteractiveMetrics: React.FC<InteractiveMetricsProps> = ({ series, 
         })}
       </div>
 
-      {/* Chart Canvas */}
-      <div className="chart-canvas-container">
-        <div className="chart-legend-row">
-          <div className="legend-item">
-            <span className="corridor-box" />
+      {/* Chart Canvas Card */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3.5 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-[11px] text-slate-500 flex-wrap gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-emerald-600/20 border border-emerald-500/40 inline-block" />
             <span>{t("metrics.baseline_corridor", lang)}</span>
             {currentSeries.baseline_low !== null && currentSeries.baseline_high !== null && (
-              <strong style={{ marginLeft: "4px" }}>
+              <strong className="text-slate-700 ml-1">
                 ({currentSeries.baseline_low} - {currentSeries.baseline_high} {meta.unit})
               </strong>
             )}
           </div>
-          <div className="legend-item">
-            <span className="line-indicator" style={{ backgroundColor: meta.color }} />
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-1 rounded-full inline-block" style={{ backgroundColor: meta.color }} />
             <span>{t("metrics.reading", lang)}</span>
           </div>
         </div>
