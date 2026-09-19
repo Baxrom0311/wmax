@@ -1,8 +1,8 @@
-# WMAX — Wear OS & Android Phone Companion
+# WMAX — Wear OS Watch
 
 Ushbu modul **WMAX** platformasining qurilma qatlamidir:
 - **`wear/watch/`**: Galaxy Watch 5 / Wear OS aqlli soati ilovasi (`androidx.health:health-services-client`).
-- **`wear/phone/`**: Android telefon hamroh ilovasi (Data Layer API, Room DB oflayn buferi, WorkManager background sync).
+- Telefon hamrohi: `mobile_flutter/` (Flutter Data Layer bridge va backend sync).
 - **`scripts/watch_sim.py`**: Noutbuk orqali soatsiz sinash simulyatori.
 
 ---
@@ -18,7 +18,7 @@ Ushbu modul **WMAX** platformasining qurilma qatlamidir:
   - `phone minSdk`: 26 (Android 8.0+)
 - **Qurilmalar / Emulatorlar**:
   - **Soat**: Wear OS Large Round / Galaxy Watch 4/5/6 emulyatori (API 30+).
-  - **Telefon**: Pixel 7 / har qanday Android telefon emulyatori (API 26+).
+  - **Telefon**: `mobile_flutter/` Android ilovasi.
 
 ---
 
@@ -33,16 +33,8 @@ Ushbu modul **WMAX** platformasining qurilma qatlamidir:
 [Data Layer API: /wmax/reading_batch]
    │
    ▼
-[Android telefon (Hamroh ilova)]
+[Flutter telefon ilovasi (`mobile_flutter`)]
    │
-   ├── Room DB buferi (wmax_phone_buffer.db) — 0 ta ma'lumot yo'qolishi
-   │   (Internet uzilsa ham o'lchovlar xavfsiz saqlanadi)
-   ▼
-[WorkManager: SyncWorker]
-   │
-   │ Eksponensial qayta urinish (Exponential backoff)
-   │ Internet paydo bo'lishini kutish (NetworkType.CONNECTED)
-   ▼
 [POST /api/v1/ingest (WMAX Backend)]
    │
    └── Idempotent: UNIQUE(patient_id, ts)
@@ -79,19 +71,7 @@ Wear OS emulyatorida datchik qiymatlarini o'zgartirish:
 
 Loyihaning ildiz papkasidan:
 
-### 4.1 Telefon ilovasini build qilish:
-```bash
-cd wear
-./gradlew :phone:assembleDebug
-```
-Chiqish fayli: `wear/phone/build/outputs/apk/debug/phone-debug.apk`
-
-O'rnatish:
-```bash
-adb -s <phone_device_id> install -r wear/phone/build/outputs/apk/debug/phone-debug.apk
-```
-
-### 4.2 Soat ilovasini build qilish:
+### 4.1 Soat ilovasini build qilish:
 ```bash
 cd wear
 ./gradlew :watch:assembleDebug
@@ -139,4 +119,3 @@ python3 scripts/watch_sim.py --interval 2.0 --profile worsening
   ./wear/tools/simulate_vitals.sh healthy 2.0 11111111-1111-1111-1111-111111111111
   ./wear/tools/simulate_vitals.sh worsening 1.5 11111111-1111-1111-1111-111111111111
   ```
-

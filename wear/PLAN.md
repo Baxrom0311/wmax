@@ -33,13 +33,6 @@ Qurilma qatlami — aqlli soat (Galaxy Watch 5 / Wear OS) datchiklaridan o'lchov
   - Agregatsiya: 1 daqiqalik darchalarda yig'ish, so'ngra 5 daqiqalik yig'indi qilib Data Layer API orqali telefonga jo'natish.
   - Soat ekrani: joriy puls, ulanish holati ("Ulangan" / "Ulanmagan").
 
-### 2.3 Android Telefon Ilovasi (`wear/phone/`)
-- [x] Kotlin / Gradle loyihasi:
-  - Data Layer API orqali soatdan paketlarni qabul qilish.
-  - **Room DB buferi:** Internet bo'lmaganda barcha o'lchovlarni xavfsiz saqlash.
-  - `WorkManager`: Tarmoq paydo bo'lganda eksponensial qayta urinish bilan backend `POST /api/v1/ingest` ga yuborish.
-  - Telefon ekrani: ulanish holati, navbatdagi yozuvlar soni, oxirgi sinxron vaqti.
-
 ### 2.4 Hujjatlashtirish
 - [x] `wear/README.md`:
   - Qaysi Android Studio versiyasi kerakligi.
