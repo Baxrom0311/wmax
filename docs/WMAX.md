@@ -167,7 +167,7 @@ effektni z-score'dan 0.5 koeffitsient bilan chegiradi.
 flowchart TD
     subgraph device["Bemor qo'lida"]
         W["⌚ Galaxy Watch 5<br/>PPG · HR · SpO₂ · Temp<br/>+ SOS tugmasi"]
-        P["📱 Android hamroh<br/>Room DB oflayn bufer<br/>WorkManager retry"]
+        P["📱 mobile_flutter<br/>Flutter login/session<br/>Wearable Data Layer bridge"]
     end
 
     subgraph backend["Backend — FastAPI + PostgreSQL"]
@@ -188,6 +188,7 @@ flowchart TD
 
     W -->|"Bluetooth Data Layer"| P
     P -->|"HTTPS + X-Ingest-Key"| ING
+    W -->|"HTTPS + X-Ingest-Key (internet mavjud)"| ING
     ING --> ALG --> LVL
     LVL -->|"red / amber"| TASK
     LVL --> AL
@@ -226,7 +227,8 @@ Ikki jarayon bir xil qatorga yozmaydi — poyga yo'q.
 | `backend/alembic/` | Alembic | **Sxema migratsiyalari — yagona haqiqat** |
 | `web-doctor/` | React 19, TS, Vite, Recharts | Hamshira va shifokor ish stansiyasi |
 | `web-relative/` | React 19, TS, Vite | Qarovchi mobil portali |
-| `wear/` | Kotlin, Health Services, Room | Soat + telefon ilovalari |
+| `wear/watch/` | Kotlin, Health Services | Galaxy Watch sensorlari va direct ingest |
+| `mobile_flutter/` | Flutter, Dart, Wearable API | Mobil login/session, bridge va sync |
 | `notifier/` | Python, httpx, APScheduler | Telegram yetkazib berish |
 | `scripts/seed_demo.py` | Python, ORM | Demo ma'lumot (SQL emas!) |
 
@@ -644,7 +646,7 @@ CREATE TABLE medication_responses (
 | **P1** | **SOS hech kimga yetib bormaydi** — `sos_notifications` `delivered=False` yotadi, notifier'da SOS job yo'q | `notifier/main.py` |
 | **P2** | SOS eskalatsiya taymerlari (2/5/15 daq) qurilmagan | `backend/app/workers/` |
 | **P3** | Redis limiter: paket `requirements.txt` da yo'q + **sinxron** klient async yo'lda event loop'ni bloklaydi | `backend/app/core/rate_limit.py` |
-| **P4** | Wear release build emulyator manziliga uriladi (`buildConfigField` yo'q) | `wear/phone/build.gradle.kts` |
+| **P4** | Wear release build konfiguratsiyasi build-time patient/device parametrlarini talab qiladi | `wear/watch/build.gradle.kts` |
 | **P5** | `openapi.yaml` 20+ endpoint orqada — frontend tiplari qo'lda yozilyapti | `contracts/openapi.yaml` |
 | **P6** | Seed baseline hisoblamaydi → demo hammasi yashil ko'rinadi | `scripts/seed_demo.py` |
 | **P7** | Token'lar `localStorage` da · `test_api.py` skip naqshi buzilishni yashiradi | frontend, testlar |

@@ -18,7 +18,7 @@
 | **1** | **Muammo 11: 24s Aktiv Chaqiruv** | Statsionardan chiqarilgach, avtomatik ravishda 24 soatlik qat'iy SLA taymerli patronaj vazifasi ochiladi. 20-soatda eslatma va muddat o'tganda bosh vrachga eskalatsiya qilinadi. | `notifier/main.py`<br/>`web-doctor/src/pages/HandoffsPage.tsx` | ✅ **100% Tayyor** |
 | **2** | **Muammo 12: Shaxsiy Baseline & 72s AI Prognoz** | Umumiy statik chegara emas, balki `Asia/Tashkent` bo'yicha 4 ta Circadian darcha (`00-06`, `06-12`, `12-18`, `18-24`), yo'nalishli Z-score va 15 daqiqalik chidamlilik filtri. | `backend/algo/`<br/>`contracts/timewin.py` | ✅ **100% Tayyor** |
 | **3** | **Klinik Xavfsizlik: `no_data` Qoidasi** | Soat yechilsa yoki ma'lumot uzilishi 45 daqiqadan oshsa, tizim hech qachon soxta yashil ko'rsatmaydi — qat'iy `no_data` signalini beradi. | `contracts/algo_interface.py`<br/>`web-relative/src/App.tsx` | ✅ **100% Tayyor** |
-| **4** | **Haqiqiy Qurilma (Wear OS) & Oflayn Bufer** | Samsung Galaxy Watch 5 (PPG, SpO2, Temp), Android Room DB oflayn buferlash va WorkManager orqali tarmoq tiklanganda yuborish. | `wear/`<br/>`scripts/watch_sim.py` | ✅ **100% Tayyor** |
+| **4** | **Haqiqiy Qurilma (Wear OS) & Telemetriya** | Samsung Galaxy Watch 5 sensorlari, 5 daqiqalik agregatsiya, Data Layer va internet bo‘lsa bevosita backend ingest. | `wear/watch/`<br/>`mobile_flutter/` | ✅ **100% Tayyor** |
 | **5** | **Ko'p Bemorlik Qarovchi Portali** | Apple Health / Oura Ring uslubidagi ko'p bemorli almashtirgich, 3 ta to'liq til (UZ/RU/EN) va shoshilinch 1-bosishda SOS chaqiruv. | `web-relative/` | ✅ **100% Tayyor** |
 | **6** | **Shifokor Ish Stansiyasi** | Triage xavf navbati, 7 kunlik Recharts interaktiv trendlari, baseline tasdiqlash va bemor chiqarish nazorati. | `web-doctor/` | ✅ **100% Tayyor** |
 | **7** | **1-Buyruqda Ishga Tushirish** | `docker compose up --build -d` orqali Postgres, API, Notifier, Doctor Web va Relative Web birgalikda ishga tushadi. | `docker-compose.yml`<br/>`.env.example` | ✅ **100% Tayyor** |
@@ -35,8 +35,8 @@
              │ Bluetooth (Data Layer API: /wmax/reading_batch)
              ▼
 ┌─────────────────────────┐
-│  Android Hamroh Ilovasi │  Room DB oflayn buferlash (wmax_phone_buffer.db)
-│       (wear/phone)      │  WorkManager orqali tarmoq tiklanganda eksponensial sinxronizatsiya
+│  Flutter Mobil Ilovasi   │  Data Layer bridge, login/session va ingest sync
+│  (mobile_flutter/)       │  Telefon ↔ soat telemetriya oqimini boshqaradi
 └────────────┬────────────┘
              │ HTTPS REST (POST /api/v1/ingest, X-Ingest-Key)
              ▼
@@ -78,7 +78,8 @@
 | **`backend/auth/`** | Python-jose, Passlib, BCrypt | JWT avtorizatsiya, shifokor/hamshira login, yaqinlar uchun xavfsiz PIN tizimi |
 | **`web-doctor/`** | React 19, TypeScript, Vite, Recharts | Shifokor va patronaj hamshirasi ish stansiyasi: Triage saralash, 7 kunlik trend grafiklari, baseline tasdiqlash, caregiver token rotatsiyasi |
 | **`web-relative/`** | React 19, TypeScript, Vite, CSS Cards | Yaqin kishilar uchun mobil portal: token avto-login, oddiy tushunarli ko'rsatkichlar, shifokor bilan tezkor aloqa |
-| **`wear/`** | Kotlin, Android SDK 34, Health Services, Room DB | Galaxy Watch 5 soat ilovasi va Android hamroh ilovasi (wmax Data Layer) |
+| **`wear/watch/`** | Kotlin, Android SDK 34, Health Services | Galaxy Watch 5 sensorlari, agregatsiya va Data Layer/direct ingest |
+| **`mobile_flutter/`** | Flutter, Dart, Android, Google Wearable API | Mobil login, bemor/qarindosh dashboardi, telefon ↔ soat bridge va backend sync |
 | **`notifier/`** | Python, HTTPX, Telegram Bot API | Shoshilinch xavf signallari va 24 soatlik patronaj muddati tugashini monitoring qiluvchi servis |
 | **`scripts/watch_sim.py`**| Python 3, HTTPX | Haqiqiy soatsiz barcha fiziologik ssenariylarni test qilish uchun generator-simulyator |
 
@@ -199,7 +200,7 @@ python scripts/watch_sim.py --patient-id 11111111-1111-1111-1111-111111111111 --
 # Dekompensatsiya (xavfli holat) signalini chaqirish:
 python scripts/watch_sim.py --patient-id 11111111-1111-1111-1111-111111111111 --profile worsening --interval 2
 
-# Oflayn Room DB bufer mexanizmini tekshirish:
+# O‘lchov oqimini oflayn/online rejimda tekshirish:
 python scripts/watch_sim.py --test-offline
 
 # Idempotentlik testi:

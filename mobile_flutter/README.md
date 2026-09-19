@@ -1,16 +1,35 @@
-# mobile_flutter
+# WMAX Mobile
 
-A new Flutter project.
+WMAX Caregiver — Flutter mobil ilovasi. Ilova foydalanuvchi login/sessionini, bemor dashboardini va Wear OS soatidan keladigan telemetriyani boshqaradi.
 
-## Getting Started
+## Mas’uliyatlar
 
-This project is a starting point for a Flutter application.
+- Qarindosh, bemor va shifokor loginlari
+- JWT sessionni qurilmada saqlash
+- Wearable Data Layer orqali soat bilan aloqa
+- O‘lchovlarni `POST /api/v1/ingest` ga yuborish
+- SOS yuborish va bemor holatini yangilash
 
-A few resources to get you started if this is your first Flutter project:
+## Ishga tushirish
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter run --dart-define=WMAX_INGEST_KEY=<ingest-key>
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Production API manzili `https://wmax.boos.uz` sifatida ilova konfiguratsiyasida ishlatiladi.
+
+## APK build
+
+```bash
+flutter build apk --release --dart-define=WMAX_INGEST_KEY=<ingest-key>
+```
+
+## Tekshiruv
+
+```bash
+flutter analyze
+flutter test
+```
+
+Telefon va soat pairing’i Android tizimi hamda Google Wearable Data Layer orqali amalga oshadi. Soat internetga ega bo‘lsa, u bevosita backend ingest endpoint’iga ham yuboradi.
