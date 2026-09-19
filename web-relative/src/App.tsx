@@ -581,7 +581,7 @@ export const App: React.FC = () => {
           )}
 
           {/* 5. V2 Profile Actions */}
-          <V2ProfileActions patientId={activePatientId} />
+          <V2ProfileActions patientId={activePatientId} lang={lang} />
 
           {/* 6. no_data Warning */}
           {viewData.level === "no_data" && (
