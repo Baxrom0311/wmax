@@ -7,6 +7,9 @@ import { ProblemBreakdown } from "./components/ProblemBreakdown";
 import { PlanStatusCard } from "./components/PlanStatusCard";
 import { Vitals } from "./components/Vitals";
 import { V2ProfileActions } from "./components/V2ProfileActions";
+import { RelativeProfilePopover } from "./components/RelativeProfilePopover";
+import { SosEmergencyBanner } from "./components/SosEmergencyBanner";
+import { HandoffNoticeCard } from "./components/HandoffNoticeCard";
 import { cn } from "./lib/utils";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
@@ -45,18 +48,48 @@ export const App: React.FC = () => {
   const [lang, setLang] = useState<Lang>("uz");
   const [authToken, setAuthToken] = useState<string | null>(getStoredToken());
   const [viewToken, setViewToken] = useState<string | null>(null);
-  const [patients, setPatients] = useState<RelativePatientItem[]>(getStoredPatients());
-  const [activePatientId, setActivePatientId] = useState<string>(
-    patients[0]?.id || "11111111-1111-1111-1111-111111111111"
-  );
-  const [viewData, setViewData] = useState<RelativeView | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
   const [isDemo, setIsDemo] = useState<boolean>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get("demo") === "true" || isRelativeDemoSession();
   });
+
+  const [patients, setPatients] = useState<RelativePatientItem[]>(() => {
+    const stored = getStoredPatients();
+    if (stored.length > 0) return stored;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("demo") === "true" || isRelativeDemoSession()) {
+      return [
+        {
+          id: "p-001-red",
+          full_name: "Otabek Rahimov",
+          relationship: "Otam",
+          access_token: "token_otabek_123",
+          level: "amber",
+          diagnosis: "Surunkali yurak yetishmovchiligi (IIIB)",
+          age: 68,
+          last_reading_at: new Date().toISOString(),
+        },
+        {
+          id: "p-002-green",
+          full_name: "Salomat Rahamova",
+          relationship: "Onam",
+          access_token: "token_salomat_456",
+          level: "green",
+          diagnosis: "Arterial gipertenziya I",
+          age: 64,
+          last_reading_at: new Date().toISOString(),
+        },
+      ];
+    }
+    return [];
+  });
+
+  const [activePatientId, setActivePatientId] = useState<string>(
+    patients[0]?.id || "p-001-red"
+  );
+  const [viewData, setViewData] = useState<RelativeView | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [loginRole, setLoginRole] = useState<"relative" | "patient">("relative");
   const [phone, setPhone] = useState<string>("");
@@ -299,14 +332,18 @@ export const App: React.FC = () => {
         <div className="flex items-center gap-2">
           <LanguageSelector lang={lang} onChange={setLang} />
           {hasSession && !isTMA && (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 transition-colors px-1"
-            >
-              <LogOut size={13} />
-              {t("logout", lang)}
-            </button>
+            <RelativeProfilePopover
+              userName={loginRole === "patient" ? (viewData?.patient_name || "Bemor") : "Dilnoza Ro'zmetova"}
+              userPhone="+998 90 111 00 11"
+              patients={patients}
+              activePatientId={activePatientId}
+              onSelectPatient={(id) => {
+                const target = patients.find((p) => p.id === id);
+                if (target) handleSelectPatient(target);
+              }}
+              onLogout={handleLogout}
+              lang={lang}
+            />
           )}
         </div>
       </header>
@@ -491,12 +528,37 @@ export const App: React.FC = () => {
       ) : viewData ? (
         /* ── Main Dashboard ── */
         <main className="flex flex-col flex-1 py-2">
+          {/* Emergency SOS Banner (for RED alert level) */}
+          {viewData.level === "red" && (
+            <SosEmergencyBanner
+              patientName={viewData.patient_name || (patients.find((p) => p.id === activePatientId)?.full_name || "Otabek Rahimov")}
+              relationship={patients.find((p) => p.id === activePatientId)?.relationship || "Otangiz"}
+              spo2={viewData.vitals?.spo2 || 85}
+              hr={viewData.vitals?.hr || 128}
+              doctorPhone={viewData.doctor_contact?.phone || "+998901234567"}
+              nursePhone="+998901234568"
+              lang={lang}
+            />
+          )}
+
           {/* 1. Patient Switcher */}
           {patients.length > 0 && (
             <PatientSwitcher
               patients={patients}
               activePatientId={activePatientId}
               onSelect={handleSelectPatient}
+              lang={lang}
+            />
+          )}
+
+          {/* 24h Hospital Discharge & Home Patrol Notice */}
+          {(activePatientId.includes("001") || (viewData.patient_name && viewData.patient_name.includes("Otabek")) || isDemo) && (
+            <HandoffNoticeCard
+              patientName={viewData.patient_name || (patients.find((p) => p.id === activePatientId)?.full_name || "Otabek Rahimov")}
+              facilityName="Urganch Kardiologiya Dispanseri"
+              nurseName="Dilnoza Otajonova"
+              nursePhone="+998 90 123 45 68"
+              hoursLeft={18}
               lang={lang}
             />
           )}

@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  ExternalLink,
 } from "lucide-react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
@@ -240,8 +241,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span className="lic-val">100 ta kvota (85 000 so'm/oy)</span>
                     </div>
                     <div className="license-item">
-                      <span className="lic-lbl">Arendadagi soatlar:</span>
-                      <span className="lic-val">4 ta biriktirilgan</span>
+                      <span className="lic-lbl">Monitoringdagi bemorlar:</span>
+                      <span className="lic-val">4 nafar faol</span>
                     </div>
                   </div>
                 </div>
@@ -253,6 +254,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
 
                 <div className="profile-divider" />
+
+                {/* Open Full Profile Page Button */}
+                <button
+                  type="button"
+                  className="profile-page-link-btn"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    handleTabClick("profile");
+                  }}
+                >
+                  <User size={15} />
+                  <span>Profilni ochish va tahrirlash</span>
+                  <ExternalLink size={13} style={{ marginLeft: "auto", opacity: 0.7 }} />
+                </button>
 
                 {/* Logout Button */}
                 <button

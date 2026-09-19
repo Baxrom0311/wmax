@@ -127,6 +127,38 @@ const translations: Record<Lang, Record<string, string>> = {
     "error.fetch_failed": "Bemor ma'lumotlarini yuklab bo'lmadi. Havola eskirgan yoki server bilan aloqa uzilgan.",
     "error.retry": "Qayta yuklash",
     "error.back_to_login": "Boshqa hisob bilan kirish",
+
+    // Popover & Profile
+    "popover.role": "Bemor yaqini / Qarovchi",
+    "popover.connected_patients": "Kuzatuvdagi yaqinlar ({n} nafar):",
+    "popover.medical_team": "Mas'ul tibbiy bo'g'in:",
+    "popover.family_doctor": "Oilaviy shifokor:",
+    "popover.patronage_nurse": "Patronaj hamshirasi:",
+    "popover.license_title": "WMAX Oila Litsenziyasi",
+    "popover.license_active": "FAOL",
+    "popover.license_desc": "2 ta bemor uchun uzluksiz telemetriya va 24/7 shoshilinch tez tibbiy ogohlantirish faollashtirilgan.",
+
+    // SOS & Emergency
+    "sos.attention": "DIQQAT:",
+    "sos.critical": "KRITIK HOLAT",
+    "sos.hypoxia_tachy": "Kislorod: {spo2}% (gipoksiya) · Puls: {hr} bpm · Zudlik bilan yordam talab etiladi!",
+    "sos.action_btn": "Yordam ko'rsatish →",
+    "sos.modal_title": "Kritik holat — Favqulodda yordam",
+    "sos.call_103": "🚑 103 Tez Tibbiy Yordamga qo'ng'iroq qilish",
+    "sos.call_doctor": "Shifokorga qo'ng'iroq",
+    "sos.call_nurse": "Hamshiraga qo'ng'iroq",
+    "sos.first_aid_title": "103 brigadasi yetib kelguncha:",
+    "sos.tip_1": "Bemorga zudlik bilan toza havo oqimini ta'minlang (derazani oching, yoqani bo'shating).",
+    "sos.tip_2": "Bemorni yarim o'tirgan holatda tinchlantiring, keraksiz harakatlardan saqlang.",
+    "sos.tip_3": "Hech qanday o'zboshimchalik bilan dori bermang, shifokor bilan maslahatlashing.",
+
+    // Handoff & Patronage
+    "handoff.badge": "Statsionardan chiqaruv & Patronaj",
+    "handoff.title": "{name} uchun 24s faol nazorat",
+    "handoff.hours_left": "{h} soat qoldi",
+    "handoff.desc": "Bemor yaqinda {facility}dan chiqarildi. Tizim avtomatik ravishda yashash mahallangiz bo'yicha mas'ul patronaj hamshirasiga kartani uzatdi.",
+    "handoff.assigned_nurse": "Mas'ul patronaj hamshirasi:",
+    "handoff.call_nurse": "Hamshiraga sim qoqish",
   },
   ru: {
     // Backend emitted keys
@@ -252,6 +284,38 @@ const translations: Record<Lang, Record<string, string>> = {
     "error.fetch_failed": "Не удалось загрузить данные пациента. Ссылка устарела или сервер недоступен.",
     "error.retry": "Повторить загрузку",
     "error.back_to_login": "Войти с другим аккаунтом",
+
+    // Popover & Profile
+    "popover.role": "Близкий родственник / Опекун",
+    "popover.connected_patients": "Подопечные ({n} чел):",
+    "popover.medical_team": "Ответственный медперсонал:",
+    "popover.family_doctor": "Семейный врач:",
+    "popover.patronage_nurse": "Патронажная медсестра:",
+    "popover.license_title": "Лицензия WMAX Семья",
+    "popover.license_active": "АКТИВНА",
+    "popover.license_desc": "Активирована непрерывная телеметрия и круглосуточное экстренное оповещение для 2 пациентов.",
+
+    // SOS & Emergency
+    "sos.attention": "ВНИМАНИЕ:",
+    "sos.critical": "КРИТИЧЕСКОЕ СОСТОЯНИЕ",
+    "sos.hypoxia_tachy": "Кислород: {spo2}% (гипоксия) · Пульс: {hr} уд/мин · Требуется экстренная помощь!",
+    "sos.action_btn": "Оказать помощь →",
+    "sos.modal_title": "Критическое состояние — Экстренная помощь",
+    "sos.call_103": "🚑 Вызвать скорую помощь 103",
+    "sos.call_doctor": "Позвонить врачу",
+    "sos.call_nurse": "Позвонить медсестре",
+    "sos.first_aid_title": "До приезда бригады 103:",
+    "sos.tip_1": "Обеспечьте доступ свежего воздуха (откройте окно, расстегните воротник).",
+    "sos.tip_2": "Успокойте пациента, придайте полусидячее положение, исключите движения.",
+    "sos.tip_3": "Не давайте случайных препаратов без прямой рекомендации врача.",
+
+    // Handoff & Patronage
+    "handoff.badge": "Выписка из стационара и патронаж",
+    "handoff.title": "24ч активного контроля для {name}",
+    "handoff.hours_left": "Осталось {h} часов",
+    "handoff.desc": "Пациент недавно выписан из {facility}. Система автоматически передала карту участковой патронажной медсестре.",
+    "handoff.assigned_nurse": "Ответственная патронажная медсестра:",
+    "handoff.call_nurse": "Связаться с медсестрой",
   },
   en: {
     // Backend emitted keys
@@ -377,6 +441,38 @@ const translations: Record<Lang, Record<string, string>> = {
     "error.fetch_failed": "Could not retrieve patient data. Link may be expired or server unreachable.",
     "error.retry": "Retry",
     "error.back_to_login": "Sign in with another account",
+
+    // Popover & Profile
+    "popover.role": "Caregiver / Relative",
+    "popover.connected_patients": "Monitored family members ({n}):",
+    "popover.medical_team": "Assigned medical team:",
+    "popover.family_doctor": "Family doctor:",
+    "popover.patronage_nurse": "Patronage nurse:",
+    "popover.license_title": "WMAX Family License",
+    "popover.license_active": "ACTIVE",
+    "popover.license_desc": "Continuous telemetry and 24/7 emergency dispatch alerting activated for 2 patients.",
+
+    // SOS & Emergency
+    "sos.attention": "ATTENTION:",
+    "sos.critical": "CRITICAL STATE",
+    "sos.hypoxia_tachy": "Oxygen: {spo2}% (hypoxia) · Heart rate: {hr} bpm · Immediate intervention required!",
+    "sos.action_btn": "Provide assistance →",
+    "sos.modal_title": "Critical Emergency Assistance",
+    "sos.call_103": "🚑 Call 103 Emergency Ambulance",
+    "sos.call_doctor": "Call physician",
+    "sos.call_nurse": "Call nurse",
+    "sos.first_aid_title": "Prior to ambulance arrival:",
+    "sos.tip_1": "Ensure adequate airflow immediately (open window, loosen tight clothing).",
+    "sos.tip_2": "Keep the patient calm in a semi-reclined posture; avoid sudden movements.",
+    "sos.tip_3": "Do not administer unprescribed medications; await medical instructions.",
+
+    // Handoff & Patronage
+    "handoff.badge": "Hospital Discharge & Patronage",
+    "handoff.title": "24h active supervision for {name}",
+    "handoff.hours_left": "{h} hours left",
+    "handoff.desc": "Patient was recently discharged from {facility}. The system automatically routed the medical dossier to your regional patrol nurse.",
+    "handoff.assigned_nurse": "Assigned patrol nurse:",
+    "handoff.call_nurse": "Call nurse",
   },
 };
 

@@ -24,6 +24,7 @@ const HandoffsPage = React.lazy(() => import("./pages/HandoffsPage").then((modul
 const DeviceInventoryModal = React.lazy(() => import("./components/DeviceInventoryModal").then((module) => ({ default: module.DeviceInventoryModal })));
 const PatientDetailPage = React.lazy(() => import("./pages/PatientDetail").then((module) => ({ default: module.PatientDetailPage })));
 const SosDispatcher = React.lazy(() => import("./pages/SosDispatcher").then((module) => ({ default: module.SosDispatcher })));
+const ProfilePage = React.lazy(() => import("./pages/ProfilePage").then((module) => ({ default: module.ProfilePage })));
 
 export const App: React.FC = () => {
   const [lang, setLang] = useState<Lang>("uz");
@@ -31,7 +32,7 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<TokenPair | null>(getStoredUser());
   const [activeTab, setActiveTab] = useState<NavTab>(() => {
     const saved = localStorage.getItem("wmax_active_tab") as NavTab | null;
-    const valid: NavTab[] = ["patients", "handoffs", "sos", "devices"];
+    const valid: NavTab[] = ["patients", "handoffs", "sos", "devices", "profile"];
     return saved && valid.includes(saved) ? saved : "patients";
   });
 
@@ -402,6 +403,13 @@ export const App: React.FC = () => {
         <DeviceInventoryModal
           onClose={() => handleTabChange("patients")}
           lang={lang}
+        />
+      ) : activeTab === "profile" ? (
+        <ProfilePage
+          doctorName={user?.full_name || "Dr. Islom Yusupov"}
+          role={user?.role || "doctor"}
+          onLogout={handleLogout}
+          onBack={() => handleTabChange("patients")}
         />
       ) : selectedPatientId && detailPatient ? (
         <PatientDetailPage
