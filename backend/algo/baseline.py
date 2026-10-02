@@ -11,6 +11,7 @@ import statistics
 import timewin
 from algo_interface import (
     MAD_EPSILON,
+    MIN_BASELINE_SAMPLES,
     BaselineEntry,
     ReadingVec,
 )
@@ -56,13 +57,18 @@ def compute_baselines(readings: list[ReadingVec]) -> list[BaselineEntry]:
 def compute_zscores(
     reading: ReadingVec, baselines: list[BaselineEntry]
 ) -> dict[str, float]:
-    """Calculates raw signed z-scores for the reading's own local time window.
+    """Calculate z-scores only where the matching personal baseline is supported.
 
     z = (x - median) / (1.4826 * max(mad, MAD_EPSILON))
+    Baselines below MIN_BASELINE_SAMPLES are omitted until enough history exists.
     Directional adjustment is NOT applied here; it is applied in evaluate_alert.
     """
     window = timewin.window_of(reading.ts)
-    window_baselines = {b.param: b for b in baselines if b.time_window == window}
+    window_baselines = {
+        b.param: b
+        for b in baselines
+        if b.time_window == window and b.n_samples >= MIN_BASELINE_SAMPLES
+    }
 
     zscores: dict[str, float] = {}
     for param, b in window_baselines.items():

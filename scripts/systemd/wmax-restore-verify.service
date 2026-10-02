@@ -1,0 +1,12 @@
+[Unit]
+Description=WMAX Isolated Database Backup Restore Verification
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/wmax
+ExecStart=/opt/wmax/scripts/verify_backup_restore.sh
+StandardOutput=journal
+StandardError=journal

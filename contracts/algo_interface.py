@@ -103,7 +103,7 @@ class AlertResult:
 @dataclass(frozen=True)
 class TrendResult:
     slope: float
-    direction: Literal["improving", "stable", "worsening"]
+    direction: Literal["improving", "stable", "worsening", "insufficient_data"]
     recommendation_key: str   # i18n key, e.g. "rec.contact_today"
     days_used: int
 
@@ -132,8 +132,9 @@ class AlgoAPI(Protocol):
         """backend/algo/baseline.py
 
         z = (x - median) / (1.4826 * max(mad, MAD_EPSILON)) for the reading's
-        own time window. Returns the RAW signed z per param (direction is
-        applied later, in evaluate_alert). Missing params are omitted.
+        own time window. Baselines with n_samples < MIN_BASELINE_SAMPLES are
+        omitted as untrusted. Returns RAW signed z (direction is applied later
+        in evaluate_alert). Missing or unsupported params are omitted.
         """
         ...
 
@@ -158,7 +159,8 @@ class AlgoAPI(Protocol):
           - red    : composite >= RED          AND >= MIN_TRIGGERED_PARAMS
           - red    : OR spo2 < CRITICAL_SPO2
           - red    : OR hr_mean > CRITICAL_HR_AT_REST while steps <= REST_STEPS_MAX
-          - deviation must hold across CONSECUTIVE_WINDOWS (critical overrides do not wait)
+          - composite deviation must hold across CONSECUTIVE_WINDOWS contiguous windows;
+            missing prior windows are not treated as persistence (critical overrides do not wait)
           - worn == False           -> level 'no_data', reason 'not_worn'
           - steps > REST_STEPS_MAX  -> hr_mean deviation ignored
           - phase == 'calib'        -> always 'green', reason 'calibrating'
@@ -177,7 +179,9 @@ class AlgoAPI(Protocol):
         patient scores 0.0 every day and the trend is always 'stable',
         which would destroy the early-warning idea.
 
-        Linear regression slope -> direction via TREND_SLOPE_* thresholds.
+        Requires at least 3 distinct days; otherwise direction is
+        'insufficient_data'. Linear regression slope -> direction via
+        TREND_SLOPE_* thresholds.
         recommendation_key:
           worsening + red    -> 'rec.contact_today'
           worsening + amber  -> 'rec.visit_within_3_days'

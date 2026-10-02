@@ -8,11 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.patient import Patient
 from app.models.relative import Relative
+from app.repositories.access_repo import PatientAccessRepository
 
 
 class RelativeRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+        self.access = PatientAccessRepository(session)
 
     async def get_by_token(self, token: str) -> Relative | None:
         stmt = select(Relative).where(Relative.access_token == token)
@@ -27,6 +29,9 @@ class RelativeRepository:
     async def get_assigned_patients(
         self, phone: str
     ) -> list[tuple[Relative, Patient]]:
+        rows = await self.access.get_assigned_patients_by_phone(phone)
+        if rows:
+            return [(access, patient) for access, patient, _account in rows]
         stmt = (
             select(Relative, Patient)
             .join(Patient, Relative.patient_id == Patient.id)
@@ -54,4 +59,3 @@ class RelativeRepository:
         self.session.add(relative)
         await self.session.flush()
         return relative
-

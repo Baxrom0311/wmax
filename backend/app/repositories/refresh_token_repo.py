@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import inspect
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
@@ -21,22 +22,17 @@ class RefreshTokenRepository:
         relative_id: uuid.UUID | None = None,
         patient_id: uuid.UUID | None = None,
     ) -> RefreshToken:
-        """Stores a refresh token against exactly one owner column.
-
-        `refresh_tokens` has three mutually exclusive owner columns guarded by a
-        CHECK constraint, each with its own foreign key. Writing a caregiver's id
-        into `user_id` violates the users FK — the owner column must match the
-        principal's kind.
-        """
+        """Stores a refresh token against exactly one owner column."""
         token_entry = RefreshToken(
             token_hash=token_hash,
             expires_at=expires_at,
-            user_id=user_id,
+            account_id=user_id,
             relative_id=relative_id,
             patient_id=patient_id,
-            revoked=False,
         )
-        self.session.add(token_entry)
+        added = self.session.add(token_entry)
+        if inspect.isawaitable(added):
+            await added
         await self.session.flush()
         return token_entry
 
@@ -44,7 +40,7 @@ class RefreshTokenRepository:
         now = datetime.now(timezone.utc)
         stmt = select(RefreshToken).where(
             RefreshToken.token_hash == token_hash,
-            RefreshToken.revoked == False,
+            RefreshToken.revoked_at.is_(None),
             RefreshToken.expires_at > now,
         )
         res = await self.session.execute(stmt)
@@ -54,7 +50,7 @@ class RefreshTokenRepository:
         stmt = (
             update(RefreshToken)
             .where(RefreshToken.token_hash == token_hash)
-            .values(revoked=True)
+            .values(revoked_at=datetime.now(timezone.utc))
         )
         res = await self.session.execute(stmt)
         await self.session.flush()

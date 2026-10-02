@@ -30,8 +30,10 @@ from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reading_repo import ReadingRepository
-from app.schemas.reading import IngestBatch, IngestItem, IngestResult
+from app.schemas.reading import IngestAck, IngestBatch, IngestItem, IngestResult
 from app.services.clinical_math import compute_trend_pure
+from app.services.compat import to_reading_vec
+from app.services.live_event_service import LiveEventService
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,28 @@ logger = logging.getLogger(__name__)
 from algo.baseline import compute_baselines, compute_zscores
 from algo.signal import evaluate_alert
 from algo.trend import compute_trend
+
+
+def _previous_consecutive_windows(readings: Sequence[Any]) -> list[Any]:
+    """Return the two prior windows only when all three windows are contiguous."""
+    if len(readings) < 3:
+        return []
+
+    recent = readings[-3:]
+    for previous, current in zip(recent, recent[1:]):
+        previous_end = getattr(previous, "window_end", None)
+        current_start = getattr(current, "window_start", getattr(current, "ts", None))
+        if previous_end is not None and current_start is not None:
+            if previous_end != current_start:
+                return []
+            continue
+
+        previous_start = getattr(previous, "window_start", getattr(previous, "ts", None))
+        if previous_start is None or current_start is None:
+            return []
+        if current_start - previous_start != timedelta(minutes=5):
+            return []
+    return recent[:-1]
 
 
 class PipelineService:
@@ -51,43 +75,122 @@ class PipelineService:
         self.baseline_repo = BaselineRepository(session)
         self.alert_repo = AlertRepository(session)
 
-    async def ingest_batch(self, batch: IngestBatch) -> IngestResult:
+    async def ingest_batch(
+        self, batch: IngestBatch, device_id: uuid.UUID | None = None
+    ) -> IngestResult:
         """Ingests a 5-minute aggregate batch idempotently and triggers clinical evaluation."""
+        server_time = datetime.now(timezone.utc)
         if not batch.readings:
-            return IngestResult(accepted=0, duplicates=0, latest_level="no_data")
+            return IngestResult(
+                server_time=server_time,
+                batch_id=batch.batch_id,
+                sequence=batch.sequence,
+                idempotency_key=self._batch_idempotency_key(batch=batch, device_id=device_id),
+            )
 
-        # Map to dicts for repository idempotent insert
-        reading_dicts = [
-            {
-                "patient_id": batch.patient_id,
-                "ts": r.ts,
-                "hr_mean": r.hr_mean,
-                "hr_min": r.hr_min,
-                "hr_max": r.hr_max,
-                "rmssd": r.rmssd,
-                "sdnn": r.sdnn,
-                "spo2": r.spo2,
-                "skin_temp": r.skin_temp,
-                "steps": r.steps,
-                "rr_est": r.rr_est,
-                "sleep_frag": r.sleep_frag,
-                "worn": r.worn,
-                "battery": r.battery,
-            }
-            for r in batch.readings
-        ]
+        accepted: list[datetime] = []
+        duplicate: list[datetime] = []
+        orphaned: list[datetime] = []
+        rejected: list[IngestAck] = []
+        patient_ids: set[uuid.UUID] = set()
 
-        accepted, duplicates = await self.reading_repo.insert_batch_idempotent(reading_dicts)
-        readings_ingested_total.inc(accepted)
+        for reading in batch.readings:
+            window_start = reading.window_start
+            window_end = reading.window_end
+            if window_start is None or window_end is None:
+                rejected.append(IngestAck(window_start=server_time, reason="window_required"))
+                continue
+            if window_end <= window_start:
+                rejected.append(IngestAck(window_start=window_start, reason="bad_window"))
+                continue
 
-        # Run clinical evaluation pipeline
-        alert_result = await self.evaluate_patient(batch.patient_id)
+            assignment = None
+            patient_id = batch.patient_id
+            if device_id is not None:
+                assignment = await self.reading_repo.get_assignment_at(device_id, window_start)
+                patient_id = assignment.patient_id if assignment else None
+
+            if patient_id is None or device_id is None:
+                if device_id is not None:
+                    inserted = await self.reading_repo.insert_orphan_idempotent(
+                        {
+                            "device_id": device_id,
+                            "window_start": window_start,
+                            "payload": reading.model_dump(mode="json"),
+                        }
+                    )
+                    target = orphaned if inserted else duplicate
+                    target.append(window_start)
+                else:
+                    rejected.append(IngestAck(window_start=window_start, reason="device_required"))
+                continue
+
+            clock_offset_ms = None
+            if batch.device_clock_utc is not None:
+                clock_offset_ms = int((server_time - batch.device_clock_utc).total_seconds() * 1000)
+
+            inserted, dupes = await self.reading_repo.insert_batch_idempotent(
+                [
+                    {
+                        "patient_id": patient_id,
+                        "device_id": device_id,
+                        "device_assignment_id": assignment.id if assignment else None,
+                        "window_start": window_start,
+                        "window_end": window_end,
+                        "hr_mean": reading.hr_mean,
+                        "hr_min": reading.hr_min,
+                        "hr_max": reading.hr_max,
+                        "rmssd": reading.rmssd,
+                        "sdnn": reading.sdnn,
+                        "spo2": reading.spo2,
+                        "skin_temp": reading.skin_temp,
+                        "steps": reading.steps,
+                        "rr_est": reading.rr_est,
+                        "sleep_frag": reading.sleep_frag,
+                        "worn": reading.worn,
+                        "worn_pct": reading.worn_pct,
+                        "samples_n": reading.samples_n,
+                        "battery": reading.battery,
+                        "device_clock_utc": batch.device_clock_utc,
+                        "clock_offset_ms": clock_offset_ms,
+                        "provenance": assignment.provenance if assignment else "unknown",
+                        "attributed_by": "device_assignment" if assignment else None,
+                    }
+                ]
+            )
+            if inserted:
+                accepted.append(window_start)
+                patient_ids.add(patient_id)
+                readings_ingested_total.inc(inserted)
+            elif dupes:
+                duplicate.append(window_start)
+
+        for patient_id in patient_ids:
+            await self.evaluate_patient(patient_id)
+
+        await LiveEventService(self.session).publish_reading_batch(
+            accepted=[item.isoformat() for item in accepted],
+            duplicate=[item.isoformat() for item in duplicate],
+            orphaned=[item.isoformat() for item in orphaned],
+            rejected=[item.model_dump(mode="json") for item in rejected],
+        )
 
         return IngestResult(
+            server_time=server_time,
+            batch_id=batch.batch_id,
+            sequence=batch.sequence,
+            idempotency_key=self._batch_idempotency_key(batch=batch, device_id=device_id),
             accepted=accepted,
-            duplicates=duplicates,
-            latest_level=alert_result.level,
+            duplicate=duplicate,
+            orphaned=orphaned,
+            rejected=rejected,
         )
+
+    def _batch_idempotency_key(
+        self, *, batch: IngestBatch, device_id: uuid.UUID | None
+    ) -> str:
+        owner = str(device_id or batch.patient_id or "unknown")
+        return f"{owner}:{batch.batch_id}:{batch.sequence if batch.sequence is not None else 'none'}"
 
     async def evaluate_patient(self, patient_id: uuid.UUID) -> AlertResult:
         """Evaluates clinical signal for the patient, persists baselines and alerts."""
@@ -116,18 +219,24 @@ class PipelineService:
         latest_reading = readings[-1]
 
         # 45 minutes of silence -> no_data, not green
-        if timewin.is_no_data(latest_reading.ts, now):
+        latest_ts = getattr(latest_reading, "window_start", getattr(latest_reading, "ts", None))
+        if latest_ts is None:
+            latest_ts = now
+
+        if timewin.is_no_data(latest_ts, now):
             no_data_result = AlertResult(
                 level="no_data",
                 composite_score=0.0,
                 triggered_params={},
                 reason="silence_no_data",
             )
-            await self.alert_repo.insert_idempotent(
+            alert = await self.alert_repo.insert_idempotent(
                 patient_id=patient_id,
-                ts=latest_reading.ts,
+                ts=latest_ts,
                 result=no_data_result,
             )
+            if alert:
+                await LiveEventService(self.session).publish_alert(alert)
             return AlertResult(
                 level="no_data",
                 composite_score=0.0,
@@ -136,23 +245,7 @@ class PipelineService:
             )
 
         # Convert to ReadingVec for pure clinical functions
-        vecs = [
-            ReadingVec(
-                ts=r.ts,
-                hr_mean=r.hr_mean,
-                hr_min=r.hr_min,
-                hr_max=r.hr_max,
-                rmssd=r.rmssd,
-                sdnn=r.sdnn,
-                spo2=r.spo2,
-                skin_temp=r.skin_temp,
-                steps=r.steps,
-                rr_est=r.rr_est,
-                sleep_frag=r.sleep_frag,
-                worn=r.worn,
-            )
-            for r in readings
-        ]
+        vecs = [to_reading_vec(reading) for reading in readings]
 
         # Personal baseline — learned, then frozen.
         #
@@ -184,7 +277,8 @@ class PipelineService:
             await self.baseline_repo.upsert_baselines(patient_id, baselines)
 
         # Recent z-scores for 15-minute persistence check
-        recent_vecs = vecs[-3:-1] if len(vecs) >= 3 else []
+        recent_readings = _previous_consecutive_windows(readings)
+        recent_vecs = vecs[-1 - len(recent_readings):-1] if recent_readings else []
         recent_zscores = [compute_zscores(rv, baselines) for rv in recent_vecs]
 
         # Evaluate alert
@@ -196,11 +290,13 @@ class PipelineService:
         )
 
         # Persist alert idempotently
-        await self.alert_repo.insert_idempotent(
+        alert = await self.alert_repo.insert_idempotent(
             patient_id=patient_id,
-            ts=latest_reading.ts,
+            ts=latest_ts,
             result=alert_result,
         )
+        if alert:
+            await LiveEventService(self.session).publish_alert(alert)
         alerts_total.labels(level=alert_result.level).inc()
 
         return alert_result

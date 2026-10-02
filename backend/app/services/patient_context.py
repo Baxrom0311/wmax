@@ -32,6 +32,7 @@ from app.schemas.profile import (
     RiskFactorsItem,
 )
 from app.schemas.trend import Trend
+from app.services.compat import reading_ts, reading_value, task_type
 
 # Python 3.11 f-string ifodasi ichida backslash qabul qilmaydi (PEP 701 faqat 3.12+).
 UNKNOWN = "Noma'lum"
@@ -56,7 +57,7 @@ class PatientContext(BaseModel):
     full_name: str
     birth_date: date | None = None
     age: int | None = None
-    sex: Literal["m", "f"]
+    sex: Literal["m", "f"] | None = None
     preferred_lang: str = "uz"
 
     # Clinical Profile
@@ -82,9 +83,9 @@ class PatientContext(BaseModel):
     trend: Trend = Field(
         default_factory=lambda: Trend(
             slope=0.0,
-            direction="stable",
-            recommendation_key="trend.stable",
-            days_used=7,
+            direction="insufficient_data",
+            recommendation_key="rec.continue_monitoring",
+            days_used=0,
         )
     )
     baselines: list[dict[str, Any]] = Field(default_factory=list)
@@ -223,19 +224,19 @@ class PatientContextBuilder:
 
         # 9. Latest telemetry reading & Alert
         read_res = await self.session.execute(
-            select(Reading).where(Reading.patient_id == patient_id).order_by(desc(Reading.ts)).limit(1)
+            select(Reading).where(Reading.patient_id == patient_id).order_by(desc(Reading.window_start)).limit(1)
         )
         latest_reading = read_res.scalar_one_or_none()
         recent_vitals = {}
         if latest_reading:
             recent_vitals = {
-                "ts": latest_reading.ts.isoformat(),
-                "hr_mean": latest_reading.hr_mean,
-                "spo2": latest_reading.spo2,
-                "skin_temp": latest_reading.skin_temp,
-                "steps": latest_reading.steps,
-                "worn": latest_reading.worn,
-                "battery": latest_reading.battery,
+                "ts": reading_ts(latest_reading).isoformat(),
+                "hr_mean": reading_value(latest_reading, "hr_mean"),
+                "spo2": reading_value(latest_reading, "spo2"),
+                "skin_temp": reading_value(latest_reading, "skin_temp"),
+                "steps": reading_value(latest_reading, "steps"),
+                "worn": reading_value(latest_reading, "worn"),
+                "battery": reading_value(latest_reading, "battery"),
             }
 
         alert_res = await self.session.execute(
@@ -249,7 +250,9 @@ class PatientContextBuilder:
 
         # 10. Open tasks
         task_res = await self.session.execute(
-            select(Task).where(Task.patient_id == patient_id, Task.status.in_(("created", "sent", "seen"))).order_by(Task.due_at)
+            select(Task)
+            .where(Task.patient_id == patient_id, Task.status.in_(("open", "acknowledged")))
+            .order_by(Task.due_at)
         )
         tasks = list(task_res.scalars().all())
 
@@ -266,7 +269,7 @@ class PatientContextBuilder:
             full_name=patient.full_name,
             birth_date=patient.birth_date,
             age=calculated_age,
-            sex=patient.sex,  # type: ignore[arg-type]
+            sex=patient.sex,
             preferred_lang=patient.preferred_lang,
             conditions=conditions,
             medications=medications,
@@ -285,7 +288,15 @@ class PatientContextBuilder:
             triggered_params=triggered_params,
             recent_vitals=recent_vitals,
             open_alerts=[{"id": a.id, "level": a.level, "ts": a.ts.isoformat()} for a in alerts],
-            open_tasks=[{"id": t.id, "type": t.type, "due_at": t.due_at.isoformat(), "status": t.status} for t in tasks],
+            open_tasks=[
+                {
+                    "id": t.id,
+                    "type": task_type(t),
+                    "due_at": t.due_at.isoformat() if t.due_at else None,
+                    "status": t.status,
+                }
+                for t in tasks
+            ],
             primary_address=primary_addr_item,
             emergency_contacts=emergency_contacts,
         )

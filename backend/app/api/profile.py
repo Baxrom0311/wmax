@@ -14,6 +14,7 @@ from app.auth.deps import (
     require_doctor,
 )
 from app.auth.field_policy import assert_can_edit_entity
+from app.auth.scope import assert_patient_access
 from app.core.db import get_session
 from app.core.exceptions import ForbiddenException, NotFoundException
 from app.core.security import hash_password
@@ -47,9 +48,10 @@ router = APIRouter(prefix="/api/v1/patients/{id}", tags=["profile"])
 
 
 def _verify_patient_access(patient_id: uuid.UUID, principal: CurrentUser) -> None:
-    """Verifies that non-clinicians (patients, caregivers) only access authorized patient records."""
     if principal.role == "patient" and principal.id != patient_id:
         raise ForbiddenException("Bemor faqat o'z profiliga kirish huquqiga ega")
+    if principal.role == "relative" and patient_id not in principal.patient_ids:
+        raise ForbiddenException("Bu bemor profiliga ruxsat yo'q")
 
 
 @router.get(
@@ -62,7 +64,7 @@ async def get_patient_profile(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     patient = await db.get(Patient, id)
     if not patient:
@@ -113,7 +115,7 @@ async def patch_patient_profile(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("contact", principal)
 
     repo = ProfileRepository(db)
@@ -137,7 +139,7 @@ async def list_addresses(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_addresses(id)
 
@@ -149,7 +151,7 @@ async def create_address(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("address", principal)
     repo = ProfileRepository(db)
     addr = await repo.create_address(id, req.model_dump(), principal)
@@ -166,7 +168,7 @@ async def update_address(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("address", principal)
     repo = ProfileRepository(db)
     addr = await repo.get_address(aid, id)
@@ -195,7 +197,7 @@ async def delete_address(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> None:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("address", principal)
     repo = ProfileRepository(db)
     success = await repo.delete_address(aid, id, principal)
@@ -211,7 +213,7 @@ async def set_primary_address(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("address", principal)
     repo = ProfileRepository(db)
     addr = await repo.set_primary_address(aid, id, principal)
@@ -229,7 +231,7 @@ async def list_conditions(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_conditions(id)
 
@@ -241,6 +243,7 @@ async def create_condition(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("condition", principal)
     repo = ProfileRepository(db)
     cond = await repo.create_condition(id, req.model_dump(), principal)
@@ -256,7 +259,7 @@ async def list_medications(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_medications(id)
 
@@ -268,6 +271,7 @@ async def create_medication(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("medication", principal)
     repo = ProfileRepository(db)
     med = await repo.create_medication(id, req.model_dump(), principal)
@@ -284,6 +288,7 @@ async def update_medication(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("medication", principal)
     repo = ProfileRepository(db)
     med = await repo.get_medication(mid, id)
@@ -305,7 +310,7 @@ async def list_allergies(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_allergies(id)
 
@@ -317,6 +322,7 @@ async def create_allergy(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("allergy", principal)
     repo = ProfileRepository(db)
     allergy = await repo.create_allergy(id, req.model_dump(), principal)
@@ -332,7 +338,7 @@ async def list_measurements(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_measurements(id)
 
@@ -344,6 +350,7 @@ async def create_measurement(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("measurement", principal)
     repo = ProfileRepository(db)
     meas = await repo.create_measurement(id, req.model_dump(), principal)
@@ -359,7 +366,7 @@ async def get_risk_factors(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.get_risk_factors(id)
 
@@ -371,6 +378,7 @@ async def put_risk_factors(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("risk_factors", principal)
     repo = ProfileRepository(db)
     rf = await repo.upsert_risk_factors(id, req.model_dump(exclude_unset=True), principal)
@@ -386,7 +394,7 @@ async def list_admissions(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    _verify_patient_access(id, principal)
+    await assert_patient_access(db, principal, id)
     repo = ProfileRepository(db)
     return await repo.list_admissions(id)
 
@@ -398,6 +406,7 @@ async def create_admission(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, principal, id)
     assert_can_edit_entity("admission", principal)
     repo = ProfileRepository(db)
     adm = await repo.create_admission(id, req.model_dump(), principal)
@@ -413,6 +422,7 @@ async def get_audit_trail(
     doctor: CurrentUser = Depends(require_doctor),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, doctor, id)
     repo = ProfileRepository(db)
     return await repo.list_audit_entries(id)
 
@@ -424,6 +434,7 @@ async def get_patient_digital_twin(
     clinician: CurrentUser = Depends(require_clinician),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
+    await assert_patient_access(db, clinician, id)
     builder = PatientContextBuilder(db)
     ctx = await builder.build(id)
     if not ctx:
@@ -442,6 +453,7 @@ async def reset_patient_pin(
     doctor: CurrentUser = Depends(require_doctor),
     db: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
+    await assert_patient_access(db, doctor, id)
     if len(req.new_pin.strip()) < 4:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

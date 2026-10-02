@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,12 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import CurrentUser, require_clinician
 from app.core.db import get_session
+from app.core.exceptions import ForbiddenException, ValidationException
 from app.services.device_service import DeviceService
 
 router = APIRouter(prefix="/api/v1/devices", tags=["devices"])
 
 
 class DeviceCreateRequest(BaseModel):
+    tenant_id: uuid.UUID | None = None
     serial_number: str = Field(..., description="Serial or IMEI of smart watch / band")
     model_name: str = Field(..., description="E.g. Galaxy Watch 5, Xiaomi Watch 2, Medical Band")
     tier: Literal["tier1_wearos", "tier2_wearos_budget", "tier3_ble_band"] = "tier1_wearos"
@@ -34,6 +37,42 @@ class DeviceReturnRequest(BaseModel):
     refund_deposit: bool = True
 
 
+class DeviceEnrollRequest(BaseModel):
+    device_id: uuid.UUID
+    ttl_minutes: int = Field(10, ge=1, le=60)
+
+
+class DeviceClaimRequest(BaseModel):
+    device_id: uuid.UUID
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class DeviceEnrollResponse(BaseModel):
+    device_id: uuid.UUID
+    enrollment_id: uuid.UUID
+    code: str = Field(..., pattern=r"^\d{6}$")
+    expires_at: datetime
+
+
+class DeviceClaimResponse(BaseModel):
+    device_id: uuid.UUID
+    device_token: str
+
+
+def _tenant_scope(current_user: CurrentUser) -> list[uuid.UUID] | None:
+    return None if current_user.role == "admin" else current_user.tenant_ids
+
+
+def _resolve_device_tenant(current_user: CurrentUser, tenant_id: uuid.UUID | None) -> uuid.UUID:
+    if tenant_id is not None:
+        if current_user.role != "admin" and tenant_id not in current_user.tenant_ids:
+            raise ForbiddenException("Bu klinikaga qurilma qo'shish huquqi yo'q")
+        return tenant_id
+    if len(current_user.tenant_ids) == 1:
+        return current_user.tenant_ids[0]
+    raise ValidationException("Qurilma qo'shish uchun tenant_id talab qilinadi")
+
+
 @router.get("", summary="List device inventory with battery health and assignment status")
 async def list_devices(
     status_filter: str | None = Query(None, alias="status", description="in_stock | assigned | active | maintenance | retired"),
@@ -42,7 +81,11 @@ async def list_devices(
     current_user: CurrentUser = Depends(require_clinician),
 ) -> list[dict[str, Any]]:
     service = DeviceService(session)
-    return await service.list_devices(status=status_filter, tier=tier_filter)
+    return await service.list_devices(
+        tenant_ids=_tenant_scope(current_user),
+        status=status_filter,
+        tier=tier_filter,
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, summary="Register a new device into clinic inventory")
@@ -52,21 +95,68 @@ async def register_device(
     current_user: CurrentUser = Depends(require_clinician),
 ) -> dict[str, Any]:
     service = DeviceService(session)
+    tenant_id = _resolve_device_tenant(current_user, req.tenant_id)
     device = await service.register_device(
         serial_number=req.serial_number,
         model_name=req.model_name,
         tier=req.tier,
+        tenant_id=tenant_id,
         ownership=req.ownership,
         battery_health_pct=req.battery_health_pct,
     )
     await session.commit()
     return {
         "id": str(device.id),
-        "serial_number": device.serial_number,
-        "model_name": device.model_name,
-        "tier": device.tier,
+        "serial": device.serial,
+        "serial_number": getattr(device, "serial_number", device.serial),
+        "model": device.model,
+        "model_name": getattr(device, "model_name", device.model),
+        "tier": getattr(device, "tier", None),
         "status": device.status,
     }
+
+
+@router.post(
+    "/enroll",
+    summary="Create one-time device enrollment code",
+    response_model=DeviceEnrollResponse,
+)
+async def enroll_device(
+    req: DeviceEnrollRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_clinician),
+) -> dict[str, Any]:
+    service = DeviceService(session)
+    try:
+        res = await service.create_enrollment(
+            req.device_id,
+            ttl_minutes=req.ttl_minutes,
+            tenant_ids=_tenant_scope(current_user),
+        )
+        await session.commit()
+        return res
+    except ValueError as err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+
+
+@router.post(
+    "/claim",
+    summary="Exchange a one-time enrollment code for a device token",
+    response_model=DeviceClaimResponse,
+)
+async def claim_device(
+    req: DeviceClaimRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    service = DeviceService(session)
+    result = await service.claim_enrollment(req.device_id, req.code)
+    await session.commit()
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Kod noto'g'ri, muddati o'tgan yoki ishlatilgan",
+        )
+    return result
 
 
 @router.post("/{device_id}/assign", summary="Assign an in-stock device to a patient for rental monitoring")
@@ -84,6 +174,7 @@ async def assign_device(
             assigned_by=current_user.id,
             deposit_uzs=req.deposit_uzs,
             rental_uzs_month=req.rental_uzs_month,
+            tenant_ids=_tenant_scope(current_user),
         )
         await session.commit()
         return res
@@ -105,8 +196,47 @@ async def return_device(
             battery_health_pct=req.battery_health_pct,
             return_notes=req.return_notes,
             refund_deposit=req.refund_deposit,
+            tenant_ids=_tenant_scope(current_user),
         )
         await session.commit()
         return res
     except ValueError as err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+
+
+@router.post("/{device_id}/release", summary="Close active device assignment")
+async def release_device(
+    device_id: uuid.UUID,
+    req: DeviceReturnRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_clinician),
+) -> dict[str, Any]:
+    return await return_device(device_id, req, session, current_user)
+
+
+@router.post("/{device_id}/revoke-credential", summary="Revoke current device credential")
+async def revoke_device_credential(
+    device_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_clinician),
+) -> dict[str, Any]:
+    service = DeviceService(session)
+    try:
+        res = await service.revoke_credential(device_id, tenant_ids=_tenant_scope(current_user))
+        await session.commit()
+        return res
+    except ValueError as err:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
+
+
+@router.get("/{device_id}/health", summary="Get device battery and connection health")
+async def get_device_health(
+    device_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_clinician),
+) -> dict[str, Any]:
+    service = DeviceService(session)
+    try:
+        return await service.get_health(device_id, tenant_ids=_tenant_scope(current_user))
+    except ValueError as err:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))

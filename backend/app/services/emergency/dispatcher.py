@@ -53,4 +53,4 @@ class Service103Adapter(EmergencyDispatcher):
 
     async def dispatch(self, event: SosEvent, context: PatientContext) -> DispatchResult:
         logger.warning("103 API is not yet plugged in, falling back to manual dispatch")
-        raise NotImplementedError("103 integratsiyasi hali ulanmagan")
+        return await ManualDispatch().dispatch(event, context)

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Sequence
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import PatientMembership
 from app.models.patient import Patient
 from app.models.sos import SosEvent, SosNotification
 
@@ -46,12 +47,22 @@ class SosRepository:
         await self.session.flush()
         return event
 
-    async def list_active(self) -> list[SosEvent]:
+    async def list_active(self, tenant_ids: Sequence[uuid.UUID] | None = None) -> list[SosEvent]:
         stmt = (
             select(SosEvent)
             .where(SosEvent.status.in_(("raised", "acknowledged", "dispatched")))
             .order_by(desc(SosEvent.raised_at))
         )
+        if tenant_ids is not None:
+            if not tenant_ids:
+                return []
+            stmt = stmt.where(
+                exists().where(
+                    PatientMembership.patient_id == SosEvent.patient_id,
+                    PatientMembership.tenant_id.in_(list(tenant_ids)),
+                    PatientMembership.revoked_at.is_(None),
+                )
+            )
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
 

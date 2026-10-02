@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.models.device import Device
+from app.models.device import Device, DeviceCredential
 from app.models.patient import Patient
 from app.services.device_service import DeviceService
 
@@ -110,3 +110,45 @@ async def test_return_device_retires_if_battery_degraded(mock_session):
     assert res["status"] == "retired"
     assert fake_device.status == "retired"
     assert fake_device.battery_health_pct == 74
+
+
+@pytest.mark.asyncio
+async def test_create_enrollment_returns_only_one_time_code(mock_session):
+    device_id = uuid.uuid4()
+    fake_device = Device(
+        id=device_id,
+        serial_number="GW5-ENROLL",
+        model_name="Galaxy Watch 5",
+        status="in_stock",
+    )
+    device_result = MagicMock()
+    device_result.scalar_one_or_none.return_value = fake_device
+    mock_session.execute = AsyncMock(return_value=device_result)
+
+    service = DeviceService(mock_session)
+    res = await service.create_enrollment(device_id, ttl_minutes=5)
+
+    assert res["device_id"] == str(device_id)
+    assert len(res["code"]) == 6
+    assert "device_token" not in res
+    assert mock_session.add.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_revoke_credential_sets_revoked_at(mock_session):
+    device_id = uuid.uuid4()
+    credential = DeviceCredential(
+        id=uuid.uuid4(),
+        device_id=device_id,
+        secret_hash="hash",
+    )
+    mock_exec_res = MagicMock()
+    mock_exec_res.scalar_one_or_none.return_value = credential
+    mock_session.execute.return_value = mock_exec_res
+
+    service = DeviceService(mock_session)
+    res = await service.revoke_credential(device_id)
+
+    assert res["device_id"] == str(device_id)
+    assert credential.revoked_at is not None
+    mock_session.flush.assert_awaited()

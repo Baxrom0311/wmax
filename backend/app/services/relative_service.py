@@ -1,25 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Sequence
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
-from algo_interface import AlertLevel, BaselineEntry, ReadingVec, TrendResult
+from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES, TrendResult
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models.patient import Patient
-from app.models.relative import Relative
-from app.models.user import User
+from app.models import Account, PatientMembership, TenantMember
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reading_repo import ReadingRepository
 from app.repositories.relative_repo import RelativeRepository
 from app.repositories.task_repo import TaskRepository
-from app.repositories.user_repo import UserRepository
 from app.schemas.alert import Alert as AlertSchema
 from app.schemas.problem import ProblemItem, PrognosisInfo
 from app.schemas.relative import (
@@ -33,9 +30,17 @@ from app.schemas.task import Task as TaskSchema
 from app.schemas.trend import Trend
 from app.services.clinical_math import (
     PARAM_NAMES_UZ,
+    compute_daily_risk_scores,
     compute_prognosis_pure,
     compute_trend_pure,
     detect_problems_pure,
+)
+from app.services.compat import (
+    reading_ts,
+    reading_value,
+    task_done_at,
+    task_type,
+    to_reading_vec,
 )
 
 def is_access_token_expired(created_at: datetime | None) -> bool:
@@ -65,7 +70,6 @@ class RelativeService:
         self.session = session
         self.relative_repo = RelativeRepository(session)
         self.patient_repo = PatientRepository(session)
-        self.user_repo = UserRepository(session)
         self.reading_repo = ReadingRepository(session)
         self.baseline_repo = BaselineRepository(session)
         self.alert_repo = AlertRepository(session)
@@ -99,31 +103,35 @@ class RelativeService:
         now = datetime.now(timezone.utc)
         since = now - timedelta(days=7)
 
-        # Doctor Contact
-        doctor_contact: DoctorContact | None = None
-        if patient.doctor_id:
-            doctor = await self.user_repo.get_by_id(patient.doctor_id)
-            if doctor:
-                doctor_contact = DoctorContact(name=doctor.full_name, phone=doctor.phone)
+        doctor_contact = await self._get_doctor_contact(patient.id)
 
         # Readings & Baselines
         readings = await self.reading_repo.get_readings_since(patient.id, since)
         baselines = await self.baseline_repo.get_by_patient(patient.id)
         alerts = await self.alert_repo.get_recent(patient.id, limit=10)
-        tasks = await self.task_repo.get_tasks(limit=5)
+        tasks = await self.task_repo.get_tasks(patient_id=patient.id, limit=5)
 
         # Multi-param series assembly
-        baselines_by_param = {b.param: b for b in baselines}
+        baselines_by_param_window = {
+            (b.param, b.time_window): b for b in baselines
+        }
         param_keys = ["hr_mean", "spo2", "skin_temp", "rmssd", "rr_est", "steps", "sleep_frag"]
         series_list: list[ParamSeries] = []
 
         for pk in param_keys:
             pts = [
-                SeriesPoint(ts=r.ts, value=getattr(r, pk))
+                SeriesPoint(ts=reading_ts(r), value=reading_value(r, pk))
                 for r in readings
-                if getattr(r, pk) is not None
+                if reading_value(r, pk) is not None
             ]
-            b_entry = baselines_by_param.get(pk)
+            latest_ts = pts[-1].ts if pts else None
+            b_entry = (
+                baselines_by_param_window.get((pk, timewin.window_of(latest_ts)))
+                if latest_ts is not None
+                else None
+            )
+            if b_entry is not None and b_entry.n_samples < MIN_BASELINE_SAMPLES:
+                b_entry = None
             med = b_entry.median if b_entry else None
             mad = b_entry.mad if b_entry else None
             low = round(med - 1.5 * mad, 1) if (med is not None and mad is not None) else None
@@ -150,13 +158,16 @@ class RelativeService:
             )
 
         # Calculate 7-day sparkline (daily mean values normalized 0..1)
-        sparkline = [0.2, 0.25, 0.3, 0.28, 0.4, 0.5, 0.45]
+        sparkline: list[float] = []
         if readings:
             by_day: dict[str, list[float]] = {}
             for r in readings:
-                d_str = r.ts.strftime("%Y-%m-%d")
-                if r.hr_mean is not None:
-                    by_day.setdefault(d_str, []).append(r.hr_mean)
+                if not to_reading_vec(r).worn:
+                    continue
+                d_str = timewin.local_day(reading_ts(r)).isoformat()
+                hr_mean = reading_value(r, "hr_mean")
+                if hr_mean is not None:
+                    by_day.setdefault(d_str, []).append(hr_mean)
             if len(by_day) >= 2:
                 daily_means = [sum(vals) / len(vals) for vals in by_day.values()]
                 min_v = min(daily_means)
@@ -165,7 +176,7 @@ class RelativeService:
                 sparkline = [round((v - min_v) / rng, 2) for v in daily_means][-7:]
 
         # Current Level & Silence
-        last_reading_at = readings[-1].ts if readings else None
+        last_reading_at = reading_ts(readings[-1]) if readings else None
         latest_alert = alerts[0] if alerts else None
         if timewin.is_no_data(last_reading_at, now):
             cur_level: AlertLevel = "no_data"
@@ -179,34 +190,6 @@ class RelativeService:
 
         level_word_key = LEVEL_WORD_MAP.get(cur_level, "state.good")
 
-        trend = Trend(
-            slope=0.0,
-            direction="worsening" if cur_level in ["amber", "red"] else "stable",
-            recommendation_key="rec.contact_today"
-            if cur_level == "red"
-            else "rec.continue_monitoring",
-            days_used=7,
-        )
-
-        # Root-cause breakdown needs the latest reading vector and the patient's
-        # own baselines; the prognosis then grades it against the current level.
-        # Both must run after `cur_level` and `trend` exist.
-        latest_reading = readings[-1] if readings else None
-        latest_vec = (
-            ReadingVec(
-                ts=latest_reading.ts,
-                hr_mean=latest_reading.hr_mean,
-                spo2=latest_reading.spo2,
-                skin_temp=latest_reading.skin_temp,
-                rmssd=latest_reading.rmssd,
-                rr_est=latest_reading.rr_est,
-                steps=latest_reading.steps,
-                sleep_frag=latest_reading.sleep_frag,
-                worn=latest_reading.worn,
-            )
-            if latest_reading
-            else ReadingVec(ts=now)
-        )
         baseline_entries = [
             BaselineEntry(
                 param=b.param,
@@ -217,8 +200,23 @@ class RelativeService:
             )
             for b in baselines
         ]
+        trend_readings = [to_reading_vec(reading) for reading in readings]
+        trend_result = compute_trend_pure(
+            compute_daily_risk_scores(trend_readings, baseline_entries)
+        )
+        trend = Trend(
+            slope=trend_result.slope,
+            direction=trend_result.direction,
+            recommendation_key=trend_result.recommendation_key,
+            days_used=trend_result.days_used,
+        )
 
-        problems = detect_problems_pure(latest_vec, baseline_entries)
+        # Root-cause breakdown needs the latest reading vector and the patient's
+        # own baselines; the prognosis then grades it against the current level.
+        # Both must run after `cur_level` and `trend` exist.
+        latest_reading = readings[-1] if readings else None
+        latest_vec = to_reading_vec(latest_reading) if latest_reading else None
+        problems = detect_problems_pure(latest_vec, baseline_entries) if latest_vec else []
         prognosis = compute_prognosis_pure(
             cur_level,
             TrendResult(
@@ -232,12 +230,12 @@ class RelativeService:
 
         latest_r = readings[-1] if readings else None
         vitals = RelativeVitals(
-            hr=latest_r.hr_mean if latest_r else None,
-            spo2=latest_r.spo2 if latest_r else None,
-            sleep_hours=7.2 if latest_r else None,
-            skin_temp=latest_r.skin_temp if latest_r else None,
-            rr=latest_r.rr_est if latest_r else None,
-            steps=latest_r.steps if latest_r else None,
+            hr=reading_value(latest_r, "hr_mean") if latest_r else None,
+            spo2=reading_value(latest_r, "spo2") if latest_r else None,
+            sleep_hours=None,
+            skin_temp=reading_value(latest_r, "skin_temp") if latest_r else None,
+            rr=reading_value(latest_r, "rr_est") if latest_r else None,
+            steps=reading_value(latest_r, "steps") if latest_r else None,
         )
 
         return RelativeView(
@@ -268,11 +266,11 @@ class RelativeService:
                 TaskSchema(
                     id=t.id,
                     patient_id=t.patient_id,
-                    type=t.type,
+                    type=task_type(t),
                     status=t.status,
                     created_at=t.created_at,
                     due_at=t.due_at,
-                    confirmed_at=t.confirmed_at,
+                    confirmed_at=task_done_at(t),
                     note=t.note,
                 )
                 for t in tasks
@@ -281,6 +279,28 @@ class RelativeService:
             vitals=vitals,
             doctor_contact=doctor_contact,
         )
+
+    async def _get_doctor_contact(self, patient_id: uuid.UUID) -> DoctorContact | None:
+        stmt = (
+            select(Account)
+            .join(TenantMember, TenantMember.account_id == Account.id)
+            .join(
+                PatientMembership,
+                PatientMembership.tenant_id == TenantMember.tenant_id,
+            )
+            .where(
+                PatientMembership.patient_id == patient_id,
+                PatientMembership.revoked_at.is_(None),
+                TenantMember.left_at.is_(None),
+                TenantMember.role.in_(("doctor", "head_doctor", "admin")),
+            )
+            .order_by(TenantMember.joined_at.asc())
+            .limit(1)
+        )
+        account = (await self.session.execute(stmt)).scalar_one_or_none()
+        if not account:
+            return None
+        return DoctorContact(name=account.full_name, phone=account.phone)
 
     async def get_assigned_patients(self, phone: str) -> list[RelativePatientItem]:
         """Returns all patients assigned to a relative identified by phone number."""
@@ -296,7 +316,7 @@ class RelativeService:
             latest_reading = await self.reading_repo.get_latest_reading(p.id)
             latest_alert = await self.alert_repo.get_latest(p.id)
 
-            last_ts = latest_reading.ts if latest_reading else None
+            last_ts = reading_ts(latest_reading) if latest_reading else None
             if timewin.is_no_data(last_ts, now):
                 level: AlertLevel = "no_data"
             elif latest_alert:

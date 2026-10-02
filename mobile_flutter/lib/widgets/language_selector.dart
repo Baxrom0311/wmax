@@ -36,7 +36,9 @@ class LanguageSelectorBadge extends StatelessWidget {
                 boxShadow: isUzbek
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF0284C7,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 4,
                           offset: const Offset(0, 1),
                         ),
@@ -70,7 +72,9 @@ class LanguageSelectorBadge extends StatelessWidget {
                 boxShadow: !isUzbek
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF0284C7,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 4,
                           offset: const Offset(0, 1),
                         ),

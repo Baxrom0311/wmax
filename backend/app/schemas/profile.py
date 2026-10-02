@@ -229,7 +229,7 @@ class PatientFullProfile(BaseModel):
     full_name: str
     age: int
     birth_date: date | None = None
-    sex: Literal["m", "f"]
+    sex: Literal["m", "f"] | None = None
     diagnosis: str
     district: str
     phone: str | None = None

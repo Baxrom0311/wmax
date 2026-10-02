@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import statistics
-from datetime import datetime
-from typing import Any, Literal
+from datetime import date, datetime
+from typing import Any, Literal, Sequence
 
 import timewin
 from algo_interface import (
@@ -81,9 +81,13 @@ compute_baseline_pure = compute_baselines_pure
 def compute_zscores_pure(
     reading: ReadingVec, baselines: list[BaselineEntry]
 ) -> dict[str, float]:
-    """Calculates raw signed z-scores for the reading's local time window."""
+    """Calculate z-scores only for sufficiently supported local-time baselines."""
     window = timewin.window_of(reading.ts)
-    window_baselines = {b.param: b for b in baselines if b.time_window == window}
+    window_baselines = {
+        b.param: b
+        for b in baselines
+        if b.time_window == window and b.n_samples >= MIN_BASELINE_SAMPLES
+    }
 
     zscores: dict[str, float] = {}
     for param, b in window_baselines.items():
@@ -156,8 +160,8 @@ def evaluate_alert_pure(
     composite = round(composite, 2)
 
     # 3. Persistence verification across consecutive windows
-    is_persistent = True
-    if recent_zscores and len(recent_zscores) >= 2:
+    is_persistent = len(recent_zscores) >= 2
+    if is_persistent:
         # Check if at least 1 triggered param was also deviating in past windows
         for past_z in recent_zscores:
             past_triggered = any(
@@ -205,10 +209,10 @@ def evaluate_alert_pure(
 def compute_trend_pure(daily_raw_scores: list[tuple[int, float]]) -> TrendResult:
     """Computes linear regression slope over daily raw scores (7 local days)."""
     n = len(daily_raw_scores)
-    if n < 2:
+    if n < 3:
         return TrendResult(
             slope=0.0,
-            direction="stable",
+            direction="insufficient_data",
             recommendation_key="rec.continue_monitoring",
             days_used=n,
         )
@@ -239,12 +243,54 @@ def compute_trend_pure(daily_raw_scores: list[tuple[int, float]]) -> TrendResult
     )
 
 
+def compute_daily_risk_scores(
+    readings: Sequence[ReadingVec], baselines: list[BaselineEntry]
+) -> list[tuple[int, float]]:
+    """Aggregate comparable daily scores, excluding metrics missing on any day."""
+    scores_by_day: dict[date, dict[str, list[float]]] = {}
+    for reading in readings:
+        if not reading.worn:
+            continue
+        zscores = compute_zscores_pure(reading, baselines)
+        if not zscores:
+            continue
+        day_scores = scores_by_day.setdefault(timewin.local_day(reading.ts), {})
+        for param, score in zscores.items():
+            day_scores.setdefault(param, []).append(
+                _compute_directional_zscore(score, param)
+            )
+
+    if len(scores_by_day) < 2:
+        return []
+
+    common_params = set.intersection(
+        *(set(day_scores) for day_scores in scores_by_day.values())
+    )
+    if not common_params:
+        return []
+
+    return [
+        (
+            day.toordinal(),
+            sum(
+                statistics.fmean(day_scores[param])
+                for param in sorted(common_params)
+            ),
+        )
+        for day, day_scores in sorted(scores_by_day.items())
+    ]
+
+
 def detect_problems_pure(
     reading: ReadingVec, baselines: list[BaselineEntry]
 ) -> list[ProblemItem]:
     """Generates human-readable clinical root-cause problem breakdowns."""
     window = timewin.window_of(reading.ts)
-    window_b = {b.param: b for b in baselines if b.time_window == window}
+    window_b = {
+        b.param: b
+        for b in baselines
+        if b.time_window == window and b.n_samples >= MIN_BASELINE_SAMPLES
+    }
     problems: list[ProblemItem] = []
 
     for param, b in window_b.items():

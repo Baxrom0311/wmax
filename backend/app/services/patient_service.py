@@ -4,13 +4,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Sequence
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
-from algo_interface import AlertLevel
+from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES
 from app.ai.clinical_ai import ClinicalAIService
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import NotFoundException, ValidationException
 from app.models.patient import Patient
+from app.models import PatientMembership
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
@@ -23,9 +25,17 @@ from app.schemas.task import Task as TaskSchema
 from app.schemas.trend import Trend
 from app.services.clinical_math import (
     PARAM_NAMES_UZ,
+    compute_daily_risk_scores,
     compute_prognosis_pure,
     compute_trend_pure,
     detect_problems_pure,
+)
+from app.services.compat import (
+    reading_ts,
+    reading_value,
+    task_done_at,
+    task_type,
+    to_reading_vec,
 )
 
 LEVEL_PRIORITY: dict[str, int] = {
@@ -34,6 +44,8 @@ LEVEL_PRIORITY: dict[str, int] = {
     "amber": 2,
     "green": 3,
 }
+
+OPEN_TASK_STATUSES = ("open", "acknowledged")
 
 
 class PatientService:
@@ -47,10 +59,13 @@ class PatientService:
         self.ai_service = ClinicalAIService()
 
     async def get_worklist(
-        self, district: str | None = None, level: str | None = None
+        self,
+        district: str | None = None,
+        level: str | None = None,
+        clinician_tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> list[PatientSummary]:
         """Returns sorted clinical worklist prioritizing high-acuity patients."""
-        patients = await self.patient_repo.get_all(district=district)
+        patients = await self.patient_repo.get_all(district=district, tenant_ids=clinician_tenant_ids)
         now = datetime.now(timezone.utc)
         summaries: list[PatientSummary] = []
 
@@ -59,7 +74,7 @@ class PatientService:
             latest_alert = await self.alert_repo.get_latest(p.id)
             open_task_row = await self.task_repo.get_open_task(p.id)
 
-            last_ts = latest_reading.ts if latest_reading else None
+            last_ts = reading_ts(latest_reading) if latest_reading else None
 
             # Silence verification: >= 45 min is strictly no_data, never green
             if timewin.is_no_data(last_ts, now):
@@ -82,11 +97,11 @@ class PatientService:
                 TaskSchema(
                     id=open_task_row.id,
                     patient_id=open_task_row.patient_id,
-                    type=open_task_row.type,
+                    type=task_type(open_task_row),
                     status=open_task_row.status,
                     created_at=open_task_row.created_at,
                     due_at=open_task_row.due_at,
-                    confirmed_at=open_task_row.confirmed_at,
+                    confirmed_at=task_done_at(open_task_row),
                     note=open_task_row.note,
                 )
                 if open_task_row
@@ -95,11 +110,11 @@ class PatientService:
 
             trend = Trend(
                 slope=0.0,
-                direction="stable",
+                direction="insufficient_data",
                 recommendation_key="rec.continue_monitoring"
                 if cur_level == "green"
                 else "rec.contact_today",
-                days_used=7,
+                days_used=0,
             )
 
             summaries.append(
@@ -142,7 +157,9 @@ class PatientService:
         alerts_rows = await self.alert_repo.get_recent(patient_id, limit=20)
         tasks_rows = await self.task_repo.get_tasks(patient_id=patient_id)
 
-        baselines_by_param = {b.param: b for b in baselines}
+        baselines_by_param_window = {
+            (b.param, b.time_window): b for b in baselines
+        }
 
         alerts_list = [
             AlertSchema(
@@ -161,18 +178,16 @@ class PatientService:
             TaskSchema(
                 id=t.id,
                 patient_id=t.patient_id,
-                type=t.type,
+                type=task_type(t),
                 status=t.status,
                 created_at=t.created_at,
                 due_at=t.due_at,
-                confirmed_at=t.confirmed_at,
+                confirmed_at=task_done_at(t),
                 note=t.note,
             )
             for t in tasks_rows
         ]
-        open_task = next(
-            (t for t in tasks_list if t.status in ["created", "sent", "seen"]), None
-        )
+        open_task = next((t for t in tasks_list if t.status in OPEN_TASK_STATUSES), None)
 
         # Multi-param series and envelope
         params = ["hr_mean", "spo2", "skin_temp", "rmssd", "rr_est", "steps", "sleep_frag"]
@@ -180,11 +195,20 @@ class PatientService:
 
         for p_name in params:
             pts = [
-                SeriesPoint(ts=r.ts, value=getattr(r, p_name))
+                SeriesPoint(ts=reading_ts(r), value=reading_value(r, p_name))
                 for r in readings
-                if getattr(r, p_name) is not None
+                if reading_value(r, p_name) is not None
             ]
-            b_entry = baselines_by_param.get(p_name)
+            latest_ts = pts[-1].ts if pts else None
+            b_entry = (
+                baselines_by_param_window.get(
+                    (p_name, timewin.window_of(latest_ts))
+                )
+                if latest_ts is not None
+                else None
+            )
+            if b_entry is not None and b_entry.n_samples < MIN_BASELINE_SAMPLES:
+                b_entry = None
             med = b_entry.median if b_entry else None
             mad = b_entry.mad if b_entry else None
             low = round(med - 1.5 * mad, 1) if (med is not None and mad is not None) else None
@@ -211,7 +235,7 @@ class PatientService:
             )
 
         last_reading = readings[-1] if readings else None
-        last_ts = last_reading.ts if last_reading else None
+        last_ts = reading_ts(last_reading) if last_reading else None
         latest_alert = alerts_list[0] if alerts_list else None
 
         if timewin.is_no_data(last_ts, now):
@@ -227,18 +251,8 @@ class PatientService:
             composite = 0.0
             triggered = {}
 
-        trend_res = compute_trend_pure([(i, 0.1 * i) for i in range(len(readings) // 20 or 1)])
-        trend = Trend(
-            slope=trend_res.slope,
-            direction=trend_res.direction,
-            recommendation_key=trend_res.recommendation_key,
-            days_used=days,
-        )
-
-        from algo_interface import BaselineEntry as AlgBaselineEntry, ReadingVec
-
-        vec_list = [
-            AlgBaselineEntry(
+        baseline_entries = [
+            BaselineEntry(
                 param=b.param,
                 time_window=b.time_window,
                 median=b.median,
@@ -247,29 +261,26 @@ class PatientService:
             )
             for b in baselines
         ]
-        latest_vec = (
-            ReadingVec(
-                ts=last_reading.ts,
-                hr_mean=last_reading.hr_mean,
-                spo2=last_reading.spo2,
-                skin_temp=last_reading.skin_temp,
-                rmssd=last_reading.rmssd,
-                rr_est=last_reading.rr_est,
-                steps=last_reading.steps,
-                sleep_frag=last_reading.sleep_frag,
-                worn=last_reading.worn,
-            )
-            if last_reading
-            else ReadingVec(ts=now)
+        trend_readings = [to_reading_vec(reading) for reading in readings]
+        trend_res = compute_trend_pure(
+            compute_daily_risk_scores(trend_readings, baseline_entries)
+        )
+        trend = Trend(
+            slope=trend_res.slope,
+            direction=trend_res.direction,
+            recommendation_key=trend_res.recommendation_key,
+            days_used=trend_res.days_used,
         )
 
-        problems = detect_problems_pure(latest_vec, vec_list)
+        latest_vec = to_reading_vec(last_reading) if last_reading else None
+
+        problems = detect_problems_pure(latest_vec, baseline_entries) if latest_vec else []
 
         # AI-enhanced 72-hour clinical prognosis
         recent_vitals = {
-            "hr_mean": last_reading.hr_mean if last_reading else None,
-            "spo2": last_reading.spo2 if last_reading else None,
-            "skin_temp": last_reading.skin_temp if last_reading else None,
+            "hr_mean": reading_value(last_reading, "hr_mean") if last_reading else None,
+            "spo2": reading_value(last_reading, "spo2") if last_reading else None,
+            "skin_temp": reading_value(last_reading, "skin_temp") if last_reading else None,
         }
         prognosis = await self.ai_service.generate_patient_prognosis(
             patient_name=patient.full_name,
@@ -305,34 +316,64 @@ class PatientService:
         )
 
     async def discharge_patient(
-        self, patient_id: uuid.UUID, doctor_id: uuid.UUID
+        self,
+        patient_id: uuid.UUID,
+        doctor_id: uuid.UUID,
+        clinician_tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> TaskSchema:
         """Discharges patient and automatically schedules 24h active-call task (Problem 11)."""
         patient = await self.patient_repo.get_by_id(patient_id)
         if not patient:
             raise NotFoundException("Bemor", patient_id)
+        tenant_id = await self._resolve_task_tenant(patient_id, clinician_tenant_ids or [])
 
         now = datetime.now(timezone.utc)
         await self.patient_repo.set_discharge_date(patient_id, now.date())
 
         task = await self.task_repo.create_task(
             patient_id=patient_id,
-            doctor_id=doctor_id,
-            task_type="active_call",
+            tenant_id=tenant_id,
+            assignee_account_id=doctor_id,
+            kind="clinical",
             due_at=now + timedelta(hours=24),
+            note="24h discharge follow-up",
         )
         await self.session.commit()
 
         return TaskSchema(
             id=task.id,
             patient_id=task.patient_id,
-            type=task.type,
+            type=task_type(task),
             status=task.status,
             created_at=task.created_at,
             due_at=task.due_at,
-            confirmed_at=task.confirmed_at,
+            confirmed_at=task_done_at(task),
             note=task.note,
         )
+
+    async def _resolve_task_tenant(
+        self,
+        patient_id: uuid.UUID,
+        clinician_tenant_ids: Sequence[uuid.UUID],
+    ) -> uuid.UUID:
+        stmt = select(PatientMembership).where(
+            PatientMembership.patient_id == patient_id,
+            PatientMembership.kind == "care",
+            PatientMembership.revoked_at.is_(None),
+        )
+        memberships = list((await self.session.execute(stmt)).scalars().all())
+        if not memberships and len(clinician_tenant_ids) == 1:
+            return clinician_tenant_ids[0]
+        if not memberships:
+            raise ValidationException("Bemor faol klinikaga biriktirilmagan")
+
+        allowed_tenants = set(clinician_tenant_ids)
+        if allowed_tenants:
+            for membership in memberships:
+                if membership.tenant_id in allowed_tenants:
+                    return membership.tenant_id
+            raise ValidationException("Shifokor bu bemorning klinikasiga biriktirilmagan")
+        return memberships[0].tenant_id
 
     async def approve_baseline(
         self, patient_id: uuid.UUID, approved_by: uuid.UUID
@@ -364,4 +405,3 @@ class PatientService:
             "access_token": new_token,
             "detail": "Qarovchi havolasi muvaffaqiyatli yangilandi",
         }
-

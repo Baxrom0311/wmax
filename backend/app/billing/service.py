@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import inspect
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -12,6 +13,8 @@ from app.models.invoice import Invoice
 from app.models.payment import Payment
 from app.models.subscription import Subscription
 from app.models.tenant import Tenant
+
+PATIENT_PLANS = {"free", "premium", "premium_doc"}
 
 
 class BillingService:
@@ -25,41 +28,32 @@ class BillingService:
         name: str = "Oilaviy Kabinet",
         kind: str = "household",
     ) -> Tenant:
-        """Finds or creates a default tenant for a user or household."""
-        stmt = select(Tenant).where(Tenant.owner_phone == phone)
+        """Finds or creates a clinic tenant during the transition to patient billing."""
+        stmt = select(Tenant).where(Tenant.name == name)
         res = await self.session.execute(stmt)
         tenant = res.scalar_one_or_none()
 
         if not tenant:
             tenant = Tenant(
                 name=name,
-                kind=kind,
-                owner_phone=phone,
+                kind=kind if kind in {"ovabmu", "polyclinic", "hospital", "network"} else "polyclinic",
                 region="Xorazm",
+                district="Urganch",
                 is_active=True,
             )
-            self.session.add(tenant)
-            await self.session.flush()
-
-            # Create default 14-day trial subscription
-            now = datetime.now(timezone.utc)
-            trial_end = now + timedelta(days=14)
-            sub = Subscription(
-                tenant_id=tenant.id,
-                plan="premium",  # 14-day trial gives full Premium access
-                status="trialing",
-                trial_ends_at=trial_end,
-                current_period_end=trial_end,
-                seats_included=1,
-            )
-            self.session.add(sub)
+            added = self.session.add(tenant)
+            if inspect.isawaitable(added):
+                await added
             await self.session.flush()
 
         return tenant
 
     async def get_subscription(self, tenant_id: uuid.UUID) -> dict[str, Any]:
+        return await self.get_patient_subscription(tenant_id)
+
+    async def get_patient_subscription(self, patient_id: uuid.UUID) -> dict[str, Any]:
         """Returns subscription details and active feature entitlements."""
-        stmt = select(Subscription).where(Subscription.tenant_id == tenant_id)
+        stmt = select(Subscription).where(Subscription.patient_id == patient_id)
         res = await self.session.execute(stmt)
         sub = res.scalar_one_or_none()
 
@@ -67,14 +61,15 @@ class BillingService:
             now = datetime.now(timezone.utc)
             trial_end = now + timedelta(days=14)
             sub = Subscription(
-                tenant_id=tenant_id,
+                patient_id=patient_id,
                 plan="free",
-                status="free",
+                status="trialing",
                 trial_ends_at=trial_end,
-                current_period_end=None,
-                seats_included=1,
+                period_end=None,
             )
-            self.session.add(sub)
+            added = self.session.add(sub)
+            if inspect.isawaitable(added):
+                await added
             await self.session.flush()
 
         plan_meta = PLAN_DETAILS.get(sub.plan, PLAN_DETAILS["free"])
@@ -86,14 +81,14 @@ class BillingService:
 
         return {
             "subscription_id": str(sub.id),
-            "tenant_id": str(sub.tenant_id),
+            "patient_id": str(sub.patient_id),
             "plan": sub.plan,
             "plan_name": plan_meta["name"],
             "status": sub.status,
             "trial_ends_at": sub.trial_ends_at.isoformat() if sub.trial_ends_at else None,
             "trial_days_left": trial_days_left,
-            "current_period_end": sub.current_period_end.isoformat() if sub.current_period_end else None,
-            "seats_included": sub.seats_included,
+            "current_period_end": sub.period_end.isoformat() if sub.period_end else None,
+            "seats_included": 1,
             "price_uzs": plan_meta["price_uzs"],
             "features": plan_meta["features"],
             "is_trial": sub.status == "trialing",
@@ -107,11 +102,27 @@ class BillingService:
         provider: str = "payme",
         card_token: str | None = None,
     ) -> dict[str, Any]:
+        return await self.upgrade_patient_plan(
+            patient_id=tenant_id,
+            new_plan=new_plan,
+            provider=provider,
+            card_token=card_token,
+        )
+
+    async def upgrade_patient_plan(
+        self,
+        patient_id: uuid.UUID,
+        new_plan: str,
+        provider: str = "payme",
+        card_token: str | None = None,
+    ) -> dict[str, Any]:
         """Upgrades or changes subscription plan."""
         if new_plan not in PLAN_DETAILS:
             raise ValueError(f"Noto'g'ri tarif kodi: {new_plan}")
+        if new_plan not in PATIENT_PLANS:
+            raise ValueError("clinic tarifi tenant licence orqali rasmiylashtiriladi")
 
-        stmt = select(Subscription).where(Subscription.tenant_id == tenant_id)
+        stmt = select(Subscription).where(Subscription.patient_id == patient_id)
         res = await self.session.execute(stmt)
         sub = res.scalar_one_or_none()
 
@@ -120,58 +131,43 @@ class BillingService:
 
         if not sub:
             sub = Subscription(
-                tenant_id=tenant_id,
+                patient_id=patient_id,
                 plan=new_plan,
-                status="active" if new_plan != "free" else "free",
-                current_period_end=now + timedelta(days=30) if new_plan != "free" else None,
+                status="past_due" if new_plan != "free" else "trialing",
+                period_end=None,
                 provider=provider,
-                card_token=card_token,
             )
             self.session.add(sub)
         else:
             sub.plan = new_plan
-            sub.status = "active" if new_plan != "free" else "free"
-            sub.current_period_end = now + timedelta(days=30) if new_plan != "free" else None
+            sub.status = "past_due" if new_plan != "free" else "trialing"
+            sub.period_end = None
             sub.provider = provider
-            if card_token:
-                sub.card_token = card_token
 
         await self.session.flush()
 
-        # Generate invoice if paid
         if plan_meta["price_uzs"] > 0:
-            today = date.today()
-            invoice = Invoice(
-                tenant_id=tenant_id,
-                period_start=today,
-                period_end=today + timedelta(days=30),
-                active_patients=sub.seats_included,
-                amount_uzs=plan_meta["price_uzs"],
-                status="paid",
-                due_at=now,
-                paid_at=now,
-            )
-            self.session.add(invoice)
-            await self.session.flush()
-
-            # Record payment transaction
             payment = Payment(
-                invoice_id=invoice.id,
+                patient_subscription_id=sub.id,
                 provider=provider,
-                provider_txn=f"txn_{uuid.uuid4().hex[:12]}",
+                provider_ref=f"checkout_{uuid.uuid4().hex[:12]}",
                 amount_uzs=plan_meta["price_uzs"],
-                status="succeeded",
+                status="pending",
                 raw_payload={"plan": new_plan, "timestamp": now.isoformat()},
             )
-            self.session.add(payment)
+            added = self.session.add(payment)
+            if inspect.isawaitable(added):
+                await added
             await self.session.flush()
 
         await self.session.commit()
-        return await self.get_subscription(tenant_id)
+        result = await self.get_patient_subscription(patient_id)
+        result["checkout_required"] = plan_meta["price_uzs"] > 0
+        return result
 
     async def list_invoices(self, tenant_id: uuid.UUID) -> list[dict[str, Any]]:
         """Returns billing invoices history for tenant."""
-        stmt = select(Invoice).where(Invoice.tenant_id == tenant_id).order_by(Invoice.created_at.desc())
+        stmt = select(Invoice).where(Invoice.tenant_id == tenant_id).order_by(Invoice.issued_at.desc())
         res = await self.session.execute(stmt)
         invoices = res.scalars().all()
         return [
@@ -179,12 +175,12 @@ class BillingService:
                 "id": str(inv.id),
                 "period_start": inv.period_start.isoformat(),
                 "period_end": inv.period_end.isoformat(),
-                "active_patients": inv.active_patients,
+                "active_patients": inv.patient_days_total,
                 "amount_uzs": inv.amount_uzs,
                 "status": inv.status,
-                "due_at": inv.due_at.isoformat(),
+                "due_at": inv.issued_at.isoformat(),
                 "paid_at": inv.paid_at.isoformat() if inv.paid_at else None,
-                "created_at": inv.created_at.isoformat(),
+                "created_at": inv.issued_at.isoformat(),
             }
             for inv in invoices
         ]

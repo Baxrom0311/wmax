@@ -7,6 +7,30 @@ import '../services/session_service.dart';
 class ApiService {
   static const String _ingestKey = String.fromEnvironment('WMAX_INGEST_KEY');
 
+  static Future<String> claimDeviceEnrollment({
+    required String deviceId,
+    required String code,
+  }) async {
+    final baseUrl = await SessionService.getBaseUrl();
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/v1/devices/claim'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'device_id': deviceId, 'code': code}),
+        )
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) {
+      throw StateError('Device enrollment HTTP ${response.statusCode}');
+    }
+    final payload = jsonDecode(response.body);
+    if (payload is! Map<String, dynamic> ||
+        payload['device_token'] is! String ||
+        (payload['device_token'] as String).isEmpty) {
+      throw const FormatException('Invalid device enrollment response.');
+    }
+    return payload['device_token'] as String;
+  }
+
   static Future<void> ingestWatchReading({
     required String patientId,
     required String deviceId,
@@ -33,6 +57,37 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('Telemetry ingest HTTP ${response.statusCode}');
     }
+  }
+
+  static Future<Map<String, dynamic>> ingestHealthData({
+    required String deviceToken,
+    required HealthDataBatch batch,
+  }) async {
+    final baseUrl = await SessionService.getBaseUrl();
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/v1/ingest/health-data'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $deviceToken',
+          },
+          body: jsonEncode(batch.toJson()),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError('Health data ingest HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Invalid health ingest response.');
+    }
+    final rejected = decoded['rejected'];
+    if (rejected is List && rejected.isNotEmpty) {
+      throw StateError(
+        'Server rejected ${rejected.length} health data records.',
+      );
+    }
+    return decoded;
   }
 
   /// Test backend health (GET /api/v1/health)
@@ -121,16 +176,24 @@ class ApiService {
     String? customBaseUrl,
   }) async {
     final baseUrl = customBaseUrl ?? await SessionService.getBaseUrl();
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/v1/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'phone': phone.replaceAll(' ', '').trim(), 'password': password}),
-    ).timeout(const Duration(seconds: 8));
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/v1/auth/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'phone': phone.replaceAll(' ', '').trim(),
+            'password': password,
+          }),
+        )
+        .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) {
       throw Exception('Kirishda xatolik: ${response.statusCode}');
     }
     final token = jsonDecode(response.body) as Map<String, dynamic>;
-    final patients = await _fetchPatients(token['access_token'] as String, baseUrl);
+    final patients = await _fetchPatients(
+      token['access_token'] as String,
+      baseUrl,
+    );
     final result = RelativeAuthResponse(
       accessToken: token['access_token'] ?? '',
       refreshToken: token['refresh_token'] ?? '',
@@ -156,20 +219,29 @@ class ApiService {
     String? customBaseUrl,
   }) async {
     final baseUrl = customBaseUrl ?? await SessionService.getBaseUrl();
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/v1/auth/patient/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'phone': phone.replaceAll(' ', '').trim(), 'pin': pin.trim()}),
-    ).timeout(const Duration(seconds: 8));
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/v1/auth/patient/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'phone': phone.replaceAll(' ', '').trim(),
+            'pin': pin.trim(),
+          }),
+        )
+        .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) {
       throw Exception('Kirishda xatolik: ${response.statusCode}');
     }
     final token = jsonDecode(response.body) as Map<String, dynamic>;
-    final me = await http.get(
-      Uri.parse('$baseUrl/api/v1/auth/me'),
-      headers: {'Authorization': 'Bearer ${token['access_token']}'},
-    ).timeout(const Duration(seconds: 8));
-    final user = me.statusCode == 200 ? jsonDecode(me.body) as Map<String, dynamic> : <String, dynamic>{};
+    final me = await http
+        .get(
+          Uri.parse('$baseUrl/api/v1/auth/me'),
+          headers: {'Authorization': 'Bearer ${token['access_token']}'},
+        )
+        .timeout(const Duration(seconds: 8));
+    final user = me.statusCode == 200
+        ? jsonDecode(me.body) as Map<String, dynamic>
+        : <String, dynamic>{};
     final patient = PatientSummary(
       id: '${user['id'] ?? ''}',
       fullName: user['full_name'] ?? 'Bemor',
@@ -197,15 +269,23 @@ class ApiService {
     return result;
   }
 
-  static Future<List<PatientSummary>> _fetchPatients(String token, String baseUrl) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/api/v1/patients'),
-      headers: {'Authorization': 'Bearer $token'},
-    ).timeout(const Duration(seconds: 8));
+  static Future<List<PatientSummary>> _fetchPatients(
+    String token,
+    String baseUrl,
+  ) async {
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/api/v1/patients'),
+          headers: {'Authorization': 'Bearer $token'},
+        )
+        .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) return [];
     final raw = jsonDecode(response.body);
     if (raw is! List) return [];
-    return raw.whereType<Map<String, dynamic>>().map(PatientSummary.fromJson).toList();
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(PatientSummary.fromJson)
+        .toList();
   }
 
   /// Fetch live patient status view: GET /api/v1/relatives/{token}/view

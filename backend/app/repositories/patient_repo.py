@@ -4,9 +4,10 @@ import uuid
 from datetime import date, datetime, timezone
 from typing import Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import PatientMembership
 from app.models.patient import Patient
 
 
@@ -25,14 +26,26 @@ class PatientRepository:
         return res.scalar_one_or_none()
 
     async def get_all(
-        self, district: str | None = None
+        self,
+        district: str | None = None,
+        tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> Sequence[Patient]:
         stmt = select(Patient)
+        if tenant_ids is not None:
+            if not tenant_ids:
+                return []
+            stmt = stmt.where(
+                exists().where(
+                    PatientMembership.patient_id == Patient.id,
+                    PatientMembership.tenant_id.in_(list(tenant_ids)),
+                    PatientMembership.revoked_at.is_(None),
+                )
+            )
         if district:
             stmt = stmt.where(Patient.district == district)
         stmt = stmt.order_by(Patient.created_at.desc())
         res = await self.session.execute(stmt)
-        return res.scalars().all()
+        return list(res.scalars().all())
 
     async def set_discharge_date(
         self, patient_id: uuid.UUID, discharge_date: date

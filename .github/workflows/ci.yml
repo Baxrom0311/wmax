@@ -38,7 +38,7 @@ jobs:
           PYTHONPATH: .:./backend:./contracts
           ENV: testing
         run: |
-          pytest -q
+          pytest -q backend/app/tests backend/algo/tests notifier/tests
 
   migrations-check:
     name: Schema Migrations (ORM is the single source of truth)
@@ -114,14 +114,14 @@ jobs:
           node-version: 20
           cache: "npm"
           cache-dependency-path: |
-            web-doctor/package.json
-            web-relative/package.json
+            web-doctor/package-lock.json
+            web-relative/package-lock.json
 
       - name: Build Web-Doctor (Clinical Dashboard)
         working-directory: web-doctor
         run: |
           npm ci
-          npm run lint || true
+          npm run lint
           npm run build
 
       - name: Build Web-Relative (Patient Relative Portal)
@@ -172,3 +172,25 @@ jobs:
           file: ./docker/nginx/Dockerfile
           push: false
           tags: wmax-nginx:test
+
+  mobile-validation:
+    name: Flutter Analyze, Tests & Android Variants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve Flutter dependencies
+        working-directory: mobile_flutter
+        run: flutter pub get
+      - name: Analyze Dart code
+        working-directory: mobile_flutter
+        run: flutter analyze --fatal-infos
+      - name: Run Flutter tests
+        working-directory: mobile_flutter
+        run: flutter test
+      - name: Build phone and Wear OS variants
+        working-directory: mobile_flutter
+        run: flutter build apk --debug --flavor phone && flutter build apk --debug --flavor wear

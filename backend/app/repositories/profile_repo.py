@@ -61,11 +61,6 @@ class ProfileRepository(AuditedRepository):
         self.session.add(address)
         await self.session.flush()
 
-        if is_primary:
-            pat = await self.session.get(Patient, patient_id)
-            if pat:
-                pat.primary_address_id = address.id
-
         await self.record_audit(
             patient_id=patient_id,
             actor_kind=principal.role,
@@ -92,10 +87,6 @@ class ProfileRepository(AuditedRepository):
         for a in addrs:
             a.is_primary = (a.id == address_id)
 
-        pat = await self.session.get(Patient, patient_id)
-        if pat:
-            pat.primary_address_id = address_id
-
         await self.record_audit(
             patient_id=patient_id,
             actor_kind=principal.role,
@@ -116,10 +107,6 @@ class ProfileRepository(AuditedRepository):
         address = await self.get_address(address_id, patient_id)
         if not address:
             return False
-
-        pat = await self.session.get(Patient, patient_id)
-        if pat and pat.primary_address_id == address_id:
-            pat.primary_address_id = None
 
         await self.session.delete(address)
         await self.record_audit(

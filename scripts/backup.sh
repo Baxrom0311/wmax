@@ -4,12 +4,14 @@
 # Usage: ./scripts/backup.sh [backup_dir]
 
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKUP_DIR="${1:-${ROOT_DIR}/backups}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="${BACKUP_DIR}/wmax_db_${TIMESTAMP}.sql.gz"
+TEMP_BACKUP="${BACKUP_FILE}.tmp"
 
 cd "${ROOT_DIR}"
 mkdir -p "${BACKUP_DIR}"
@@ -30,7 +32,7 @@ echo "  Starting Database Backup: ${TIMESTAMP}"
 echo "========================================================"
 
 # Find running postgres container
-CONTAINER_ID=$(docker compose -f "${ROOT_DIR}/docker/compose/docker-compose.yml" ps -q postgres 2>/dev/null || docker ps -q -f "name=postgres" | head -n 1)
+CONTAINER_ID=$(docker compose -p "${COMPOSE_PROJECT_NAME:-compose}" -f "${ROOT_DIR}/docker/compose/docker-compose.yml" ps -q postgres 2>/dev/null || true)
 
 if [ -z "${CONTAINER_ID}" ]; then
   echo "[-] ERROR: PostgreSQL container is not running!" >&2
@@ -38,14 +40,21 @@ if [ -z "${CONTAINER_ID}" ]; then
 fi
 
 echo "[1/4] Dumping database '${DB_NAME}' via container ${CONTAINER_ID}..."
-docker exec -t "${CONTAINER_ID}" pg_dump -U "${DB_USER}" -d "${DB_NAME}" --clean --if-exists | gzip > "${BACKUP_FILE}"
+trap 'rm -f "${TEMP_BACKUP}"' EXIT
+docker exec "${CONTAINER_ID}" pg_dump -U "${DB_USER}" -d "${DB_NAME}" --clean --if-exists | gzip > "${TEMP_BACKUP}"
 
 # Verify backup integrity
-if [ ! -s "${BACKUP_FILE}" ]; then
+if [ ! -s "${TEMP_BACKUP}" ]; then
   echo "[-] ERROR: Backup file was created empty!" >&2
-  rm -f "${BACKUP_FILE}"
   exit 1
 fi
+
+if ! gzip -t "${TEMP_BACKUP}"; then
+  echo "[-] ERROR: Backup gzip integrity check failed." >&2
+  exit 1
+fi
+mv "${TEMP_BACKUP}" "${BACKUP_FILE}"
+trap - EXIT
 
 # Generate SHA256 Checksum
 if command -v sha256sum >/dev/null 2>&1; then

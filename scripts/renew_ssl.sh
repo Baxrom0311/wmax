@@ -7,16 +7,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker/compose/docker-compose.yml"
+COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-compose}"
+compose() { docker compose -p "${COMPOSE_PROJECT}" --profile edge -f "${COMPOSE_FILE}" "$@"; }
 
 echo "========================================================"
 echo "  Checking SSL Certificate Expiration & Renewal: $(date)"
 echo "========================================================"
 
 # Run certbot renew
-docker compose -f "${COMPOSE_FILE}" run --rm certbot renew --quiet
+compose run --rm --entrypoint certbot certbot renew --quiet
 
 # Gracefully reload Nginx to load newly issued certificate
 echo "[+] Reloading Nginx configuration without connection drop..."
-docker compose -f "${COMPOSE_FILE}" exec nginx nginx -s reload
+compose exec nginx nginx -s reload
 
 echo "[✓] SSL Renewal Verification Complete."

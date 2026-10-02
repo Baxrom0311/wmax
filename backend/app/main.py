@@ -8,15 +8,22 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai.factory import build_ai_provider
+from app.api.access import router as access_router
 from app.api.ai_clinical import router as ai_clinical_router
+from app.api.alerts import router as alerts_router
+from app.api.billing import contract_router as billing_contract_router
 from app.api.billing import router as billing_router
 from app.api.devices import router as devices_router
 from app.api.health import router as health_router
 from app.api.ingest import router as ingest_router
+from app.api.orphans import router as orphans_router
 from app.api.patients import router as patients_router
 from app.api.profile import router as profile_router
+from app.api.platform import router as platform_router
+from app.api.realtime import router as realtime_router
 from app.api.relatives import router as relatives_router
 from app.api.sos import router as sos_router
+from app.api.surveys import router as surveys_router
 from app.api.tasks import router as tasks_router
 from app.auth.router import router as auth_router
 from app.core.config import settings, validate_production_settings
@@ -27,6 +34,7 @@ from app.core.exceptions import (
     generic_exception_handler,
     validation_exception_handler,
 )
+from app.core.realtime import realtime_hub
 from app.core.logging import setup_logging
 from app.middleware.logging_middleware import AccessLoggingMiddleware
 from app.middleware.metrics_middleware import PrometheusMiddleware
@@ -65,11 +73,14 @@ async def lifespan(app: FastAPI):
     # Start background workers
     worker_manager.start_workers()
     logger.info("Background workers: STARTED")
+    realtime_hub.start_stream_bridge()
+    logger.info("Realtime bridge: %s", settings.REALTIME_TRANSPORT)
 
     yield
 
     # Graceful shutdown
     logger.info("WMAX API shutting down...")
+    await realtime_hub.stop_stream_bridge()
     await worker_manager.stop_workers()
     logger.info("Background workers: STOPPED")
 
@@ -186,14 +197,21 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
+app.include_router(access_router)
 app.include_router(ingest_router)
+app.include_router(orphans_router)
+app.include_router(alerts_router)
 app.include_router(patients_router)
 app.include_router(ai_clinical_router)
 app.include_router(profile_router)
+app.include_router(surveys_router)
+app.include_router(platform_router)
+app.include_router(realtime_router)
 app.include_router(sos_router)
 app.include_router(tasks_router)
 app.include_router(relatives_router)
 app.include_router(billing_router)
+app.include_router(billing_contract_router)
 app.include_router(devices_router)
 # /health, /ready, /live and /metrics — scraped by Prometheus and used as the
 # container healthcheck.
@@ -235,4 +253,3 @@ async def get_api_redoc() -> HTMLResponse:
         title=f"{app.title} - ReDoc",
         redoc_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
     )
-

@@ -11,7 +11,7 @@ FULL_ACCESS_ROLES = frozenset({"doctor", "admin"})
 # Sentinel meaning "every field on this table".
 ALL_FIELDS = frozenset({"*"})
 
-# Single source of truth for write authorization (docs/WMAX.md §6.2):
+# Single source of truth for write authorization:
 # table -> role -> writable fields.
 #
 # A role absent from a table's map cannot write that table at all. This is

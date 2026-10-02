@@ -26,6 +26,7 @@ from app.repositories.user_repo import UserRepository
 from app.schemas.auth import LoginRequest, PatientLoginRequest, RefreshRequest, RelativeLoginRequest, TokenPair
 from app.schemas.common import CLINICIAN_ROLES
 from app.schemas.relative import RelativeLoginResponse, RelativePatientItem
+from app.services.sms import now_utc, send_sms_code, should_return_dev_code
 
 ALLOWED_TOKEN_ROLES: frozenset[str] = CLINICIAN_ROLES | {"relative", "patient"}
 
@@ -34,7 +35,7 @@ ALLOWED_TOKEN_ROLES: frozenset[str] = CLINICIAN_ROLES | {"relative", "patient"}
 DUMMY_PASSWORD_HASH = "$2b$12$4HdxV6TY.jIgSenOSWI2OuLghz5KbdKxukZvYzt5iJeMYNjlHBVXu"
 DUMMY_PIN_HASH = "$2b$12$Ay8VCjQ80uP/2PYTTPz3ru0/p2Dei8B74mpkKzSWl4NDwtld9qUmC"
 
-# Demo fallback accounts per AGENTS.md contract.
+# Demo fallback accounts.
 # These bypass the user table entirely, so they are only consulted when
 # settings.ENABLE_DEMO_ACCOUNTS is on — never in a production deployment.
 DEMO_CREDENTIALS: dict[str, dict[str, Any]] = {
@@ -70,6 +71,8 @@ DEMO_CREDENTIALS: dict[str, dict[str, Any]] = {
 
 INVALID_CREDENTIALS_MESSAGE = "Telefon raqami yoki parol noto'g'ri"
 INVALID_PIN_MESSAGE = "PIN-kod yoki telefon raqami noto'g'ri"
+SMS_CODE_TTL_SECONDS = 300
+_SMS_CODES: dict[str, tuple[str, datetime]] = {}
 
 
 class AuthService:
@@ -81,6 +84,62 @@ class AuthService:
         self.relative_repo = RelativeRepository(session)
         self.patient_repo = PatientRepository(session)
         self.token_repo = RefreshTokenRepository(session)
+
+    async def request_code(self, phone: str) -> tuple[int, str | None]:
+        normalized_phone = phone.strip()
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        expires_at = now_utc() + timedelta(seconds=SMS_CODE_TTL_SECONDS)
+        _SMS_CODES[normalized_phone] = (code, expires_at)
+        await send_sms_code(phone=normalized_phone, code=code, expires_at=expires_at)
+        return SMS_CODE_TTL_SECONDS, code if should_return_dev_code() else None
+
+    async def verify_code(self, phone: str, code: str) -> TokenPair:
+        normalized_phone = phone.strip()
+        stored = _SMS_CODES.get(normalized_phone)
+        if not stored or stored[0] != code or stored[1] < now_utc():
+            raise AuthenticationException("SMS kod noto'g'ri yoki muddati o'tgan")
+        _SMS_CODES.pop(normalized_phone, None)
+
+        user = await self.user_repo.get_by_phone(normalized_phone)
+        if user:
+            tenant_roles = await self.user_repo.accounts.get_active_tenant_roles(user.id)
+            role = tenant_roles[0].role if tenant_roles else getattr(user, "role", None)
+            if role not in CLINICIAN_ROLES:
+                raise AuthenticationException("Klinika a'zoligi topilmadi")
+            return await self._issue_token_pair(
+                user_id=user.id,
+                full_name=user.full_name,
+                role=role,
+                district=getattr(user, "district", None),
+                phone=normalized_phone,
+                tenant_ids=[member.tenant_id for member in tenant_roles],
+            )
+
+        assignments = await self.relative_repo.get_assigned_patients(normalized_phone)
+        if assignments:
+            principal = assignments[0][0]
+            principal_id = getattr(principal, "account_id", None) or principal.id
+            return await self._issue_token_pair(
+                user_id=principal_id,
+                full_name=getattr(principal, "full_name", "Qarovchi"),
+                role="relative",
+                district=None,
+                phone=normalized_phone,
+                patient_ids=[patient.id for _relative, patient in assignments],
+            )
+
+        patient = await self.patient_repo.get_by_phone(normalized_phone)
+        if patient:
+            return await self._issue_token_pair(
+                user_id=patient.id,
+                full_name=patient.full_name,
+                role="patient",
+                district=getattr(patient, "district", None),
+                phone=normalized_phone,
+                patient_ids=[patient.id],
+            )
+
+        raise AuthenticationException("Hisob topilmadi")
 
     async def login(
         self,
@@ -102,10 +161,14 @@ class AuthService:
                 raise AuthenticationException("Hisob faol emas")
             if not verify_password(req.password, user.password_hash):
                 raise AuthenticationException(INVALID_CREDENTIALS_MESSAGE)
+            tenant_roles = await self.user_repo.accounts.get_active_tenant_roles(user.id)
+            tenant_ids = [member.tenant_id for member in tenant_roles]
             user_id = user.id
             full_name = user.full_name
-            role = user.role
-            district = user.district
+            role = tenant_roles[0].role if tenant_roles else getattr(user, "role", None)
+            if role not in CLINICIAN_ROLES:
+                raise AuthenticationException("Klinika a'zoligi topilmadi")
+            district = getattr(user, "district", None)
         elif settings.ENABLE_DEMO_ACCOUNTS:
             demo = DEMO_CREDENTIALS.get(normalized_phone)
             if not demo or not (
@@ -117,6 +180,7 @@ class AuthService:
             full_name = demo["full_name"]
             role = demo["role"]
             district = demo["district"]
+            tenant_ids = []
         else:
             # Burn a bcrypt round so an unknown phone number is not
             # distinguishable from a wrong password by response time.
@@ -128,6 +192,7 @@ class AuthService:
             full_name=full_name,
             role=role,
             district=district,
+            tenant_ids=tenant_ids,
         )
 
     async def relative_login(
@@ -166,6 +231,7 @@ class AuthService:
             role="relative",
             district=None,
             phone=normalized_phone,
+            patient_ids=[patient.id for _relative, patient in assignments],
         )
 
         return RelativeLoginResponse(
@@ -196,6 +262,7 @@ class AuthService:
             role="patient",
             district=patient.district,
             phone=normalized_phone,
+            patient_ids=[patient.id],
         )
 
     async def _build_patient_items(
@@ -257,6 +324,8 @@ class AuthService:
             raise AuthenticationException("Token tarkibi buzuq")
         district = payload.get("district")
         phone = payload.get("phone")
+        tenant_ids = [uuid.UUID(item) for item in payload.get("tenant_ids", [])]
+        patient_ids = [uuid.UUID(item) for item in payload.get("patient_ids", [])]
 
         return await self._issue_token_pair(
             user_id=user_id,
@@ -264,6 +333,8 @@ class AuthService:
             role=role,
             district=district,
             phone=phone,
+            tenant_ids=tenant_ids,
+            patient_ids=patient_ids,
         )
 
     async def revoke_token(self, refresh_token_str: str) -> None:
@@ -281,12 +352,16 @@ class AuthService:
         role: str,
         district: str | None,
         phone: str | None = None,
+        tenant_ids: list[uuid.UUID] | None = None,
+        patient_ids: list[uuid.UUID] | None = None,
     ) -> TokenPair:
         claims = {
             "full_name": full_name,
             "role": role,
             "district": district,
             "phone": phone,
+            "tenant_ids": [str(item) for item in tenant_ids or []],
+            "patient_ids": [str(item) for item in patient_ids or []],
         }
 
         access_token = create_access_token(

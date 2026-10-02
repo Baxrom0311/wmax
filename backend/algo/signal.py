@@ -179,8 +179,8 @@ def evaluate_alert(
     composite = round(composite, 2)
 
     # 4. Persistence verification across consecutive windows (3 windows = 15 mins)
-    is_persistent = True
-    if recent_zscores and len(recent_zscores) >= 2:
+    is_persistent = len(recent_zscores) >= 2
+    if is_persistent:
         for past_z in recent_zscores:
             past_triggered = any(
                 abs(past_z.get(p, 0)) > Z_DEADZONE for p in triggered.keys()

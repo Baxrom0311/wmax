@@ -3,12 +3,12 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.cache import ai_cache
 from app.ai.clinical_ai import ClinicalAIService
-from app.auth.deps import CurrentUser, require_clinician, require_doctor
+from app.auth.deps import CurrentUser, require_clinician
+from app.auth.scope import assert_patient_access
 from app.core.db import get_session
 from app.core.exceptions import NotFoundException
 from app.schemas.problem import NurseHandoverSBAR, TwinPrognosisInfo
@@ -33,6 +33,7 @@ async def get_patient_twin_prognosis(
     db: AsyncSession = Depends(get_session),
 ) -> Any:
     """Evaluates 72-hour clinical prognosis over complete digital twin context (Section 8.3 & 8.4)."""
+    await assert_patient_access(db, clinician, id)
     builder = PatientContextBuilder(db)
     ctx = await builder.build(id)
     if not ctx:
@@ -58,6 +59,7 @@ async def get_nurse_handover(
     db: AsyncSession = Depends(get_session),
 ) -> Any:
     """Generates an actionable SBAR report and priority checklist for on-duty nurses."""
+    await assert_patient_access(db, clinician, id)
     builder = PatientContextBuilder(db)
     ctx = await builder.build(id)
     if not ctx:

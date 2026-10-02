@@ -30,6 +30,20 @@ class RefreshRequest(BaseModel):
     refresh_token: str = Field(..., description="Valid refresh token")
 
 
+class RequestCodeRequest(BaseModel):
+    phone: str = Field(..., description="Phone number e.g. +998901234567")
+
+
+class RequestCodeResponse(BaseModel):
+    expires_in: int
+    dev_code: str | None = None
+
+
+class VerifyCodeRequest(BaseModel):
+    phone: str = Field(..., description="Phone number e.g. +998901234567")
+    code: str = Field(..., min_length=4, max_length=10)
+
+
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
@@ -44,6 +58,8 @@ class CurrentUser(BaseModel):
     role: AuthRole
     district: str | None = None
     phone: str | None = None
+    tenant_ids: list[UUID] = Field(default_factory=list)
+    patient_ids: list[UUID] = Field(default_factory=list)
 
 
 class LogoutResponse(BaseModel):

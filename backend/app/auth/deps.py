@@ -5,7 +5,10 @@ from typing import Literal
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db import get_session
+from app.core.rls import set_rls_context
 from app.core.security import decode_token
 from app.schemas.auth import CurrentUser
 from app.schemas.common import CLINICIAN_ROLES
@@ -19,6 +22,18 @@ CREDENTIALS_EXCEPTION = HTTPException(
     detail="Token yaroqsiz yoki muddati o'tgan",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
+
+def _uuid_list(raw: object) -> list[uuid.UUID]:
+    if not isinstance(raw, list):
+        return []
+    values: list[uuid.UUID] = []
+    for item in raw:
+        try:
+            values.append(uuid.UUID(str(item)))
+        except (ValueError, TypeError):
+            continue
+    return values
 
 
 def _decode_bearer(credentials: HTTPAuthorizationCredentials | None) -> CurrentUser:
@@ -48,24 +63,44 @@ def _decode_bearer(credentials: HTTPAuthorizationCredentials | None) -> CurrentU
     if role not in CLINICIAN_ROLES and role not in {"relative", "patient"}:
         raise CREDENTIALS_EXCEPTION
 
+    tenant_ids = _uuid_list(payload.get("tenant_ids"))
+    patient_ids = _uuid_list(payload.get("patient_ids"))
+
     return CurrentUser(
         id=user_id,
         full_name=payload.get("full_name", "Noma'lum"),
         role=role,
         district=payload.get("district"),
         phone=payload.get("phone"),
+        tenant_ids=tenant_ids,
+        patient_ids=patient_ids,
     )
+
+
+async def _apply_rls_context(
+    principal: CurrentUser, session: AsyncSession | object
+) -> CurrentUser:
+    if hasattr(session, "execute"):
+        await set_rls_context(
+            session,  # type: ignore[arg-type]
+            account_id=principal.id if principal.role != "patient" else None,
+            tenant_ids=principal.tenant_ids,
+            patient_ids=principal.patient_ids,
+        )
+    return principal
 
 
 async def get_current_principal(
     credentials: HTTPAuthorizationCredentials | None = Security(security_scheme),
+    session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
     """Any authenticated principal — clinician, caregiver, or patient."""
-    return _decode_bearer(credentials)
+    return await _apply_rls_context(_decode_bearer(credentials), session)
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Security(security_scheme),
+    session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
     """Authenticated clinical staff only (doctor, nurse, admin, dispatcher).
 
@@ -78,11 +113,12 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ushbu amalni bajarish uchun yetarli huquq yo'q",
         )
-    return principal
+    return await _apply_rls_context(principal, session)
 
 
 async def get_current_relative(
     credentials: HTTPAuthorizationCredentials | None = Security(security_scheme),
+    session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
     """Authenticated caregiver only."""
     principal = _decode_bearer(credentials)
@@ -91,11 +127,12 @@ async def get_current_relative(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ushbu amalni bajarish uchun yetarli huquq yo'q",
         )
-    return principal
+    return await _apply_rls_context(principal, session)
 
 
 async def get_current_patient(
     credentials: HTTPAuthorizationCredentials | None = Security(security_scheme),
+    session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
     """Authenticated patient only."""
     principal = _decode_bearer(credentials)
@@ -104,7 +141,7 @@ async def get_current_patient(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ushbu amalni bajarish uchun yetarli huquq yo'q",
         )
-    return principal
+    return await _apply_rls_context(principal, session)
 
 
 def require_role(*roles: Role):
@@ -124,3 +161,4 @@ def require_role(*roles: Role):
 require_doctor = require_role("doctor", "admin")
 require_clinician = require_role("doctor", "nurse", "admin", "dispatcher")
 require_dispatcher = require_role("dispatcher", "doctor", "admin")
+require_admin = require_role("admin")

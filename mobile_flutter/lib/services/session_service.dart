@@ -21,7 +21,10 @@ class SessionService {
   static Future<String> getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_keyBaseUrl);
-    if (saved == null || saved.isEmpty || saved.contains('10.0.2.2') || saved.contains('127.0.0.1')) {
+    if (saved == null ||
+        saved.isEmpty ||
+        saved.contains('10.0.2.2') ||
+        saved.contains('127.0.0.1')) {
       return _defaultLiveUrl;
     }
     return saved;
@@ -89,7 +92,9 @@ class SessionService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = jsonDecode(raw) as List;
-      return list.map((p) => PatientSummary.fromJson(p as Map<String, dynamic>)).toList();
+      return list
+          .map((p) => PatientSummary.fromJson(p as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }

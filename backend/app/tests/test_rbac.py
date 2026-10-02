@@ -9,6 +9,7 @@ from app.auth.deps import (
     get_current_user,
     require_doctor,
     require_clinician,
+    require_admin,
 )
 from app.core.security import create_access_token
 
@@ -92,3 +93,30 @@ async def test_caregiver_endpoint_requires_relative_role():
     )
     rel_user = await get_current_relative(credentials=_cred(rel_tok))
     assert rel_user.role == "relative"
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_dependency_rejects_doctor():
+    doc_tok = create_access_token(
+        subject=str(uuid.uuid4()),
+        claims={"role": "doctor", "full_name": "Dr. Bahrom"},
+    )
+    doc_user = await get_current_user(credentials=_cred(doc_tok))
+
+    with pytest.raises(HTTPException) as exc:
+        await require_admin(current_user=doc_user)
+
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_dependency_allows_admin():
+    admin_tok = create_access_token(
+        subject=str(uuid.uuid4()),
+        claims={"role": "admin", "full_name": "Admin"},
+    )
+    admin_user = await get_current_user(credentials=_cred(admin_tok))
+
+    res = await require_admin(current_user=admin_user)
+
+    assert res.role == "admin"

@@ -34,18 +34,7 @@ if str(_backend_dir) not in sys.path:
 # Import Base with all models registered on its metadata.
 # app/db/base.py explicitly imports every model so that Base.metadata is full.
 # ---------------------------------------------------------------------------
-from app.db.base import (  # noqa: E402  (import after sys.path manipulation)
-    Alert,
-    Base,
-    Baseline,
-    Notification,
-    Patient,
-    Reading,
-    RefreshToken,
-    Relative,
-    Task,
-    User,
-)
+from app.db.base import Base  # noqa: E402  (import after sys.path manipulation)
 
 # ---------------------------------------------------------------------------
 # Alembic Config object — gives access to values in alembic.ini

@@ -6,6 +6,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [ "$EUID" -ne 0 ]; then
   echo "[-] ERROR: This provisioning script must be run as root (sudo)." >&2
   exit 1
@@ -141,8 +143,8 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd
 sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 systemctl restart ssh || systemctl restart sshd
 
-# 9. Docker Logrotate Setup
-echo "[9/9] Configuring Docker container logrotate..."
+# 9. Docker logrotate and backup verification timers
+echo "[9/10] Configuring Docker logrotate and backup verification..."
 cat << 'EOF' > /etc/logrotate.d/docker-containers
 /var/lib/docker/containers/*/*-json.log {
     rotate 5
@@ -157,6 +159,13 @@ EOF
 
 mkdir -p /opt/wmax/backups /opt/wmax/logs
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/wmax
+
+install -m 0644 "${SCRIPT_DIR}/systemd/wmax-backup.service" /etc/systemd/system/
+install -m 0644 "${SCRIPT_DIR}/systemd/wmax-backup.timer" /etc/systemd/system/
+install -m 0644 "${SCRIPT_DIR}/systemd/wmax-restore-verify.service" /etc/systemd/system/
+install -m 0644 "${SCRIPT_DIR}/systemd/wmax-restore-verify.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now wmax-backup.timer wmax-restore-verify.timer
 
 echo "========================================================"
 echo "[✓] Enterprise Provisioning Complete!"

@@ -66,8 +66,14 @@ _DEFAULTS: dict[str, object] = {
     # entirely (tests, or a deployment that runs them in a dedicated service).
     "ENABLE_WORKERS": _env_bool("ENABLE_WORKERS", os.getenv("ENV", "production") != "testing"),
     "WORKER_LOCK_ID": int(os.getenv("WORKER_LOCK_ID", "874113001")),
+    # ── Realtime transport ──────────────────────────────────────────────────
+    "REALTIME_TRANSPORT": os.getenv("REALTIME_TRANSPORT", "memory"),
+    "REALTIME_STREAM_KEY": os.getenv("REALTIME_STREAM_KEY", "wmax:realtime"),
+    "REDIS_URL": os.getenv("REDIS_URL", ""),
     # ── Outbound notifications ───────────────────────────────────────────────
     "TELEGRAM_BOT_TOKEN": os.getenv("TELEGRAM_BOT_TOKEN", ""),
+    "PAYMENT_WEBHOOK_SECRET": os.getenv("PAYMENT_WEBHOOK_SECRET", ""),
+    "SMS_PROVIDER": os.getenv("SMS_PROVIDER", "log"),
     # ── AI assistant ─────────────────────────────────────────────────────────
     # Which LLM backs the clinical prognosis and the Telegram assistant.
     # "deepseek" | "gemini"
@@ -118,8 +124,13 @@ try:
         RELATIVE_TOKEN_TTL_DAYS: int = _DEFAULTS["RELATIVE_TOKEN_TTL_DAYS"]  # type: ignore[assignment]
         ENABLE_WORKERS: bool = _DEFAULTS["ENABLE_WORKERS"]  # type: ignore[assignment]
         WORKER_LOCK_ID: int = _DEFAULTS["WORKER_LOCK_ID"]  # type: ignore[assignment]
+        REALTIME_TRANSPORT: Literal["memory", "redis_streams"] = _DEFAULTS["REALTIME_TRANSPORT"]  # type: ignore[assignment]
+        REALTIME_STREAM_KEY: str = _DEFAULTS["REALTIME_STREAM_KEY"]  # type: ignore[assignment]
+        REDIS_URL: str = _DEFAULTS["REDIS_URL"]  # type: ignore[assignment]
 
         TELEGRAM_BOT_TOKEN: str = _DEFAULTS["TELEGRAM_BOT_TOKEN"]  # type: ignore[assignment]
+        PAYMENT_WEBHOOK_SECRET: str = _DEFAULTS["PAYMENT_WEBHOOK_SECRET"]  # type: ignore[assignment]
+        SMS_PROVIDER: str = _DEFAULTS["SMS_PROVIDER"]  # type: ignore[assignment]
 
         AI_PROVIDER: Literal["deepseek", "gemini"] = _DEFAULTS["AI_PROVIDER"]  # type: ignore[assignment]
         DEEPSEEK_API_KEY: str = _DEFAULTS["DEEPSEEK_API_KEY"]  # type: ignore[assignment]
@@ -175,6 +186,12 @@ def validate_production_settings(cfg: Settings = settings) -> None:
         problems.append("ENABLE_DEMO_ACCOUNTS must be off in production")
     if not cfg.INGEST_API_KEY:
         problems.append("INGEST_API_KEY is required to authenticate device uploads")
+    if getattr(cfg, "SMS_PROVIDER", "log") == "log":
+        problems.append("SMS_PROVIDER must point to a real provider in production")
+    if getattr(cfg, "REALTIME_TRANSPORT", "memory") == "memory":
+        problems.append("REALTIME_TRANSPORT must be redis_streams in production")
+    if getattr(cfg, "REALTIME_TRANSPORT", "memory") == "redis_streams" and not getattr(cfg, "REDIS_URL", ""):
+        problems.append("REDIS_URL is required for redis_streams realtime transport")
 
     if problems:
         raise InsecureConfigurationError(

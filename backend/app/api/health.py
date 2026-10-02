@@ -59,6 +59,7 @@ async def health():
 
 
 @router.get("/ready")
+@router.get("/api/v1/health/ready")
 async def readiness_probe(response: Response):
     """Readiness probe: verifies critical dependencies (DB) before accepting traffic."""
     db_ok = await check_db_connection()
@@ -76,6 +77,7 @@ async def liveness_probe():
 
 
 @router.get("/metrics")
+@router.get("/api/v1/metrics")
 async def metrics():
     """Prometheus exposition format endpoint."""
     body, content_type = render_metrics()

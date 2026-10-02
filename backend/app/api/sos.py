@@ -11,14 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import (
     CurrentUser,
-    get_current_patient,
     get_current_principal,
-    get_current_user,
     require_clinician,
 )
-from app.auth.device import verify_ingest_key
+from app.auth.scope import assert_patient_access
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.security import decode_token
+from app.schemas.common import CLINICIAN_ROLES
 from app.schemas.sos import (
     SosAcknowledgeRequest,
     SosDispatchRequest,
@@ -30,6 +30,52 @@ from app.schemas.sos import (
 from app.services.sos_service import SosService
 
 router = APIRouter(tags=["sos"])
+
+
+def _uuid_list(raw: object) -> list[uuid.UUID]:
+    if not isinstance(raw, list):
+        return []
+    values: list[uuid.UUID] = []
+    for item in raw:
+        try:
+            values.append(uuid.UUID(str(item)))
+        except (TypeError, ValueError):
+            continue
+    return values
+
+
+def _tenant_scope(clinician: CurrentUser) -> list[uuid.UUID] | None:
+    return None if clinician.role == "admin" else clinician.tenant_ids
+
+
+def _principal_from_authorization(auth_header: str | None) -> CurrentUser:
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="SOS yuborish uchun X-Ingest-Key yoki Bearer token talab qilinadi",
+        )
+    try:
+        payload = decode_token(auth_header.split(" ", 1)[1].strip())
+        if payload.get("type") != "access":
+            raise ValueError("not an access token")
+        role = payload.get("role")
+        if role not in CLINICIAN_ROLES and role not in {"relative", "patient"}:
+            raise ValueError("unsupported role")
+        return CurrentUser(
+            id=uuid.UUID(str(payload["sub"])),
+            full_name=payload.get("full_name", "Noma'lum"),
+            role=role,
+            district=payload.get("district"),
+            phone=payload.get("phone"),
+            tenant_ids=_uuid_list(payload.get("tenant_ids")),
+            patient_ids=_uuid_list(payload.get("patient_ids")),
+        )
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token yaroqsiz yoki muddati o'tgan",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from err
 
 
 @router.post(
@@ -53,13 +99,8 @@ async def raise_sos_endpoint(
             has_valid_key = True
 
     if not has_valid_key:
-        # Fall back to checking Bearer token
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="SOS yuborish uchun X-Ingest-Key yoki Bearer token talab qilinadi",
-            )
+        principal = _principal_from_authorization(request.headers.get("Authorization"))
+        await assert_patient_access(db, principal, req.patient_id)
 
     service = SosService(db)
     event = await service.raise_sos(
@@ -101,7 +142,7 @@ async def get_active_sos_endpoint(
     db: AsyncSession = Depends(get_session),
 ) -> Any:
     service = SosService(db)
-    return await service.get_active_sos()
+    return await service.get_active_sos(tenant_ids=_tenant_scope(clinician))
 
 
 @router.post(
@@ -115,7 +156,11 @@ async def acknowledge_sos_endpoint(
     db: AsyncSession = Depends(get_session),
 ) -> Any:
     service = SosService(db)
-    event = await service.acknowledge_sos(sos_id=id, user_id=clinician.id)
+    event = await service.acknowledge_sos(
+        sos_id=id,
+        user_id=clinician.id,
+        tenant_ids=_tenant_scope(clinician),
+    )
     await db.commit()
     await db.refresh(event)
     return event
@@ -138,6 +183,7 @@ async def dispatch_sos_endpoint(
         dispatch_method=req.dispatch_method,
         dispatch_ref=req.dispatch_ref,
         user_id=clinician.id,
+        tenant_ids=_tenant_scope(clinician),
     )
     await db.commit()
     await db.refresh(event)
@@ -161,6 +207,7 @@ async def resolve_sos_endpoint(
         resolution_note=req.resolution_note,
         user_id=clinician.id,
         status=req.status,
+        tenant_ids=_tenant_scope(clinician),
     )
     await db.commit()
     await db.refresh(event)
@@ -177,10 +224,7 @@ async def get_patient_sos_history_endpoint(
     principal: CurrentUser = Depends(get_current_principal),
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    # Patients and relatives can only see their own history
-    if principal.role in ("patient", "relative") and principal.id != id:
-        # Caregiver access is checked against patient link
-        pass
+    await assert_patient_access(db, principal, id)
     service = SosService(db)
     return await service.get_patient_sos_history(id)
 
@@ -198,7 +242,7 @@ async def stream_sos_events_endpoint(
         service = SosService(db)
         while True:
             try:
-                active = await service.get_active_sos()
+                active = await service.get_active_sos(tenant_ids=_tenant_scope(clinician))
                 # Serialize to SSE
                 clean_data = [
                     {k: str(v) if isinstance(v, uuid.UUID) else v for k, v in item.items()}

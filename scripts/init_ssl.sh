@@ -7,6 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker/compose/docker-compose.yml"
+COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-compose}"
+compose() { docker compose -p "${COMPOSE_PROJECT}" --profile edge -f "${COMPOSE_FILE}" "$@"; }
 cd "${ROOT_DIR}"
 
 # Load domain and email from .env safely
@@ -31,7 +33,7 @@ DATA_PATH="./certbot_data"
 
 # Create dummy certificates first if none exist
 echo "[+] Step 1: Creating temporary dummy certificates..."
-docker compose -f "${COMPOSE_FILE}" run --rm --entrypoint "\
+compose run --rm --entrypoint "\
   mkdir -p /etc/letsencrypt/live/wmax && \
   openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
     -keyout '/etc/letsencrypt/live/wmax/privkey.pem' \
@@ -39,10 +41,10 @@ docker compose -f "${COMPOSE_FILE}" run --rm --entrypoint "\
     -subj '/CN=localhost'" certbot
 
 echo "[+] Step 2: Starting Nginx..."
-docker compose -f "${COMPOSE_FILE}" up -d --force-recreate nginx
+compose up -d --force-recreate nginx
 
 echo "[+] Step 3: Removing dummy certificates..."
-docker compose -f "${COMPOSE_FILE}" run --rm --entrypoint "\
+compose run --rm --entrypoint "\
   rm -rf /etc/letsencrypt/live/wmax" certbot
 
 echo "[+] Step 4: Requesting genuine Let's Encrypt certificate..."
@@ -51,7 +53,7 @@ if [ "${STAGING}" != "0" ]; then
   STAGING_ARG="--staging"
 fi
 
-docker compose -f "${COMPOSE_FILE}" run --rm --entrypoint "\
+compose run --rm --entrypoint "\
   certbot certonly --webroot -w /var/www/certbot \
     ${STAGING_ARG} \
     --email ${EMAIL} \
@@ -63,6 +65,6 @@ docker compose -f "${COMPOSE_FILE}" run --rm --entrypoint "\
     --force-renewal" certbot
 
 echo "[+] Step 5: Reloading Nginx with new certificate..."
-docker compose -f "${COMPOSE_FILE}" exec nginx nginx -s reload
+compose exec nginx nginx -s reload
 
 echo "[✓] Let's Encrypt SSL successfully configured for ${DOMAIN}!"

@@ -3,15 +3,18 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Sequence
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ForbiddenException, NotFoundException, ValidationException
+from app.models import PatientMembership
 from app.models.patient import Patient
 from app.models.sos import SosEvent
 from app.repositories.sos_repo import SosRepository
 from app.services.emergency.dispatcher import EmergencyDispatcher, ManualDispatch
+from app.services.live_event_service import LiveEventService
 from app.services.patient_context import PatientContextBuilder
 
 logger = logging.getLogger("wmax.sos.service")
@@ -99,6 +102,7 @@ class SosService:
             f"🚨 SOS RAISED for Patient {context.full_name} ({patient_id}), "
             f"event={event.id}, source={source}"
         )
+        await LiveEventService(self.session).publish_sos(event, action="raised")
         return event
 
     async def cancel_sos(
@@ -126,21 +130,25 @@ class SosService:
         event.cancelled_at = now
         await self.session.flush()
         logger.info(f"SOS {sos_id} was successfully cancelled by patient within {int(elapsed)}s")
+        await LiveEventService(self.session).publish_sos(event, action="cancelled")
         return event
 
     async def acknowledge_sos(
         self,
         sos_id: uuid.UUID,
         user_id: uuid.UUID,
+        tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> SosEvent:
         event = await self.sos_repo.get_by_id(sos_id)
         if not event:
             raise NotFoundException("SOS hodisasi topilmadi")
+        await self._assert_event_scope(event, tenant_ids)
 
         event.status = "acknowledged"
         event.acknowledged_at = datetime.now(timezone.utc)
         event.acknowledged_by = user_id
         await self.session.flush()
+        await LiveEventService(self.session).publish_sos(event, action="acknowledged")
         return event
 
     async def dispatch_sos(
@@ -149,10 +157,12 @@ class SosService:
         dispatch_method: str = "manual_call_103",
         dispatch_ref: str | None = None,
         user_id: uuid.UUID | None = None,
+        tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> SosEvent:
         event = await self.sos_repo.get_by_id(sos_id)
         if not event:
             raise NotFoundException("SOS hodisasi topilmadi")
+        await self._assert_event_scope(event, tenant_ids)
 
         event.status = "dispatched"
         event.dispatched_at = datetime.now(timezone.utc)
@@ -161,6 +171,7 @@ class SosService:
         if user_id:
             event.acknowledged_by = event.acknowledged_by or user_id
         await self.session.flush()
+        await LiveEventService(self.session).publish_sos(event, action="dispatched")
         return event
 
     async def resolve_sos(
@@ -169,20 +180,23 @@ class SosService:
         resolution_note: str,
         user_id: uuid.UUID,
         status: str = "resolved",
+        tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> SosEvent:
         event = await self.sos_repo.get_by_id(sos_id)
         if not event:
             raise NotFoundException("SOS hodisasi topilmadi")
+        await self._assert_event_scope(event, tenant_ids)
 
         event.status = status  # type: ignore[assignment]
         event.resolved_at = datetime.now(timezone.utc)
         event.resolved_by = user_id
         event.resolution_note = resolution_note
         await self.session.flush()
+        await LiveEventService(self.session).publish_sos(event, action=status)
         return event
 
-    async def get_active_sos(self) -> list[dict[str, Any]]:
-        events = await self.sos_repo.list_active()
+    async def get_active_sos(self, tenant_ids: Sequence[uuid.UUID] | None = None) -> list[dict[str, Any]]:
+        events = await self.sos_repo.list_active(tenant_ids=tenant_ids)
         results: list[dict[str, Any]] = []
         for ev in events:
             pat = await self.session.get(Patient, ev.patient_id)
@@ -215,3 +229,24 @@ class SosService:
 
     async def get_patient_sos_history(self, patient_id: uuid.UUID) -> list[SosEvent]:
         return await self.sos_repo.list_by_patient(patient_id)
+
+    async def _assert_event_scope(
+        self,
+        event: SosEvent,
+        tenant_ids: Sequence[uuid.UUID] | None,
+    ) -> None:
+        if tenant_ids is None:
+            return
+        if not tenant_ids:
+            raise ForbiddenException("Bu SOS hodisasi bo'yicha amal bajarish huquqi yo'q")
+        membership_id = (
+            await self.session.execute(
+                select(PatientMembership.id).where(
+                    PatientMembership.patient_id == event.patient_id,
+                    PatientMembership.tenant_id.in_(list(tenant_ids)),
+                    PatientMembership.revoked_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if membership_id is None:
+            raise ForbiddenException("Bu SOS hodisasi bo'yicha amal bajarish huquqi yo'q")

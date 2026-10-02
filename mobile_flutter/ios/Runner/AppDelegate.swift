@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import HealthKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,6 +9,10 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    if let registrar = self.registrar(forPlugin: "HealthKitBridge") {
+      HealthKitBridge.register(with: registrar)
+    }
+    return launched
   }
 }

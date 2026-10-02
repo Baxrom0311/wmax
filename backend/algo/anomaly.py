@@ -7,11 +7,12 @@ and NEVER affect the clinical AlertLevel (domain decision: advisory only).
 from __future__ import annotations
 
 import io
-from typing import Any
+import logging
 
 from algo_interface import ReadingVec
 
 FEATURE_NAMES = ["hr_mean", "spo2", "skin_temp", "rmssd", "rr_est", "steps", "sleep_frag"]
+logger = logging.getLogger(__name__)
 
 
 def _extract_features(reading: ReadingVec) -> list[float]:
@@ -49,7 +50,8 @@ def fit_anomaly_model(readings: list[ReadingVec]) -> bytes:
         buf = io.BytesIO()
         joblib.dump(model, buf)
         return buf.getvalue()
-    except Exception:
+    except Exception as exc:
+        logger.warning("Advisory anomaly model fitting failed: %s", exc)
         return b""
 
 
@@ -69,5 +71,6 @@ def score_anomaly(model_blob: bytes, reading: ReadingVec) -> float:
         # Map roughly from [-0.5, +0.5] to [1.0, 0.0]
         normalized = max(0.0, min(1.0, 0.5 - raw_score))
         return round(normalized, 2)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Advisory anomaly model scoring failed: %s", exc)
         return 0.0

@@ -6,7 +6,8 @@ import '../api/api_service.dart';
 import '../widgets/vitals_card.dart';
 import '../widgets/watch_sheet.dart';
 import '../widgets/language_selector.dart';
-import '../services/wear_bridge_service.dart';
+import '../services/native_health_bridge.dart';
+import '../services/device_credential_store.dart';
 
 class CaregiverMainDashboard extends StatefulWidget {
   final bool isUzbek;
@@ -29,6 +30,7 @@ class CaregiverMainDashboard extends StatefulWidget {
 }
 
 class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
+  String? _wearDeviceToken;
   int _currentTabIndex = 0;
   late List<PatientSummary> _patients;
   int _selectedPatientIndex = 0;
@@ -40,8 +42,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
   final List<Map<String, dynamic>> _alerts = [];
 
   Timer? _autoRefreshTimer;
-  final WearBridgeService _wearBridge = WearBridgeService();
-  bool _wearConnected = false;
+  bool _wearQueueSyncRunning = false;
 
   @override
   void initState() {
@@ -70,42 +71,49 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
           ];
 
     _fetchCurrentPatientData();
-    _startWearBridge();
+    _loadWearDeviceCredential();
+    _syncWearQueue();
 
     // Auto-refresh telemetry every 15 seconds
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (mounted) {
         _fetchCurrentPatientData(silent: true);
+        _syncWearQueue();
       }
     });
+  }
+
+  Future<void> _loadWearDeviceCredential() async {
+    try {
+      final token = await DeviceCredentialStore.read();
+      if (!mounted) return;
+      setState(() => _wearDeviceToken = token);
+      await _syncWearQueue();
+    } catch (_) {
+      // The caregiver dashboard remains available if secure storage fails.
+    }
+  }
+
+  Future<void> _syncWearQueue() async {
+    final token = _wearDeviceToken;
+    if (token == null || token.isEmpty || _wearQueueSyncRunning) return;
+    _wearQueueSyncRunning = true;
+    try {
+      final platform = await NativeHealthBridge.getHealthPlatformStatus();
+      if (platform['wear_os_device'] != true) {
+        await NativeHealthBridge.syncQueuedWearData(deviceToken: token);
+      }
+    } catch (_) {
+      // Failed batches stay in the native queue for the next refresh.
+    } finally {
+      _wearQueueSyncRunning = false;
+    }
   }
 
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
-    _wearBridge.dispose();
     super.dispose();
-  }
-
-  Future<void> _startWearBridge() async {
-    try {
-      final nodes = await _wearBridge.connectedNodes();
-      if (!mounted) return;
-      setState(() {
-        _wearConnected = nodes.isNotEmpty;
-      });
-      _wearBridge.start(
-        patientId: currentPatient.id,
-        deviceId: _currentPatientView?.deviceModel ?? 'WMAX-WATCH-20260919',
-        onError: (_) {},
-      );
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _wearConnected = false;
-        });
-      }
-    }
   }
 
   PatientSummary get currentPatient =>
@@ -171,29 +179,6 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
       _selectedPatientIndex = index;
     });
     _fetchCurrentPatientData();
-    _startWearBridge();
-  }
-
-  // Bluetooth Pairing Modal
-  void _openBluetoothModal() {
-    _startWearBridge().then((_) {
-      if (!mounted) return;
-      final message = _wearConnected
-          ? (widget.isUzbek
-                ? 'Wear OS soat ulandi, telemetriya tinglanmoqda.'
-                : 'Wear OS подключён, телеметрия активна.')
-          : (widget.isUzbek
-                ? 'Soat topilmadi. Wear OS ilovasida pairingni tekshiring.'
-                : 'Часы не найдены. Проверьте pairing в Wear OS.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: _wearConnected
-              ? const Color(0xFF0D9488)
-              : const Color(0xFFDC2626),
-        ),
-      );
-    });
   }
 
   void _openWatchSimulatorModal() {
@@ -1104,7 +1089,10 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
         ApiService.generateFallbackView(p.id, p.fullName);
     final deviceModel = view.deviceModel;
     final battery = view.deviceBattery;
-    final isOnline = _wearConnected;
+    final lastReadingAt = view.lastReadingAt;
+    final isOnline =
+        lastReadingAt != null &&
+        DateTime.now().difference(lastReadingAt).inMinutes < 15;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
@@ -1149,8 +1137,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                         Text(
                           isOnline
                               ? (uz
-                                    ? "Faol • Wear OS telemetriya ulangan"
-                                    : "Активен • Wear OS телеметрия подключена")
+                                    ? "Faol • Flutter soat telemetriyasi"
+                                    : "Активен • Flutter телеметрия часов")
                               : (uz
                                     ? "Telemetriya uzilgan"
                                     : "Телеметрия отключена"),
@@ -1242,9 +1230,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _openBluetoothModal,
-                icon: const Icon(Icons.bluetooth_searching_rounded, size: 18),
-                label: Text(uz ? "Soatni qayta ulash" : "Переподключить"),
+                onPressed: _openWatchSimulatorModal,
+                icon: const Icon(Icons.watch_rounded, size: 18),
+                label: Text(uz ? "Flutter soat" : "Flutter часы"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0284C7),
                   foregroundColor: Colors.white,
@@ -1258,9 +1246,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
             const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _openWatchSimulatorModal,
-                icon: const Icon(Icons.watch_outlined, size: 18),
-                label: Text(uz ? "Soat Simulyatori" : "Симулятор"),
+                onPressed: () => _fetchCurrentPatientData(),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(uz ? "Yangilash" : "Обновить"),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF0284C7),
                   side: const BorderSide(color: Color(0xFFBAE6FD)),

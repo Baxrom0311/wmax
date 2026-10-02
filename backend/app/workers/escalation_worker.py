@@ -19,6 +19,7 @@ from app.models.task import Task
 from app.repositories.alert_repo import AlertRepository
 
 logger = logging.getLogger("wmax.workers.escalation")
+OPEN_TASK_STATUSES = ("open", "acknowledged")
 
 # This worker only advances state. The notifier service watches `reminded_at`,
 # `escalated_at` and `no_data` alerts and does the actual messaging.
@@ -33,7 +34,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
     stmt_remind = (
         select(Task)
         .where(
-            Task.status.in_(["created", "sent", "seen"]),
+            Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= remind_threshold,
             Task.due_at > now,
             Task.reminded_at.is_(None),
@@ -55,7 +56,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
     stmt_escalate = (
         select(Task)
         .where(
-            Task.status.in_(["created", "sent", "seen"]),
+            Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= now,
             Task.escalated_at.is_(None),
         )
@@ -89,13 +90,13 @@ async def check_patient_silence(session: AsyncSession) -> None:
         stmt_reading = (
             select(Reading)
             .where(Reading.patient_id == patient.id)
-            .order_by(Reading.ts.desc())
+            .order_by(Reading.window_start.desc())
             .limit(1)
         )
         res_r = await session.execute(stmt_reading)
         latest_reading = res_r.scalar_one_or_none()
 
-        last_reading_ts = latest_reading.ts if latest_reading else None
+        last_reading_ts = latest_reading.window_start if latest_reading else None
 
         if timewin.is_no_data(last_reading_ts, now):
             # Check latest alert to avoid duplicate alerts within 15 minutes

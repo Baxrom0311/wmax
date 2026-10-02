@@ -160,8 +160,11 @@ class TestIngestEndpoint:
         # 200 with no_data or 500 if DB unavailable
         if response.status_code == 200:
             data = response.json()
-            assert data["accepted"] == 0
-            assert data["latest_level"] == "no_data"
+            assert data["accepted"] == []
+            assert data["duplicate"] == []
+            assert data["orphaned"] == []
+            assert data["rejected"] == []
+            assert "server_time" in data
 
     def test_ingest_requires_valid_uuid(self, client, ingest_headers):
         response = client.post(

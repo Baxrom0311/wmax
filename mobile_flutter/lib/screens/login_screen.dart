@@ -22,10 +22,12 @@ class CaregiverLoginScreen extends StatefulWidget {
 }
 
 class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
-  final TextEditingController _phoneController =
-      TextEditingController(text: "+998 90 111 00 11");
-  final TextEditingController _pinController =
-      TextEditingController(text: "112233");
+  final TextEditingController _phoneController = TextEditingController(
+    text: "+998 90 111 00 11",
+  );
+  final TextEditingController _pinController = TextEditingController(
+    text: "112233",
+  );
   final TextEditingController _passwordController = TextEditingController();
   String _role = 'relative';
   bool _isLoading = false;
@@ -39,12 +41,17 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
     final phone = _phoneController.text.trim();
     final pin = _pinController.text.trim();
 
-    if (phone.isEmpty || (_role == 'doctor' ? _passwordController.text.trim().isEmpty : pin.isEmpty)) {
+    if (phone.isEmpty ||
+        (_role == 'doctor'
+            ? _passwordController.text.trim().isEmpty
+            : pin.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.isUzbek
-              ? "Iltimos, telefon va PIN kodni kiriting"
-              : "Пожалуйста, введите номер телефона и PIN"),
+          content: Text(
+            widget.isUzbek
+                ? "Iltimos, telefon va PIN kodni kiriting"
+                : "Пожалуйста, введите номер телефона и PIN",
+          ),
           backgroundColor: const Color(0xFFEF4444),
         ),
       );
@@ -55,10 +62,13 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
 
     try {
       final res = _role == 'doctor'
-          ? await ApiService.loginClinician(phone: phone, password: _passwordController.text.trim())
+          ? await ApiService.loginClinician(
+              phone: phone,
+              password: _passwordController.text.trim(),
+            )
           : _role == 'patient'
-              ? await ApiService.loginPatient(phone: phone, pin: pin)
-              : await ApiService.loginRelative(phone: phone, pin: pin);
+          ? await ApiService.loginPatient(phone: phone, pin: pin)
+          : await ApiService.loginRelative(phone: phone, pin: pin);
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,171 +157,228 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                   const SizedBox(height: 6),
                   Center(
                     child: Text(
-                      uz ? 'Oila a\'zolaringiz salomatligi nazorati' : 'Контроль здоровья ваших близких',
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                      uz
+                          ? 'Oila a\'zolaringiz salomatligi nazorati'
+                          : 'Контроль здоровья ваших близких',
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   SegmentedButton<String>(
                     segments: [
-                      ButtonSegment(value: 'relative', label: Text(uz ? 'Qarindosh' : 'Опекун')),
-                      ButtonSegment(value: 'patient', label: Text(uz ? 'Bemor' : 'Пациент')),
-                      ButtonSegment(value: 'doctor', label: Text(uz ? 'Shifokor' : 'Врач')),
+                      ButtonSegment(
+                        value: 'relative',
+                        label: Text(uz ? 'Qarindosh' : 'Опекун'),
+                      ),
+                      ButtonSegment(
+                        value: 'patient',
+                        label: Text(uz ? 'Bemor' : 'Пациент'),
+                      ),
+                      ButtonSegment(
+                        value: 'doctor',
+                        label: Text(uz ? 'Shifokor' : 'Врач'),
+                      ),
                     ],
                     selected: {_role},
-                    onSelectionChanged: (value) => setState(() => _role = value.first),
+                    onSelectionChanged: (value) =>
+                        setState(() => _role = value.first),
                   ),
                   const SizedBox(height: 16),
 
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          uz ? 'Telefon raqam' : 'Телефон',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE2E8F0),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        Text(
+                          _role == 'doctor'
+                              ? (uz ? 'Parol' : 'Пароль')
+                              : (uz
+                                    ? 'PIN kod (6 xonali)'
+                                    : 'ПИН-код (6 цифр)'),
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _role == 'doctor'
+                              ? _passwordController
+                              : _pinController,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          maxLength: _role == 'doctor' ? 64 : 6,
+                          decoration: InputDecoration(
+                            counterText: "",
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE2E8F0),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _submitLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0284C7),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    uz ? 'Kirish' : 'Войти',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 18),
+
+                  // Quick Demo Buttons
+                  Text(
+                    uz ? "Tezkor sinov hisoblari:" : "Быстрый демо-вход:",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Text(
-                        uz ? 'Telefon raqam' : 'Телефон',
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            _phoneController.text = "+998 90 111 00 11";
+                            _pinController.text = "112233";
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          child: Text(
+                            uz ? "👵 Dilnoza (Otabek)" : "👵 Дильноза",
+                            style: const TextStyle(fontSize: 11),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      Text(
-                        _role == 'doctor'
-                            ? (uz ? 'Parol' : 'Пароль')
-                            : (uz ? 'PIN kod (6 xonali)' : 'ПИН-код (6 цифр)'),
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _role == 'doctor' ? _passwordController : _pinController,
-                        keyboardType: TextInputType.number,
-                        obscureText: true,
-                        maxLength: _role == 'doctor' ? 64 : 6,
-                        decoration: InputDecoration(
-                          counterText: "",
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            _phoneController.text = "+998 90 111 00 22";
+                            _pinController.text = "112233";
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          child: Text(
+                            uz ? "👴 Sardor (Gulnora)" : "👴 Сардор",
+                            style: const TextStyle(fontSize: 11),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _submitLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0284C7),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : Text(
-                                  uz ? 'Kirish' : 'Войти',
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 18),
-
-                // Quick Demo Buttons
-                Text(
-                  uz ? "Tezkor sinov hisoblari:" : "Быстрый демо-вход:",
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          _phoneController.text = "+998 90 111 00 11";
-                          _pinController.text = "112233";
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: Text(
-                          uz ? "👵 Dilnoza (Otabek)" : "👵 Дильноза",
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          _phoneController.text = "+998 90 111 00 22";
-                          _pinController.text = "112233";
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: Text(
-                          uz ? "👴 Sardor (Gulnora)" : "👴 Сардор",
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

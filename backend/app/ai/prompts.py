@@ -140,11 +140,12 @@ def build_twin_analysis_prompt(ctx: Any) -> str:
     discharge_str = str(days_discharge_val) if days_discharge_val is not None else "Noma'lum"
 
     safe_full_name = sanitize_clinical_input(getattr(ctx, "full_name", ""), 100)
+    sex_label = "erkak" if ctx.sex == "m" else "ayol" if ctx.sex == "f" else "noma'lum"
 
     return f"""
 <patient_context>
 BEMOR RAQAMLI EGIZAGI (DIGITAL TWIN):
-- Bemor: {safe_full_name}, {ctx.age or 0} yosh, {"erkak" if ctx.sex == "m" else "ayol"}
+- Bemor: {safe_full_name}, {ctx.age or 0} yosh, {sex_label}
 - Yashash sharoiti: {lives_alone_str}
 - Harakatchanlik: {mobility_str}
 - Qayta gospitalizatsiyalar (12 oy): {ctx.readmission_count_12m}

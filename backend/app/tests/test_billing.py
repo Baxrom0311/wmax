@@ -80,20 +80,19 @@ async def test_billing_get_or_create_tenant_with_trial(mock_session):
     )
 
     assert tenant.name == "Test Household"
-    assert tenant.owner_phone == "+998901234567"
-    assert mock_session.add.call_count >= 2  # tenant + subscription
-    assert mock_session.flush.await_count >= 2
+    assert tenant.kind == "polyclinic"
+    assert mock_session.add.call_count == 1
+    assert mock_session.flush.await_count == 1
 
 
 @pytest.mark.asyncio
 async def test_billing_upgrade_plan_creates_invoice(mock_session):
-    tenant_id = uuid.uuid4()
+    patient_id = uuid.uuid4()
     existing_sub = Subscription(
         id=uuid.uuid4(),
-        tenant_id=tenant_id,
+        patient_id=patient_id,
         plan="free",
-        status="free",
-        seats_included=1,
+        status="trialing",
     )
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = existing_sub
@@ -101,11 +100,27 @@ async def test_billing_upgrade_plan_creates_invoice(mock_session):
 
     service = BillingService(mock_session)
     updated = await service.upgrade_plan(
-        tenant_id=tenant_id,
+        tenant_id=patient_id,
         new_plan="premium",
         provider="payme",
     )
 
     assert updated["plan"] == "premium"
     assert updated["price_uzs"] == 59_000
+    assert updated["status"] == "past_due"
+    assert updated["checkout_required"] is True
     assert mock_session.commit.await_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_patient_subscription_rejects_clinic_plan(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = mock_result
+
+    with pytest.raises(ValueError, match="tenant licence"):
+        await BillingService(mock_session).upgrade_plan(
+            tenant_id=uuid.uuid4(),
+            new_plan="clinic",
+            provider="payme",
+        )

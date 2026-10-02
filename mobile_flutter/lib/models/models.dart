@@ -28,6 +28,175 @@ String alertLevelToString(AlertLevel level) {
   }
 }
 
+enum HealthDataSource {
+  wearHealthServices,
+  healthConnect,
+  healthKit,
+  wearDataLayer,
+  manual,
+}
+
+String healthDataSourceToJson(HealthDataSource source) {
+  switch (source) {
+    case HealthDataSource.wearHealthServices:
+      return 'wear_health_services';
+    case HealthDataSource.healthConnect:
+      return 'health_connect';
+    case HealthDataSource.healthKit:
+      return 'healthkit';
+    case HealthDataSource.wearDataLayer:
+      return 'wear_data_layer';
+    case HealthDataSource.manual:
+      return 'manual';
+  }
+}
+
+class HealthSample {
+  final String metric;
+  final DateTime recordedAt;
+  final double? valueNum;
+  final String? valueText;
+  final String? unit;
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+  final String? sourceRecordId;
+  final double? quality;
+  final Map<String, dynamic> metadata;
+
+  HealthSample({
+    required this.metric,
+    required this.recordedAt,
+    this.valueNum,
+    this.valueText,
+    this.unit,
+    this.startedAt,
+    this.endedAt,
+    this.sourceRecordId,
+    this.quality,
+    this.metadata = const {},
+  });
+
+  Map<String, dynamic> toJson() => {
+    'metric': metric,
+    'recorded_at': recordedAt.toUtc().toIso8601String(),
+    if (valueNum != null) 'value_num': valueNum,
+    if (valueText != null) 'value_text': valueText,
+    if (unit != null) 'unit': unit,
+    if (startedAt != null) 'started_at': startedAt!.toUtc().toIso8601String(),
+    if (endedAt != null) 'ended_at': endedAt!.toUtc().toIso8601String(),
+    if (sourceRecordId != null) 'source_record_id': sourceRecordId,
+    if (quality != null) 'quality': quality,
+    'metadata': metadata,
+  };
+}
+
+class SleepStage {
+  final String stage;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  SleepStage({
+    required this.stage,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'stage': stage,
+    'start_time': startTime.toUtc().toIso8601String(),
+    'end_time': endTime.toUtc().toIso8601String(),
+  };
+}
+
+class SleepSessionUpload {
+  final DateTime startTime;
+  final DateTime endTime;
+  final String? sourceRecordId;
+  final List<SleepStage> stages;
+  final Map<String, dynamic> metrics;
+  final Map<String, dynamic> metadata;
+
+  SleepSessionUpload({
+    required this.startTime,
+    required this.endTime,
+    this.sourceRecordId,
+    this.stages = const [],
+    this.metrics = const {},
+    this.metadata = const {},
+  });
+
+  Map<String, dynamic> toJson() => {
+    'start_time': startTime.toUtc().toIso8601String(),
+    'end_time': endTime.toUtc().toIso8601String(),
+    if (sourceRecordId != null) 'source_record_id': sourceRecordId,
+    'stages': stages.map((stage) => stage.toJson()).toList(),
+    'metrics': metrics,
+    'metadata': metadata,
+  };
+}
+
+class ExerciseSessionUpload {
+  final String exerciseType;
+  final DateTime startTime;
+  final DateTime endTime;
+  final String? sourceRecordId;
+  final Map<String, dynamic> metrics;
+  final List<Map<String, dynamic>>? route;
+  final Map<String, dynamic> metadata;
+
+  ExerciseSessionUpload({
+    required this.exerciseType,
+    required this.startTime,
+    required this.endTime,
+    this.sourceRecordId,
+    this.metrics = const {},
+    this.route,
+    this.metadata = const {},
+  });
+
+  Map<String, dynamic> toJson() => {
+    'exercise_type': exerciseType,
+    'start_time': startTime.toUtc().toIso8601String(),
+    'end_time': endTime.toUtc().toIso8601String(),
+    if (sourceRecordId != null) 'source_record_id': sourceRecordId,
+    'metrics': metrics,
+    if (route != null) 'route': route,
+    'metadata': metadata,
+  };
+}
+
+class HealthDataBatch {
+  final String batchId;
+  final int? sequence;
+  final HealthDataSource source;
+  final List<HealthSample> samples;
+  final List<SleepSessionUpload> sleepSessions;
+  final List<ExerciseSessionUpload> exerciseSessions;
+  final Map<String, dynamic> metadata;
+
+  HealthDataBatch({
+    required this.batchId,
+    required this.source,
+    this.sequence,
+    this.samples = const [],
+    this.sleepSessions = const [],
+    this.exerciseSessions = const [],
+    this.metadata = const {},
+  });
+
+  Map<String, dynamic> toJson() => {
+    'batch_id': batchId,
+    if (sequence != null) 'sequence': sequence,
+    'source': healthDataSourceToJson(source),
+    'samples': samples.map((sample) => sample.toJson()).toList(),
+    'sleep_sessions': sleepSessions.map((session) => session.toJson()).toList(),
+    'exercise_sessions': exerciseSessions
+        .map((session) => session.toJson())
+        .toList(),
+    'metadata': metadata,
+  };
+}
+
 /// Relative authentication response from /api/v1/auth/relative/login
 class RelativeAuthResponse {
   final String accessToken;
@@ -66,13 +235,13 @@ class RelativeAuthResponse {
   }
 
   Map<String, dynamic> toJson() => {
-        'access_token': accessToken,
-        'refresh_token': refreshToken,
-        'expires_in': expiresIn,
-        'role': role,
-        'full_name': fullName,
-        'patients': patients.map((p) => p.toJson()).toList(),
-      };
+    'access_token': accessToken,
+    'refresh_token': refreshToken,
+    'expires_in': expiresIn,
+    'role': role,
+    'full_name': fullName,
+    'patients': patients.map((p) => p.toJson()).toList(),
+  };
 }
 
 /// Patient summary item in relative login response
@@ -112,21 +281,23 @@ class PatientSummary {
       accessToken: json['access_token'] ?? '',
       level: parseAlertLevel(json['level']),
       diagnosis: json['diagnosis'] ?? 'Tashxis ko\'rsatilmagan',
-      age: json['age'] is int ? json['age'] : (int.tryParse('${json['age']}') ?? 65),
+      age: json['age'] is int
+          ? json['age']
+          : (int.tryParse('${json['age']}') ?? 65),
       lastReadingAt: lastReading,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'full_name': fullName,
-        'relationship': relationship,
-        'access_token': accessToken,
-        'level': alertLevelToString(level),
-        'diagnosis': diagnosis,
-        'age': age,
-        'last_reading_at': lastReadingAt?.toIso8601String(),
-      };
+    'id': id,
+    'full_name': fullName,
+    'relationship': relationship,
+    'access_token': accessToken,
+    'level': alertLevelToString(level),
+    'diagnosis': diagnosis,
+    'age': age,
+    'last_reading_at': lastReadingAt?.toIso8601String(),
+  };
 }
 
 /// Vital signs model
@@ -157,21 +328,27 @@ class VitalsData {
           ? (json['skin_temp'] as num).toDouble()
           : (json['temp'] != null ? (json['temp'] as num).toDouble() : null),
       rr: json['rr'] != null ? (json['rr'] as num).toDouble() : null,
-      steps: json['steps'] is int ? json['steps'] : int.tryParse('${json['steps']}'),
-      sleepHours: json['sleep_hours'] != null ? (json['sleep_hours'] as num).toDouble() : null,
-      battery: json['battery'] is int ? json['battery'] : int.tryParse('${json['battery']}'),
+      steps: json['steps'] is int
+          ? json['steps']
+          : int.tryParse('${json['steps']}'),
+      sleepHours: json['sleep_hours'] != null
+          ? (json['sleep_hours'] as num).toDouble()
+          : null,
+      battery: json['battery'] is int
+          ? json['battery']
+          : int.tryParse('${json['battery']}'),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'hr': hr,
-        'spo2': spo2,
-        'skin_temp': temp,
-        'rr': rr,
-        'steps': steps,
-        'sleep_hours': sleepHours,
-        'battery': battery,
-      };
+    'hr': hr,
+    'spo2': spo2,
+    'skin_temp': temp,
+    'rr': rr,
+    'steps': steps,
+    'sleep_hours': sleepHours,
+    'battery': battery,
+  };
 }
 
 /// Doctor contact information
@@ -217,23 +394,31 @@ class PrognosisData {
           : (int.tryParse('${json['risk_probability_pct']}') ?? 12),
       summary: json['summary'] ?? 'Barcha ko\'rsatkichlar me\'yorida.',
       recommendation: json['recommendation'],
-      earlyWarningHours: json['early_warning_hours'] is int ? json['early_warning_hours'] : 72,
+      earlyWarningHours: json['early_warning_hours'] is int
+          ? json['early_warning_hours']
+          : 72,
       primaryConcern: json['primary_concern'],
     );
   }
 
   int get riskScore => riskProbabilityPct;
-  String get recommendationUz => (recommendation != null && recommendation!.isNotEmpty) ? recommendation! : summary;
-  String get recommendationRu => (recommendation != null && recommendation!.isNotEmpty) ? recommendation! : summary;
+  String get recommendationUz =>
+      (recommendation != null && recommendation!.isNotEmpty)
+      ? recommendation!
+      : summary;
+  String get recommendationRu =>
+      (recommendation != null && recommendation!.isNotEmpty)
+      ? recommendation!
+      : summary;
 
   Map<String, dynamic> toJson() => {
-        'risk_level': riskLevel,
-        'risk_probability_pct': riskProbabilityPct,
-        'summary': summary,
-        'recommendation': recommendation,
-        'early_warning_hours': earlyWarningHours,
-        'primary_concern': primaryConcern,
-      };
+    'risk_level': riskLevel,
+    'risk_probability_pct': riskProbabilityPct,
+    'summary': summary,
+    'recommendation': recommendation,
+    'early_warning_hours': earlyWarningHours,
+    'primary_concern': primaryConcern,
+  };
 }
 
 /// Clinical problem item from WMAX analysis
@@ -272,14 +457,14 @@ class ClinicalProblem {
   }
 
   Map<String, dynamic> toJson() => {
-        'key': key,
-        'title': title,
-        'detail': detail,
-        'severity': severity,
-        'deviation': deviation,
-        'baseline_range': baselineRange,
-        'current_value': currentValue,
-      };
+    'key': key,
+    'title': title,
+    'detail': detail,
+    'severity': severity,
+    'deviation': deviation,
+    'baseline_range': baselineRange,
+    'current_value': currentValue,
+  };
 }
 
 /// Clinical alert item from backend
@@ -313,7 +498,9 @@ class PatientAlertItem {
       level: parseAlertLevel(json['level']),
       compositeScore: (json['composite_score'] as num?)?.toDouble() ?? 0.0,
       reason: json['reason'] ?? '',
-      triggeredParams: json['triggered_params'] is Map<String, dynamic> ? json['triggered_params'] : null,
+      triggeredParams: json['triggered_params'] is Map<String, dynamic>
+          ? json['triggered_params']
+          : null,
     );
   }
 }
@@ -377,9 +564,7 @@ class RelativePatientView {
     var rawSpark = json['sparkline'];
     List<double> sparkList = [];
     if (rawSpark is List) {
-      sparkList = rawSpark
-          .map((v) => (v is num) ? v.toDouble() : 0.0)
-          .toList();
+      sparkList = rawSpark.map((v) => (v is num) ? v.toDouble() : 0.0).toList();
     }
     var rawAlerts = json['alerts'];
     List<PatientAlertItem> alertsList = [];
@@ -399,7 +584,11 @@ class RelativePatientView {
       lastReadingAt: lastReading,
       prognosis: json['prognosis'] is Map<String, dynamic>
           ? PrognosisData.fromJson(json['prognosis'])
-          : PrognosisData(riskLevel: 'low', riskProbabilityPct: 15, summary: 'Holat barqaror.'),
+          : PrognosisData(
+              riskLevel: 'low',
+              riskProbabilityPct: 15,
+              summary: 'Holat barqaror.',
+            ),
       vitals: json['vitals'] is Map<String, dynamic>
           ? VitalsData.fromJson(json['vitals'])
           : VitalsData(),

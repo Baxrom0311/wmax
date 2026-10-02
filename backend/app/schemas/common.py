@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 AlertLevel = Literal["green", "amber", "red", "no_data"]
 Phase = Literal["calib", "learning", "full"]
-TrendDirection = Literal["improving", "stable", "worsening"]
-TaskStatus = Literal["created", "sent", "seen", "done", "overdue"]
+TrendDirection = Literal["improving", "stable", "worsening", "insufficient_data"]
+TaskStatus = Literal["open", "acknowledged", "done", "overdue", "cancelled"]
 Role = Literal["doctor", "nurse", "admin", "dispatcher"]
 # Caregivers and patients authenticate too, but they are not staff and must never be
 # handed a clinician role. Tokens carry AuthRole; RBAC checks use Role/CLINICIAN_ROLES.

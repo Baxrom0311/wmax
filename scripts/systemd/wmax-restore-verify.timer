@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly WMAX Database Backup Restore Verification
+
+[Timer]
+OnCalendar=monthly
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

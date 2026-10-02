@@ -4,11 +4,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.reading import Reading
+from app.models.device_assignment import DeviceAssignment
+from app.models.reading import OrphanReading, Reading
 
 
 class ReadingRepository:
@@ -24,7 +25,7 @@ class ReadingRepository:
         stmt = (
             insert(Reading)
             .values(records)
-            .on_conflict_do_nothing(index_elements=["patient_id", "ts"])
+            .on_conflict_do_nothing(constraint="uq_reading_key")
         )
         res = await self.session.execute(stmt)
         await self.session.flush()
@@ -38,8 +39,8 @@ class ReadingRepository:
     ) -> Sequence[Reading]:
         stmt = (
             select(Reading)
-            .where(Reading.patient_id == patient_id, Reading.ts >= since_ts)
-            .order_by(Reading.ts.asc())
+            .where(Reading.patient_id == patient_id, Reading.window_start >= since_ts)
+            .order_by(Reading.window_start.asc())
         )
         res = await self.session.execute(stmt)
         return res.scalars().all()
@@ -48,8 +49,58 @@ class ReadingRepository:
         stmt = (
             select(Reading)
             .where(Reading.patient_id == patient_id)
-            .order_by(Reading.ts.desc())
+            .order_by(Reading.window_start.desc())
             .limit(1)
         )
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
+
+    async def get_assignment_at(
+        self, device_id: uuid.UUID, window_start: datetime
+    ) -> DeviceAssignment | None:
+        stmt = (
+            select(DeviceAssignment)
+            .where(
+                DeviceAssignment.device_id == device_id,
+                DeviceAssignment.assigned_at <= window_start,
+                (
+                    (DeviceAssignment.released_at.is_(None))
+                    | (DeviceAssignment.released_at > window_start)
+                ),
+            )
+            .order_by(DeviceAssignment.assigned_at.desc())
+            .limit(1)
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def get_assignments_for_device_range(
+        self,
+        device_id: uuid.UUID,
+        start: datetime,
+        end: datetime,
+    ) -> Sequence[DeviceAssignment]:
+        stmt = (
+            select(DeviceAssignment)
+            .where(
+                DeviceAssignment.device_id == device_id,
+                DeviceAssignment.assigned_at <= end,
+                or_(
+                    DeviceAssignment.released_at.is_(None),
+                    DeviceAssignment.released_at > start,
+                ),
+            )
+            .order_by(DeviceAssignment.assigned_at.asc())
+        )
+        res = await self.session.execute(stmt)
+        return res.scalars().all()
+
+    async def insert_orphan_idempotent(self, record: dict[str, Any]) -> bool:
+        stmt = (
+            insert(OrphanReading)
+            .values(record)
+            .on_conflict_do_nothing(constraint="uq_orphan_key")
+        )
+        res = await self.session.execute(stmt)
+        await self.session.flush()
+        return res.rowcount > 0

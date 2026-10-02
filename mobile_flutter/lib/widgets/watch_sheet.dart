@@ -14,7 +14,8 @@ class WearOsWatchSheet extends StatefulWidget {
   final double initialTemp;
   final int battery;
   final bool isWorn;
-  final void Function(int hr, int spo2, bool isWorn, int battery)? onVitalsChanged;
+  final void Function(int hr, int spo2, bool isWorn, int battery)?
+  onVitalsChanged;
   final ValueChanged<String>? onTriggerSos;
 
   const WearOsWatchSheet({
@@ -254,7 +255,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          uz ? "Wear OS 3.5 — Jonli Soat" : "Wear OS 3.5 — Смарт-часы",
+                          uz
+                              ? "Wear OS 3.5 — Jonli Soat"
+                              : "Wear OS 3.5 — Смарт-часы",
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -274,7 +277,10 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFF94A3B8)),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Color(0xFF94A3B8),
+                  ),
                   tooltip: uz ? "Yopish" : "Закрыть",
                 ),
               ],
@@ -304,12 +310,17 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF0284C7,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 28,
                           spreadRadius: 4,
                         ),
                       ],
-                      border: Border.all(color: const Color(0xFF475569), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFF475569),
+                        width: 2,
+                      ),
                     ),
                   ),
 
@@ -373,7 +384,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            uz ? "Jonli Telemetriya Sinovi" : "Управление Телеметрией",
+                            uz
+                                ? "Jonli Telemetriya Sinovi"
+                                : "Управление Телеметрией",
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -387,9 +400,13 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                         selected: _isWorn,
                         showCheckmark: false,
                         avatar: Icon(
-                          _isWorn ? Icons.check_circle_rounded : Icons.warning_rounded,
+                          _isWorn
+                              ? Icons.check_circle_rounded
+                              : Icons.warning_rounded,
                           size: 14,
-                          color: _isWorn ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          color: _isWorn
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF59E0B),
                         ),
                         label: Text(
                           _isWorn
@@ -398,11 +415,15 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: _isWorn ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            color: _isWorn
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
                           ),
                         ),
                         backgroundColor: const Color(0xFF0F172A),
-                        selectedColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        selectedColor: const Color(
+                          0xFF10B981,
+                        ).withValues(alpha: 0.15),
                         side: BorderSide(
                           color: _isWorn
                               ? const Color(0xFF10B981).withValues(alpha: 0.4)
@@ -422,11 +443,18 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                   // Heart Rate Slider
                   Row(
                     children: [
-                      const Icon(Icons.favorite_rounded, color: Color(0xFFEF4444), size: 16),
+                      const Icon(
+                        Icons.favorite_rounded,
+                        color: Color(0xFFEF4444),
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         uz ? "Yurak urishi (HR):" : "Пульс (ЧСС):",
-                        style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12),
+                        style: const TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 12,
+                        ),
                       ),
                       const Spacer(),
                       Text(
@@ -445,8 +473,12 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                       activeTrackColor: const Color(0xFFEF4444),
                       inactiveTrackColor: const Color(0xFF334155),
                       thumbColor: const Color(0xFFEF4444),
-                      overlayColor: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      overlayColor: const Color(
+                        0xFFEF4444,
+                      ).withValues(alpha: 0.2),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
                     ),
                     child: Slider(
                       value: _hr.toDouble(),
@@ -465,17 +497,26 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                   // SpO2 Slider
                   Row(
                     children: [
-                      const Icon(Icons.air_rounded, color: Color(0xFF38BDF8), size: 16),
+                      const Icon(
+                        Icons.air_rounded,
+                        color: Color(0xFF38BDF8),
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         uz ? "Kislorod (SpO2):" : "Кислород (SpO2):",
-                        style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12),
+                        style: const TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 12,
+                        ),
                       ),
                       const Spacer(),
                       Text(
                         "$_spo2%",
                         style: TextStyle(
-                          color: _spo2 < 92 ? const Color(0xFFEF4444) : Colors.white,
+                          color: _spo2 < 92
+                              ? const Color(0xFFEF4444)
+                              : Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 12.5,
                         ),
@@ -488,8 +529,12 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                       activeTrackColor: const Color(0xFF38BDF8),
                       inactiveTrackColor: const Color(0xFF334155),
                       thumbColor: const Color(0xFF38BDF8),
-                      overlayColor: const Color(0xFF38BDF8).withValues(alpha: 0.2),
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      overlayColor: const Color(
+                        0xFF38BDF8,
+                      ).withValues(alpha: 0.2),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
                     ),
                     child: Slider(
                       value: _spo2.toDouble(),
@@ -543,11 +588,17 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _isWorn ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        color: _isWorn
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.bluetooth_rounded, color: Color(0xFF38BDF8), size: 12),
+                    const Icon(
+                      Icons.bluetooth_rounded,
+                      color: Color(0xFF38BDF8),
+                      size: 12,
+                    ),
                   ],
                 ),
 
@@ -568,10 +619,17 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                   children: [
                     Text(
                       "$_battery%",
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5),
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 10.5,
+                      ),
                     ),
                     const SizedBox(width: 2),
-                    const Icon(Icons.battery_5_bar_rounded, color: Color(0xFF10B981), size: 12),
+                    const Icon(
+                      Icons.battery_5_bar_rounded,
+                      color: Color(0xFF10B981),
+                      size: 12,
+                    ),
                   ],
                 ),
               ],
@@ -645,12 +703,18 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.air_rounded, color: Color(0xFF38BDF8), size: 12),
+                    const Icon(
+                      Icons.air_rounded,
+                      color: Color(0xFF38BDF8),
+                      size: 12,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       "$_spo2%",
                       style: TextStyle(
-                        color: _spo2 < 92 ? const Color(0xFFFF5252) : const Color(0xFFF1F5F9),
+                        color: _spo2 < 92
+                            ? const Color(0xFFFF5252)
+                            : const Color(0xFFF1F5F9),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -671,7 +735,11 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.thermostat_rounded, color: Color(0xFFF59E0B), size: 12),
+                    const Icon(
+                      Icons.thermostat_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 12,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       "$_temp°C",
@@ -695,7 +763,10 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
               children: [
                 // Wear detection status pill
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _isWorn
                         ? const Color(0xFF10B981).withValues(alpha: 0.12)
@@ -715,7 +786,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                         height: 5,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isWorn ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          color: _isWorn
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF59E0B),
                         ),
                       ),
                       const SizedBox(width: 5),
@@ -724,7 +797,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                             ? (uz ? "Taqilgan" : "На руке")
                             : (uz ? "Yechilgan" : "Снят"),
                         style: TextStyle(
-                          color: _isWorn ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
+                          color: _isWorn
+                              ? const Color(0xFF6EE7B7)
+                              : const Color(0xFFFCD34D),
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
                         ),
@@ -766,7 +841,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFDC2626).withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFFDC2626,
+                              ).withValues(alpha: 0.5),
                               blurRadius: 8,
                             ),
                           ],
@@ -823,7 +900,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
             ),
           ),
           Text(
-            uz ? "103 va shifokorga xabar beriladi" : "Врач и 103 будут вызваны",
+            uz
+                ? "103 va shifokorga xabar beriladi"
+                : "Врач и 103 будут вызваны",
             style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 10),
             textAlign: TextAlign.center,
           ),
@@ -836,11 +915,16 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
                 backgroundColor: const Color(0xFF334155),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: Text(
                 uz ? "Bekor qilish" : "Отмена",
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -859,7 +943,11 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle_rounded, color: Color(0xFF34D399), size: 36),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF34D399),
+            size: 36,
+          ),
           const SizedBox(height: 6),
           Text(
             uz ? "SOS YUBORILDI!" : "SOS ОТПРАВЛЕН!",
@@ -882,7 +970,9 @@ class _WearOsWatchSheetState extends State<WearOsWatchSheet>
               onPressed: _cancelSos,
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFF87171)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               child: Text(

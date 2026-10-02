@@ -7,7 +7,7 @@
 
 export type AlertLevel = "green" | "amber" | "red" | "no_data";
 export type Phase = "calib" | "learning" | "full";
-export type TrendDirection = "improving" | "stable" | "worsening";
+export type TrendDirection = "improving" | "stable" | "worsening" | "insufficient_data";
 export type TaskStatus = "created" | "sent" | "seen" | "done" | "overdue";
 export type Role = "doctor" | "nurse" | "admin" | "dispatcher";
 export type AuthRole = Role | "relative" | "patient";
@@ -35,7 +35,7 @@ export const I18N_KEYS = [
   "state.good", "state.attention", "state.risk", "state.no_data",
   "rec.contact_today", "rec.visit_within_3_days",
   "rec.routine_followup", "rec.continue_monitoring",
-  "trend.improving", "trend.stable", "trend.worsening",
+  "trend.improving", "trend.stable", "trend.worsening", "trend.insufficient_data",
 ] as const;
 export type I18nKey = (typeof I18N_KEYS)[number];
 
@@ -317,4 +317,3 @@ export interface PatientFullProfile {
   risk_factors: RiskFactorsItem | null;
   admissions: AdmissionItem[];
 }
-

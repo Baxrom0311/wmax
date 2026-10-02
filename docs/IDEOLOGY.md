@@ -19,7 +19,7 @@
 | Bo'lim | Mavzu |
 |---|---|
 | [A](#a--yadro) | Yadro — va'da, foydalanuvchi, soddalik |
-| [B](#b--tuzilma) | Tuzilma — bemor, hisob, ulanish, rozilik |
+| [B](#b--tuzilma) | Tuzilma — bemor, hisob, ulanish, rozilik, kirish |
 | [C](#c--javobgarlik) | Javobgarlik — parvarish egasi |
 | [D](#d--buzilmas-qoidalar) | **Buzilmas qoidalar** |
 | [E](#e--pul) | Pul — obuna va tarif |
@@ -146,6 +146,24 @@ Oilaga ruxsat va klinik kuzatuv — **boshqa-boshqa rozilik**.
 
 Bemor davolashdan bosh tortishga haqli. Lekin bu boshqa hodisa: tasdiqlash
 ekrani ko'rsatiladi va poliklinika xabardor qilinadi.
+
+### B6 · Klinika ichida kirish javobgarlik bo'yicha
+
+Tenant izolyatsiyasi yetarli emas — 300 bemorlik navbat ishlatib bo'lmaydi
+va `F2` (navbat toza bo'lsin) buziladi.
+
+| Rol | Ko'radi |
+|---|---|
+| Hamshira | O'z mahallalaridagi bemorlar |
+| Oilaviy shifokor | O'z uchastkasi |
+| Bosh shifokor | Butun klinika + hisobot |
+
+Bu real tashkiliy tuzilmaga mos: O'zbekiston poliklinikasida har hamshira
+aniq mahallalarga biriktirilgan.
+
+> **Bitta mexanizm ikki ish qiladi:** chiqarishda kimga topshirishni
+> aniqlaydi (M11 yo'naltirish) va kim ko'ra olishini belgilaydi.
+> Ikkita alohida qoida yozilsa — ular bir-biridan ayrilib ketadi.
 
 ---
 

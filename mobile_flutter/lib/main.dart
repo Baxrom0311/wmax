@@ -4,37 +4,53 @@ import 'models/models.dart';
 import 'services/session_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/watch_runtime_screen.dart';
+import 'screens/health_device_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  const appMode = String.fromEnvironment(
+    'WMAX_APP_MODE',
+    defaultValue: 'phone',
+  );
+  final isWatchMode = appMode == 'watch';
 
-  // Disable bottom phone navigation bar, keep clean status bar at top
   await SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.manual,
-    overlays: [SystemUiOverlay.top],
+    isWatchMode ? SystemUiMode.immersiveSticky : SystemUiMode.manual,
+    overlays: isWatchMode ? [] : [SystemUiOverlay.top],
   );
 
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   final isUzbek = await SessionService.isUzbek();
   final loggedIn = await SessionService.isLoggedIn();
-  runApp(WmaxApp(initialIsUzbek: isUzbek, initialLoggedIn: loggedIn));
+  runApp(
+    WmaxApp(
+      initialIsUzbek: isUzbek,
+      initialLoggedIn: loggedIn,
+      appMode: appMode,
+    ),
+  );
 }
 
 class WmaxApp extends StatefulWidget {
   final bool initialIsUzbek;
   final bool initialLoggedIn;
+  final String appMode;
 
   const WmaxApp({
     super.key,
     this.initialIsUzbek = true,
     this.initialLoggedIn = false,
+    this.appMode = 'phone',
   });
 
   @override
@@ -64,12 +80,20 @@ class _WmaxAppState extends State<WmaxApp> {
 
   @override
   Widget build(BuildContext context) {
+    final isWatchMode = widget.appMode == 'watch';
+    final isHealthDeviceMode = widget.appMode == 'health';
     return MaterialApp(
-      title: 'WMAX Caregiver — Bemor Parvarishi',
+      title: isWatchMode
+          ? 'WMAX Watch'
+          : isHealthDeviceMode
+          ? 'WMAX Health Device'
+          : 'WMAX Caregiver — Bemor Parvarishi',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        scaffoldBackgroundColor: isWatchMode
+            ? const Color(0xFF020617)
+            : const Color(0xFFF8FAFC),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0284C7),
           primary: const Color(0xFF0284C7),
@@ -77,12 +101,16 @@ class _WmaxAppState extends State<WmaxApp> {
         ),
         fontFamily: 'Roboto',
       ),
-      home: WmaxRootFlow(
-        isUzbek: isUzbek,
-        onToggleLang: toggleLanguage,
-        onSelectLang: setLanguage,
-        initialLoggedIn: widget.initialLoggedIn,
-      ),
+      home: isWatchMode
+          ? WatchRuntimeScreen(isUzbek: isUzbek)
+          : isHealthDeviceMode
+          ? HealthDeviceScreen(isUzbek: isUzbek)
+          : WmaxRootFlow(
+              isUzbek: isUzbek,
+              onToggleLang: toggleLanguage,
+              onSelectLang: setLanguage,
+              initialLoggedIn: widget.initialLoggedIn,
+            ),
     );
   }
 }
@@ -197,7 +225,9 @@ class SplashScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF0284C7).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: const Color(0xFF0284C7).withValues(alpha: 0.4),
+                ),
               ),
               child: const Icon(
                 Icons.favorite_rounded,
@@ -217,14 +247,23 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              isUzbek ? 'Bemor Parvarishi va Monitoring' : 'Уход и Мониторинг Пациентов',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8), letterSpacing: 0.5),
+              isUzbek
+                  ? 'Bemor Parvarishi va Monitoring'
+                  : 'Уход и Мониторинг Пациентов',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 32),
             const SizedBox(
               width: 24,
               height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF38BDF8),
+              ),
             ),
           ],
         ),

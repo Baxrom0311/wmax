@@ -11,13 +11,16 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+import timewin
 
 # Allow import without installed packages by checking if they exist
 try:
     from app.services.clinical_math import (
         compute_prognosis_pure,
         compute_trend_pure,
+        compute_daily_risk_scores,
         detect_problems_pure,
+        compute_zscores_pure,
     )
     from app.services.clinical_math import _compute_directional_zscore  # internal helper
     HAS_CLINICAL_MATH = True
@@ -70,6 +73,86 @@ def make_reading(**overrides) -> "ReadingVec":
 
 def make_baseline(param: str, window: int = 1, median: float = 70.0, mad: float = 5.0, n: int = 20) -> "BaselineEntry":
     return BaselineEntry(param=param, time_window=window, median=median, mad=mad, n_samples=n)
+
+
+@pytest.mark.skipif(not HAS_CONTRACTS or not HAS_CLINICAL_MATH, reason="clinical math dependencies not installed")
+def test_pure_zscores_skip_unsupported_baselines():
+    reading = make_reading(hr_mean=100.0)
+    window = timewin.window_of(reading.ts)
+    baselines = [
+        make_baseline("hr_mean", window=window, n=11),
+        make_baseline("spo2", window=window, median=97.0, n=12),
+    ]
+
+    scores = compute_zscores_pure(reading, baselines)
+
+    assert "hr_mean" not in scores
+    assert "spo2" in scores
+
+
+@pytest.mark.skipif(not HAS_CONTRACTS or not HAS_CLINICAL_MATH, reason="clinical math dependencies not installed")
+def test_daily_risk_scores_follow_personalized_worsening_signal():
+    from algo_interface import BaselineEntry
+
+    first = make_reading(ts=make_ts(), hr_mean=70.0, spo2=None)
+    second = make_reading(ts=make_ts(24 * 60), hr_mean=75.0, spo2=None)
+    third = make_reading(ts=make_ts(2 * 24 * 60), hr_mean=80.0, spo2=None)
+    window = timewin.window_of(first.ts)
+    baselines = [
+        BaselineEntry(
+            param="hr_mean",
+            time_window=window,
+            median=70.0,
+            mad=5.0,
+            n_samples=20,
+        )
+    ]
+
+    daily_scores = compute_daily_risk_scores([first, second, third], baselines)
+    trend = compute_trend_pure(daily_scores)
+
+    assert len(daily_scores) == 3
+    assert trend.direction == "worsening"
+    assert trend.days_used == 3
+
+
+@pytest.mark.skipif(not HAS_CONTRACTS or not HAS_CLINICAL_MATH, reason="clinical math dependencies not installed")
+def test_problem_explanations_skip_unsupported_baselines():
+    from algo_interface import BaselineEntry
+
+    reading = make_reading(hr_mean=100.0)
+    window = timewin.window_of(reading.ts)
+    baseline = BaselineEntry(
+        param="hr_mean",
+        time_window=window,
+        median=70.0,
+        mad=2.0,
+        n_samples=11,
+    )
+
+    assert detect_problems_pure(reading, [baseline]) == []
+
+
+@pytest.mark.skipif(not HAS_CONTRACTS or not HAS_CLINICAL_MATH, reason="clinical math dependencies not installed")
+def test_missing_metric_does_not_manufacture_improving_trend():
+    from algo_interface import BaselineEntry
+
+    readings = [
+        make_reading(ts=make_ts(day * 24 * 60), hr_mean=80.0, spo2=95.0)
+        for day in range(2)
+    ]
+    readings.append(make_reading(ts=make_ts(2 * 24 * 60), hr_mean=80.0, spo2=None))
+    window = timewin.window_of(readings[0].ts)
+    baselines = [
+        BaselineEntry("hr_mean", window, 70.0, 5.0, 20),
+        BaselineEntry("spo2", window, 97.0, 1.0, 20),
+    ]
+
+    daily_scores = compute_daily_risk_scores(readings, baselines)
+    trend = compute_trend_pure(daily_scores)
+
+    assert len({score for _, score in daily_scores}) == 1
+    assert trend.direction == "stable"
 
 
 # ── Contract constants tests ──────────────────────────────────────────────────
@@ -232,12 +315,14 @@ class TestPipelineFallbackFunctions:
         result = compute_trend(daily_scores)
         assert result.direction == "stable"
 
-    def test_trend_single_day_is_stable(self):
-        """Single day of data cannot compute a meaningful slope — must return stable."""
+    def test_trend_requires_three_days(self):
+        """One or two days do not establish a meaningful health trend."""
         _, _, _, compute_trend = self._get_fallback_functions()
         result = compute_trend([(0, 3.0)])
-        assert result.direction == "stable"
+        assert result.direction == "insufficient_data"
         assert result.slope == 0.0
+        two_days = compute_trend([(0, 3.0), (1, 5.0)])
+        assert two_days.direction == "insufficient_data"
 
 
 # ── Validation schemas tests ─────────────────────────────────────────────────

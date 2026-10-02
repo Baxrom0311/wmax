@@ -27,6 +27,21 @@ def test_direction_spo2_increase_causes_no_risk():
     assert "spo2" not in res.triggered_params
 
 
+def test_zscore_ignores_untrusted_baseline_until_minimum_sample_count():
+    now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    window = timewin.window_of(now)
+    reading = ReadingVec(ts=now, hr_mean=100.0)
+    low_support = [
+        BaselineEntry(param="hr_mean", time_window=window, median=65.0, mad=2.0, n_samples=11)
+    ]
+    enough_support = [
+        BaselineEntry(param="hr_mean", time_window=window, median=65.0, mad=2.0, n_samples=12)
+    ]
+
+    assert compute_zscores(reading, low_support) == {}
+    assert "hr_mean" in compute_zscores(reading, enough_support)
+
+
 def test_single_param_deviation_does_not_alert():
     """A single deviating parameter must not trigger amber or red without 2nd param."""
     now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
@@ -56,6 +71,24 @@ def test_persistence_requires_consecutive_windows():
     # Transient high deviation becomes amber rather than full red
     assert res.level == "amber"
     assert res.reason == "transient_high_deviation"
+
+
+def test_composite_red_requires_two_prior_abnormal_windows():
+    now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    window = timewin.window_of(now)
+    baselines = [
+        BaselineEntry(param="hr_mean", time_window=window, median=65.0, mad=1.0, n_samples=30),
+        BaselineEntry(param="skin_temp", time_window=window, median=36.4, mad=0.1, n_samples=30),
+    ]
+    reading = ReadingVec(ts=now, hr_mean=95.0, skin_temp=38.0, steps=0, worn=True)
+    abnormal = {"hr_mean": 10.0, "skin_temp": 10.0}
+
+    unconfirmed = evaluate_alert(reading, baselines, [], "full")
+    confirmed = evaluate_alert(reading, baselines, [abnormal, abnormal], "full")
+
+    assert unconfirmed.level == "amber"
+    assert unconfirmed.reason == "transient_high_deviation"
+    assert confirmed.level == "red"
 
 
 def test_critical_spo2_overrides_immediately():

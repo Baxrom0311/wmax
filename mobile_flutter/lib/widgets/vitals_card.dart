@@ -59,7 +59,9 @@ class MetricCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: isAlert ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+                  color: isAlert
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFF0F172A),
                 ),
               ),
               const SizedBox(width: 4),
@@ -78,7 +80,9 @@ class MetricCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: isAlert ? const Color(0xFFDC2626) : const Color(0xFF10B981),
+              color: isAlert
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF10B981),
             ),
           ),
         ],

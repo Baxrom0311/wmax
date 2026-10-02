@@ -18,10 +18,10 @@ def compute_trend(daily_raw_scores: list[tuple[int, float]]) -> TrendResult:
     daily_raw_scores: list of (day_index, daily_mean_raw_z_sum)
     """
     n = len(daily_raw_scores)
-    if n < 2:
+    if n < 3:
         return TrendResult(
             slope=0.0,
-            direction="stable",
+            direction="insufficient_data",
             recommendation_key="rec.continue_monitoring",
             days_used=n,
         )

@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker/compose/docker-compose.yml"
+COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-compose}"
+
+compose() {
+  docker compose -p "${COMPOSE_PROJECT}" --profile edge -f "${COMPOSE_FILE}" "$@"
+}
 
 echo "========================================================"
 echo "  WMAX Enterprise Health Check Audit: $(date)"
@@ -28,13 +33,16 @@ check_service() {
   fi
 }
 
-check_service "Nginx Gateway (/healthz)" "docker compose -f ${COMPOSE_FILE} exec -T nginx wget -q -O /dev/null --spider http://127.0.0.1/healthz"
-check_service "FastAPI Liveness (/live)" "docker compose -f ${COMPOSE_FILE} exec -T api curl -s -f http://127.0.0.1:8000/live"
-check_service "FastAPI Readiness (/ready)" "docker compose -f ${COMPOSE_FILE} exec -T api curl -s -f http://127.0.0.1:8000/ready"
-check_service "PostgreSQL Database" "docker compose -f ${COMPOSE_FILE} exec -T postgres pg_isready"
-check_service "Redis Cache" "docker compose -f ${COMPOSE_FILE} exec -T redis redis-cli ping"
-check_service "Prometheus Server" "docker compose -f ${COMPOSE_FILE} exec -T prometheus wget -q -O /dev/null --spider http://127.0.0.1:9090/-/healthy"
-check_service "Loki Log Engine" "docker compose -f ${COMPOSE_FILE} exec -T loki wget -q -O /dev/null --spider http://127.0.0.1:3100/ready"
+check_service "Nginx Gateway (/healthz)" "compose exec -T nginx wget -q -O /dev/null --spider http://127.0.0.1/healthz"
+check_service "FastAPI Liveness (/live)" "compose exec -T api curl -s -f http://127.0.0.1:8000/live"
+check_service "FastAPI Readiness (/ready)" "compose exec -T api curl -s -f http://127.0.0.1:8000/ready"
+check_service "PostgreSQL Database" "compose exec -T postgres pg_isready"
+check_service "Redis Cache" "compose exec -T redis redis-cli ping"
+
+if [ "${CHECK_MONITORING:-false}" = "true" ]; then
+  check_service "Prometheus Server" "compose --profile monitoring exec -T prometheus wget -q -O /dev/null --spider http://127.0.0.1:9090/-/healthy"
+  check_service "Loki Log Engine" "compose --profile monitoring exec -T loki wget -q -O /dev/null --spider http://127.0.0.1:3100/ready"
+fi
 
 echo "========================================================"
 if [ $FAILED -eq 0 ]; then

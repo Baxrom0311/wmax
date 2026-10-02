@@ -18,7 +18,7 @@ class PatientSummary(BaseModel):
     id: uuid.UUID
     full_name: str
     age: int
-    sex: Literal["m", "f"]
+    sex: Literal["m", "f"] | None = None
     diagnosis: str
     district: str
     phase: Phase

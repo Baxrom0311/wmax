@@ -8,6 +8,7 @@ import pytest
 
 from app.core.exceptions import ForbiddenException, ValidationException
 from app.models.sos import SosEvent
+from app.services.emergency.dispatcher import Service103Adapter
 from app.services.patient_context import PatientContext
 from app.services.sos_service import SosService
 
@@ -139,3 +140,20 @@ async def test_acknowledge_and_resolve_sos(mock_session):
     resolved = await service.resolve_sos(sos_id, user_id=doctor_id, resolution_note="Yordam ko'rsatildi")
     assert resolved.status == "resolved"
     assert resolved.resolution_note == "Yordam ko'rsatildi"
+
+
+@pytest.mark.asyncio
+async def test_service_103_adapter_falls_back_to_manual_dispatch():
+    event = SosEvent(id=uuid.uuid4(), patient_id=uuid.uuid4(), source="watch_button")
+    event.address_snapshot = {}
+    context = PatientContext(
+        patient_id=event.patient_id,
+        full_name="Test Patient",
+        sex="m",
+        age=70,
+    )
+
+    result = await Service103Adapter().dispatch(event, context)
+
+    assert result.accepted is True
+    assert result.method == "manual_call_103"
