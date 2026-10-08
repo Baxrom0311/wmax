@@ -1,0 +1,268 @@
+<!doctype html>
+<!--
+  Source for landing/images/3d/watch-*.{webp,png}: a procedural three.js watch
+  rendered to a transparent PNG. Regenerate: `npm i three@0.169.0` next to this
+  file, serve the folder, open scene.html?size=2000&state=green|amber|red&view=hero|front
+  and save canvas.toDataURL(); crop and convert to WebP. Not served by nginx.
+-->
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const P = new URLSearchParams(location.search);
+const SIZE = +(P.get('size') || 1400);
+const STATE = P.get('state') || 'green';
+const VIEW = P.get('view') || 'hero';
+const STRAP = P.get('strap') || '#1e293b';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(SIZE, SIZE);
+renderer.setClearColor(0x000000, 0);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 100);
+
+// ---------- screen texture ----------
+const STATES = {
+  green: { c: '#22c55e', c2: '#86efac', hr: '72', label: 'NORMA', spo2: '98%', prog: 0.72 },
+  amber: { c: '#f59e0b', c2: '#fcd34d', hr: '104', label: 'DIQQAT', spo2: '94%', prog: 0.86 },
+  red:   { c: '#ef4444', c2: '#fca5a5', hr: '138', label: 'SOS', spo2: '89%', prog: 0.97 },
+};
+function screenTexture(state) {
+  const s = STATES[state];
+  const W = 1024, cv = document.createElement('canvas');
+  cv.width = cv.height = W;
+  const g = cv.getContext('2d');
+  const cx = W / 2;
+  const bg = g.createRadialGradient(cx, cx * 0.8, 40, cx, cx, cx);
+  bg.addColorStop(0, '#0b1220'); bg.addColorStop(1, '#000');
+  g.fillStyle = bg; g.fillRect(0, 0, W, W);
+  // glow
+  const gl = g.createRadialGradient(cx, cx, 120, cx, cx, 470);
+  gl.addColorStop(0, s.c + '33'); gl.addColorStop(1, 'transparent');
+  g.fillStyle = gl; g.fillRect(0, 0, W, W);
+  // ticks
+  for (let i = 0; i < 60; i++) {
+    const a = (i / 60) * Math.PI * 2;
+    const r1 = 488, r2 = i % 5 ? 470 : 455;
+    g.strokeStyle = i % 5 ? '#334155' : '#64748b';
+    g.lineWidth = i % 5 ? 4 : 7;
+    g.beginPath();
+    g.moveTo(cx + Math.cos(a) * r1, cx + Math.sin(a) * r1);
+    g.lineTo(cx + Math.cos(a) * r2, cx + Math.sin(a) * r2);
+    g.stroke();
+  }
+  // ring
+  g.lineCap = 'round';
+  g.lineWidth = 34;
+  g.strokeStyle = '#1e293b';
+  g.beginPath(); g.arc(cx, cx, 405, Math.PI * 0.75, Math.PI * 2.25); g.stroke();
+  const grad = g.createLinearGradient(0, W, W, 0);
+  grad.addColorStop(0, s.c); grad.addColorStop(1, s.c2);
+  g.strokeStyle = grad;
+  g.shadowColor = s.c; g.shadowBlur = 40;
+  g.beginPath(); g.arc(cx, cx, 405, Math.PI * 0.75, Math.PI * (0.75 + 1.5 * s.prog)); g.stroke();
+  g.shadowBlur = 0;
+  // time
+  g.fillStyle = '#94a3b8';
+  g.font = '600 64px Helvetica, Arial, sans-serif';
+  g.textAlign = 'center';
+  g.fillText('09:41', cx, 250);
+  // heart
+  g.save();
+  g.translate(cx, 330);
+  g.scale(2.6, 2.6);
+  g.fillStyle = s.c;
+  g.shadowColor = s.c; g.shadowBlur = 12;
+  g.beginPath();
+  g.moveTo(0, 12);
+  g.bezierCurveTo(-26, -6, -14, -24, 0, -12);
+  g.bezierCurveTo(14, -24, 26, -6, 0, 12);
+  g.fill();
+  g.restore();
+  // HR
+  g.fillStyle = '#fff';
+  g.font = '800 250px Helvetica, Arial, sans-serif';
+  g.fillText(s.hr, cx, 600);
+  g.fillStyle = '#94a3b8';
+  g.font = '700 58px Helvetica, Arial, sans-serif';
+  g.fillText('BPM', cx, 670);
+  // pill
+  g.fillStyle = s.c + '2e';
+  const pw = 300, ph = 82;
+  g.beginPath(); g.roundRect(cx - pw / 2, 712, pw, ph, 41); g.fill();
+  g.fillStyle = s.c2;
+  g.font = '800 50px Helvetica, Arial, sans-serif';
+  g.fillText(s.label, cx, 770);
+  g.fillStyle = '#64748b';
+  g.font = '600 46px Helvetica, Arial, sans-serif';
+  g.fillText('SpO₂ ' + s.spo2, cx, 870);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+// ---------- watch ----------
+const watch = new THREE.Group();
+scene.add(watch);
+
+const R = 1.0;       // case radius
+const H = 0.42;      // case thickness
+const metal = new THREE.MeshPhysicalMaterial({ color: 0x9aa4b2, metalness: 1, roughness: 0.22, clearcoat: 0.6, clearcoatRoughness: 0.15 });
+const darkMetal = new THREE.MeshPhysicalMaterial({ color: 0x1f2937, metalness: 0.9, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.1 });
+
+// case profile (lathe around Y, face toward +Y; rotate later)
+const prof = [];
+const steps = 24;
+prof.push(new THREE.Vector2(0.0, -H / 2));
+prof.push(new THREE.Vector2(R * 0.78, -H / 2));
+for (let i = 0; i <= steps; i++) {
+  const a = -Math.PI / 2 + (i / steps) * Math.PI;
+  prof.push(new THREE.Vector2(R * 0.9 + Math.cos(a) * 0.1, Math.sin(a) * (H / 2)));
+}
+prof.push(new THREE.Vector2(R * 0.9, H / 2));
+prof.push(new THREE.Vector2(R * 0.88, H / 2));
+const caseGeo = new THREE.LatheGeometry(prof, 160);
+const caseMesh = new THREE.Mesh(caseGeo, metal);
+watch.add(caseMesh);
+
+// bezel (torus-ish ring)
+const bezel = new THREE.Mesh(new THREE.TorusGeometry(R * 0.89, 0.055, 32, 200), darkMetal);
+bezel.rotation.x = Math.PI / 2;
+bezel.position.y = H / 2 + 0.01;
+watch.add(bezel);
+
+// screen
+const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture(STATE), toneMapped: false });
+const screen = new THREE.Mesh(new THREE.CircleGeometry(R * 0.82, 160), screenMat);
+screen.rotation.x = -Math.PI / 2;
+screen.position.y = H / 2 + 0.012;
+watch.add(screen);
+
+// glass dome
+const glassGeo = new THREE.SphereGeometry(4.2, 160, 32, 0, Math.PI * 2, 0, Math.asin((R * 0.86) / 4.2));
+const glass = new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, metalness: 0, roughness: 0.02, transmission: 1, thickness: 0.05,
+  transparent: true, opacity: 0.18, clearcoat: 1, clearcoatRoughness: 0, ior: 1.5,
+}));
+glass.position.y = H / 2 + 0.015 - 4.2 * Math.cos(Math.asin((R * 0.86) / 4.2));
+watch.add(glass);
+
+// buttons
+for (const ang of [0.32, -0.32]) {
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.16, 48), metal);
+  b.rotation.z = Math.PI / 2;
+  b.position.set(Math.cos(ang) * (R + 0.02), 0, Math.sin(ang) * (R + 0.02));
+  b.rotation.y = -ang;
+  const bb = new THREE.Group(); bb.add(b);
+  watch.add(bb);
+  const cap = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 12, 48), new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.5, roughness: 0.3 }));
+  if (ang > 0) {
+    cap.position.set(Math.cos(ang) * (R + 0.1), 0, Math.sin(ang) * (R + 0.1));
+    cap.rotation.y = Math.PI / 2 - ang;
+    watch.add(cap);
+  }
+}
+
+// lugs + straps
+const strapMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(STRAP), roughness: 0.55, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.6, sheen: 0.4, sheenColor: new THREE.Color(0x94a3b8) });
+const strapW = 0.86, strapT = 0.12;
+function strap(dir) {
+  // path in Y/Z plane of watch-local frame (face toward +Y). dir = +1 (top, +Z) or -1
+  const pts = [];
+  const N = 40;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    // goes outward along Z then curls down (-Y) like a wrist loop
+    const ang = t * Math.PI * 0.62;
+    const rad = 1.55;
+    const z = dir * (0.82 + Math.sin(ang) * rad);
+    const y = -(1 - Math.cos(ang)) * rad - 0.02;
+    pts.push(new THREE.Vector3(0, y, z));
+  }
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const shape = new THREE.Shape();
+  const w = strapW / 2, t = strapT / 2, r = 0.05;
+  shape.moveTo(-w + r, -t); shape.lineTo(w - r, -t); shape.quadraticCurveTo(w, -t, w, -t + r);
+  shape.lineTo(w, t - r); shape.quadraticCurveTo(w, t, w - r, t); shape.lineTo(-w + r, t);
+  shape.quadraticCurveTo(-w, t, -w, t - r); shape.lineTo(-w, -t + r); shape.quadraticCurveTo(-w, -t, -w + r, -t);
+  const geo = new THREE.ExtrudeGeometry(shape, { steps: 120, bevelEnabled: false, extrudePath: curve });
+  const m = new THREE.Mesh(geo, strapMat);
+  watch.add(m);
+  // lug block
+  const lug = new THREE.Mesh(new RoundedBoxGeometry(strapW + 0.04, H * 0.8, 0.34, 6, 0.08), metal);
+  lug.position.set(0, -0.02, dir * 0.8);
+  watch.add(lug);
+  // texture grooves on strap
+  for (let i = 1; i < 9; i++) {
+    const p = curve.getPointAt(0.12 + i * 0.09);
+    const tan = curve.getTangentAt(0.12 + i * 0.09);
+    const groove = new THREE.Mesh(new THREE.BoxGeometry(strapW * 0.7, 0.012, 0.03), new THREE.MeshStandardMaterial({ color: new THREE.Color(STRAP).multiplyScalar(0.6), roughness: 0.8 }));
+    groove.position.copy(p);
+    const up = new THREE.Vector3(0, 1, 0);
+    const nrm = new THREE.Vector3().crossVectors(tan, new THREE.Vector3(1, 0, 0)).normalize();
+    groove.position.addScaledVector(nrm, dir * -strapT / 2 - 0.002);
+    groove.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
+    watch.add(groove);
+  }
+}
+strap(1); strap(-1);
+
+// orient: face toward camera (+Z world)
+watch.rotation.x = Math.PI / 2;
+
+// ---------- lights ----------
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(3, 4, 5);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7dd3fc, 2.5);
+rim.position.set(-5, 2, -3);
+scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xf0abfc, 1.2);
+rim2.position.set(4, -3, -2);
+scene.add(rim2);
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+
+// ---------- views ----------
+const views = {
+  hero:  { rot: [1.28, -0.5, 0.18], cam: [0, 0, 9.0], target: [0, -0.15, 0] },
+  front: { rot: [1.45, -0.18, 0.05], cam: [0, 0, 8.4], target: [0, -0.3, 0] },
+  side:  { rot: [1.15, 0.55, -0.15], cam: [0, 0, 9.0], target: [0, -0.2, 0] },
+};
+const v = views[VIEW];
+const outer = new THREE.Group();
+scene.remove(watch); outer.add(watch); scene.add(outer);
+watch.rotation.set(0, 0, 0);
+// watch-local: face +Y. rotate so face points +Z, then apply view tilt.
+const base = new THREE.Group(); base.add(watch); outer.add(base);
+watch.rotation.x = 0;
+base.rotation.set(v.rot[0], v.rot[1], v.rot[2], 'YXZ');
+outer.updateMatrixWorld(true);
+const box = new THREE.Box3().setFromObject(outer);
+const ctr = box.getCenter(new THREE.Vector3());
+outer.position.sub(ctr);
+const sz = box.getSize(new THREE.Vector3());
+const fit = Math.max(sz.x, sz.y) * 0.5 * 1.12;
+const dist = fit / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) + sz.z * 0.5;
+camera.position.set(0, 0, dist);
+camera.lookAt(0, 0, 0);
+
+renderer.render(scene, camera);
+window.__done = true;
+</script>
+</body></html>
