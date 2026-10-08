@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ipaddress
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,13 +27,28 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """Client address for rate limiting.
+
+    Forwarding headers are only honoured when the TCP peer is our own reverse
+    proxy (loopback or a private Docker network). The proxy *appends* the real
+    peer to X-Forwarded-For, so only the right-most entry is trustworthy; the
+    left-most entries are whatever the client chose to send.
+    """
+    peer = request.client.host if request.client else "unknown"
+    try:
+        peer_is_proxy = ipaddress.ip_address(peer).is_private
+    except ValueError:
+        peer_is_proxy = False
+    if not peer_is_proxy:
+        return peer
+
     real_ip = request.headers.get("x-real-ip")
     if real_ip:
         return real_ip.strip()
-    return request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return peer
 
 
 @router.post("/request-code", response_model=RequestCodeResponse, summary="Request SMS login code")

@@ -77,6 +77,20 @@ SMS_CODE_TTL_SECONDS = 300
 _SMS_CODES: dict[str, tuple[str, datetime]] = {}
 
 
+# Highest-privilege membership wins so a multi-clinic account always gets the
+# same role; head doctors carry doctor permissions in the token.
+_TENANT_ROLE_PRIORITY = ("admin", "head_doctor", "doctor", "dispatcher", "nurse")
+_TENANT_ROLE_TO_TOKEN_ROLE = {"head_doctor": "doctor"}
+
+
+def _primary_clinician_role(tenant_roles: list[Any]) -> str | None:
+    roles = {member.role for member in tenant_roles}
+    for candidate in _TENANT_ROLE_PRIORITY:
+        if candidate in roles:
+            return _TENANT_ROLE_TO_TOKEN_ROLE.get(candidate, candidate)
+    return None
+
+
 async def _store_sms_code(phone: str, code: str, ttl: int = SMS_CODE_TTL_SECONDS) -> None:
     if getattr(settings, "REDIS_URL", None):
         try:
@@ -147,7 +161,7 @@ class AuthService:
         user = await self.user_repo.get_by_phone(normalized_phone)
         if user:
             tenant_roles = await self.user_repo.accounts.get_active_tenant_roles(user.id)
-            role = tenant_roles[0].role if tenant_roles else getattr(user, "role", None)
+            role = _primary_clinician_role(tenant_roles) or getattr(user, "role", None)
             if role not in CLINICIAN_ROLES:
                 assignments = await self.relative_repo.get_assigned_patients(normalized_phone)
                 if assignments:
@@ -239,7 +253,7 @@ class AuthService:
             tenant_ids = [member.tenant_id for member in tenant_roles]
             user_id = user.id
             full_name = user.full_name
-            role = tenant_roles[0].role if tenant_roles else getattr(user, "role", None)
+            role = _primary_clinician_role(tenant_roles) or getattr(user, "role", None)
             if role not in CLINICIAN_ROLES:
                 raise AuthenticationException("Klinika a'zoligi topilmadi")
             district = getattr(user, "district", None)
