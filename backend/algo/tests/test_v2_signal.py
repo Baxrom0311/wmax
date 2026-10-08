@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 from algo_interface import BaselineEntry, ReadingVec
 from algo.signal import (
-    MEDICATION_DAMPING,
     apply_medication_context,
     evaluate_alert,
     is_auto_critical_sos,

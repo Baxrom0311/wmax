@@ -11,7 +11,6 @@ import timewin
 from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES
 from app.ai.clinical_ai import ClinicalAIService
 from app.core.exceptions import NotFoundException, ValidationException
-from app.models.patient import Patient
 from app.models import PatientMembership
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
@@ -24,9 +23,7 @@ from app.schemas.series import ParamSeries, SeriesPoint
 from app.schemas.task import Task as TaskSchema
 from app.schemas.trend import Trend
 from app.services.clinical_math import (
-    PARAM_NAMES_UZ,
     compute_daily_risk_scores,
-    compute_prognosis_pure,
     compute_trend_pure,
     detect_problems_pure,
 )

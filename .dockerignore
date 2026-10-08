@@ -49,3 +49,12 @@ Thumbs.db
 # Documentation & logs
 docs/
 *.log
+
+# Runtime state and backups
+backups/
+notifier/settings.json
+notifier/admins.json
+notifier/users.json
+notifier/sent_state.json
+*.sql.gz
+*.tar.gz

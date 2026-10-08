@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import os
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import BinaryIO
 
 from app.core.exceptions import BadRequestException
 

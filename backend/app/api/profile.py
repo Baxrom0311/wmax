@@ -30,7 +30,6 @@ from app.schemas.profile import (
     AllergyItem,
     ConditionCreate,
     ConditionItem,
-    ConditionUpdate,
     MeasurementCreate,
     MeasurementItem,
     MedicationCreate,

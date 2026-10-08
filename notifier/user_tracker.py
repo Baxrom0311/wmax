@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .admin_store import SUPER_ADMIN_ID, is_admin, is_super_admin
+from .admin_store import SUPER_ADMIN_ID, is_admin
 
 logger = logging.getLogger("nazorat.notifier.user_tracker")
 

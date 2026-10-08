@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
 from algo_interface import AlertResult
 from app.core.db import get_db_context
 from app.core.metrics import alerts_total
-from app.models.alert import Alert
 from app.models.patient import Patient
 from app.models.reading import Reading
 from app.models.task import Task

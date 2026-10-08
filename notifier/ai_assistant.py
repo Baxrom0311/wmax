@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any
 
 from dotenv import load_dotenv
 
-from .api_manager import get_active_api_key, get_model, get_system_mode
+from .api_manager import get_system_mode
 
 load_dotenv()
 

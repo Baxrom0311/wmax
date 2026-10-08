@@ -19,7 +19,6 @@ from app.core.db import get_session
 from app.core.security import decode_token
 from app.schemas.common import CLINICIAN_ROLES
 from app.schemas.sos import (
-    SosAcknowledgeRequest,
     SosDispatchRequest,
     SosEventItem,
     SosHistoryItem,

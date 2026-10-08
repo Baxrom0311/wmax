@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import pytest
 
 from app.domain.clinical_cohorts import ClinicalCohort, get_cohort_profile
 from app.domain.peace_of_mind import CalmState, calculate_peace_of_mind

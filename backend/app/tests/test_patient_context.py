@@ -7,7 +7,6 @@ from app.schemas.profile import (
     AllergyItem,
     ConditionItem,
     MedicationItem,
-    RiskFactorsItem,
 )
 from app.services.patient_context import PatientContext, EmergencyContactItem
 

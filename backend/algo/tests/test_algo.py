@@ -1,13 +1,12 @@
 """Unit tests for WMAX clinical algorithm package (A2)."""
 from datetime import datetime, timezone
-import pytest
 import timewin
 
 from algo_interface import (
     BaselineEntry,
     ReadingVec,
 )
-from algo.baseline import compute_baselines, compute_zscores
+from algo.baseline import compute_zscores
 from algo.signal import evaluate_alert
 from algo.trend import compute_trend
 from algo.anomaly import fit_anomaly_model, score_anomaly

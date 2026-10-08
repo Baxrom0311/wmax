@@ -24,8 +24,6 @@ from .admin_store import (
 from .ai_assistant import handle_user_query
 from .api_manager import (
     SUPPORTED_MODELS,
-    add_api_key,
-    delete_api_key,
     delete_api_key_by_id,
     get_active_api_key,
     get_all_api_keys,
@@ -44,7 +42,6 @@ from .excel_exporter import generate_users_excel
 from .user_tracker import (
     format_stats_message,
     format_users_list_message,
-    get_all_users,
     get_user_stats,
     track_user,
 )

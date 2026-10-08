@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 import uuid
 import pytest
 
 from app.core.config import settings
-from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models.patient import Patient
+from app.core.exceptions import ForbiddenException
 from app.models.relative import Relative
 from app.services.relative_service import RelativeService, is_access_token_expired
 

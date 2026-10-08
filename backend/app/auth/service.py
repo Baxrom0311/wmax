@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -25,7 +25,7 @@ from app.repositories.patient_repo import PatientRepository
 from app.repositories.refresh_token_repo import RefreshTokenRepository
 from app.repositories.relative_repo import RelativeRepository
 from app.repositories.user_repo import UserRepository
-from app.schemas.auth import LoginRequest, PatientLoginRequest, RefreshRequest, RelativeLoginRequest, TokenPair
+from app.schemas.auth import LoginRequest, PatientLoginRequest, RelativeLoginRequest, TokenPair
 from app.schemas.common import CLINICIAN_ROLES
 from app.schemas.relative import RelativeLoginResponse, RelativePatientItem
 from app.services.sms import now_utc, send_sms_code, should_return_dev_code

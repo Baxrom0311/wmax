@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import uuid
 import inspect
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.billing.entitlements import PLAN_DETAILS, Feature, check_entitlement, is_entitled
+from app.billing.entitlements import PLAN_DETAILS
 from app.models.invoice import Invoice
 from app.models.payment import Payment
 from app.models.subscription import Subscription

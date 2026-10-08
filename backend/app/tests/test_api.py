@@ -4,8 +4,6 @@ Uses TestClient (synchronous ASGI testing) with mocked DB sessions.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
 
 import pytest

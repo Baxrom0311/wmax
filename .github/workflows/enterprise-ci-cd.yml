@@ -59,7 +59,6 @@ jobs:
         run: |
           pip install -r backend/requirements.txt
           pip install -r backend/algo/requirements.txt
-          pip install -r backend/auth/requirements.txt
           pip install -r notifier/requirements.txt
           pip install pytest pytest-asyncio aiosqlite httpx redis
 
@@ -141,7 +140,7 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - name: Install migration dependencies
-        run: pip install -r backend/requirements.txt -r backend/auth/requirements.txt
+        run: pip install -r backend/requirements.txt
       - name: Upgrade, check model drift, and exercise downgrade
         working-directory: backend
         env:

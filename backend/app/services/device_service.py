@@ -11,7 +11,6 @@ from typing import Any, Literal
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.baseline import Baseline
 from app.auth.device import create_device_token
 from app.models.device import Device, DeviceCredential, DeviceEnrollmentCode
 from app.models.device_assignment import DeviceAssignment
