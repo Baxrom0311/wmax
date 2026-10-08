@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Any
 
@@ -11,6 +12,15 @@ from .api_manager import get_system_mode
 load_dotenv()
 
 logger = logging.getLogger("wmax.notifier.ai")
+
+# Real contact details come from the deployment; never a hard-coded person.
+CLINIC_CONTACT_NAME = os.getenv("CLINIC_CONTACT_NAME", "Klinikangiz navbatchi shifokori")
+CLINIC_CONTACT_PHONE = os.getenv("CLINIC_CONTACT_PHONE", "103")
+CLINIC_CONTACT_TEXT = (
+    "☎️ <b>Shifokor bilan bog'lanish:</b>\n\n"
+    f"👨‍⚕️ {CLINIC_CONTACT_NAME}\n"
+    f"📞 {CLINIC_CONTACT_PHONE}"
+)
 
 # Provider tanlovi va kalitlar app.core.config orqali boshqariladi (AI_PROVIDER).
 EMERGENCY_KEYWORDS = [
@@ -63,7 +73,7 @@ def format_emergency_response() -> str:
         "🚨 <b>Diqqat: Zudlik bilan shoshilinch chora ko'ring! / Внимание: Срочные меры! / Emergency: Immediate Action Required!</b>\n\n"
         "Bemorning holati kritik bo'lsa, zudlik bilan shifokor yoki tez yordam bilan bog'laning:\n\n"
         "📞 <b>103 — Tez tibbiy yordam / Скорая помощь / Emergency</b>\n"
-        "📞 <b>+998 90 123 45 67</b> — Dr. Bahrom Alimov (Kardiolog)\n\n"
+        f"📞 <b>{CLINIC_CONTACT_PHONE}</b> — {CLINIC_CONTACT_NAME}\n\n"
         "<b>Shoshilinch ko'rsatmalar:</b>\n"
         "1. Bemorni qulay, bosh tomoni biroz ko'tarilgan tekis holatga yotqizing.\n"
         "2. Yoqa va tor kiyimlarni yechib, xonani shamollating.\n"
@@ -89,20 +99,17 @@ def format_gibberish_response(patient_name: str) -> str:
 
 def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
     """System prompt grounding LLM with real patient status, clinical ICD diagnoses, and 3-language rules."""
-    hr = vitals.get("hr", 86)
-    spo2 = vitals.get("spo2", 92)
-    temp = vitals.get("skin_temp", 36.6)
-    rr = vitals.get("rr", 19)
-    sleep = vitals.get("sleep_hours", 5.4)
-    steps = vitals.get("steps", 1840)
-    level = vitals.get("level", "amber")
-    age = vitals.get("age", 62)
-    diagnosis = vitals.get(
-        "diagnosis",
-        "Yurak ishemik kasalligi (YIK). Zo'riqish stenokardiyasi FK III. Postinfarkt kardioskleroz. Surunkali yurak yetishmovchiligi (SYuYe) IIB.",
-    )
-    doctor_name = vitals.get("doctor_name", "Dr. Bahrom Alimov")
-    doctor_phone = vitals.get("doctor_phone", "+998 90 123 45 67")
+    hr = vitals.get("hr", "—")
+    spo2 = vitals.get("spo2", "—")
+    temp = vitals.get("skin_temp", "—")
+    rr = vitals.get("rr", "—")
+    sleep = vitals.get("sleep_hours", "—")
+    steps = vitals.get("steps", "—")
+    level = vitals.get("level", "no_data")
+    age = vitals.get("age", "—")
+    diagnosis = vitals.get("diagnosis", "ko'rsatilmagan")
+    doctor_name = vitals.get("doctor_name", "biriktirilgan shifokor")
+    doctor_phone = vitals.get("doctor_phone", "klinika raqami")
 
     return (
         f"Sen — 'WMAX' aqlli klinik telemonitoring tizimining sun'iy intellekt assistentisan.\n"
@@ -129,7 +136,7 @@ def build_system_prompt(patient_name: str, vitals: dict[str, Any]) -> str:
         "3. TIPOGRAFIKA VA MATN REGISTRI: Hech qachon ALL-CAPS (katta harflar bilan baqirib) yozma! "
         "Faqat gapning birinchi harfi bosh harf bilan, qolgani kichik harflar bilan yozilsin (Sentence case).\n"
         "4. KLINIK XAVFSIZLIK: O'zboshimchalik bilan retseptli dori yozma. "
-        "Har doim davolovchi shifokor Dr. Bahrom Alimov bilan bog'lanishni eslat.\n"
+        f"Har doim davolovchi shifokor ({CLINIC_CONTACT_NAME}) bilan bog'lanishni eslat.\n"
         "5. Telegram formati: Matning chiroyli, HTML teglari (<b>, <i>) bilan formatlangan, qisqa va aniq bo'lsin."
     )
 
@@ -179,10 +186,10 @@ ask_gemini = ask_ai
 def rule_based_fallback(text: str, patient_name: str, vitals: dict[str, Any]) -> str:
     """Smart multilingual offline rule engine when the LLM is unavailable."""
     t = text.lower().strip()
-    hr = vitals.get("hr", 86)
-    spo2 = vitals.get("spo2", 92)
-    sleep = vitals.get("sleep_hours", 5.4)
-    temp = vitals.get("skin_temp", 36.6)
+    hr = vitals.get("hr", "—")
+    spo2 = vitals.get("spo2", "—")
+    sleep = vitals.get("sleep_hours", "—")
+    temp = vitals.get("skin_temp", "—")
 
     # Russian detection
     is_ru = any(ch in t for ch in "абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
@@ -266,10 +273,7 @@ def rule_based_fallback(text: str, patient_name: str, vitals: dict[str, Any]) ->
 
     if any(w in t for w in ["shifokor", "doktor", "vrach", "bog'lanish", "raqam"]):
         return (
-            "👨‍⚕️ <b>Davolovchi kardiolog:</b> Dr. Bahrom Alimov\n"
-            "📞 <b>Telefon:</b> +998 90 123 45 67\n"
-            "📍 <b>Manzil:</b> Xorazm viloyati Kardiologiya Dispanseri\n"
-            "Ish vaqti: 08:00 — 17:00 (Du-Ju)"
+            CLINIC_CONTACT_TEXT
         )
 
     return format_gibberish_response(patient_name)
