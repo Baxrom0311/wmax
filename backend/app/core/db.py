@@ -35,17 +35,10 @@ def get_engine() -> AsyncEngine:
             )
             logger.info("Initialized PostgreSQL async engine with connection pooling")
         except Exception as e:
-            logger.warning(
-                f"Failed to create PostgreSQL engine ({e}), falling back to SQLite in-memory for testing"
-            )
-            try:
-                _engine = create_async_engine(
-                    "sqlite+aiosqlite:///:memory:", echo=False, future=True
-                )
-            except Exception:
-                _engine = create_async_engine(
-                    "sqlite:///:memory:", echo=False, future=True
-                )
+            if settings.ENV != "testing":
+                raise RuntimeError("Database engine initialization failed; refusing an implicit SQLite fallback") from e
+            logger.warning("Test database engine setup failed (%s); using isolated SQLite memory", e)
+            _engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False, future=True)
     return _engine
 
 

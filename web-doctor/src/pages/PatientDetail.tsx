@@ -63,10 +63,10 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
   const formatCountdown = (dueAtIso: string) => {
     // oxlint-disable-next-line react/purity -- countdown intentionally reads wall-clock time
     const diffMs = new Date(dueAtIso).getTime() - Date.now();
-    if (diffMs <= 0) return "Muddati o'tgan";
+    if (diffMs <= 0) return t("detail.overdue", lang);
     const hours = Math.floor(diffMs / (3600 * 1000));
     const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
-    return `${hours} soat ${mins} daqiqa qoldi`;
+    return t("detail.countdown_hours_left", lang, { h: hours, m: mins });
   };
 
   const isUrgent =
@@ -118,7 +118,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
       <div className="official-breadcrumb no-print">
         <button type="button" className="btn-back-link" onClick={onBack}>
           <ArrowLeft size={14} style={{ marginRight: 6 }} />
-          <span>Bemorlar ro'yxatiga qaytish</span>
+          <span>{t("detail.back", lang).replace(/^←\s*/, "")}</span>
         </button>
         <span className="breadcrumb-slash">/</span>
         <span className="breadcrumb-current-patient">
@@ -143,19 +143,21 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
 
             <div className="passport-grid-meta">
               <div className="meta-field">
-                <span className="meta-label">Yosh / Jins:</span>
-                <span className="meta-value">{patient.age} yosh, {patient.sex === "m" ? "Erkak" : "Ayol"}</span>
+                <span className="meta-label">{t("detail.passport_age_sex", lang)}</span>
+                <span className="meta-value">
+                  {t("patients.age_years", lang, { age: patient.age })}, {patient.sex === "m" ? t("patients.sex_male", lang) : t("patients.sex_female", lang)}
+                </span>
               </div>
               <div className="meta-field">
-                <span className="meta-label">Tuman / Manzil:</span>
+                <span className="meta-label">{t("detail.passport_address", lang)}</span>
                 <span className="meta-value">{patient.district}</span>
               </div>
               <div className="meta-field">
-                <span className="meta-label">Klinik tashxis:</span>
+                <span className="meta-label">{t("detail.passport_diag", lang)}</span>
                 <span className="meta-value text-bold">{patient.diagnosis}</span>
               </div>
               <div className="meta-field">
-                <span className="meta-label">Monitoring bosqichi:</span>
+                <span className="meta-label">{t("detail.passport_phase", lang)}</span>
                 <span className="meta-value">
                   <span className={`phase-tag-official ${patient.phase}`}>
                     {t(`detail.phase_${patient.phase}`, lang)}
@@ -170,10 +172,10 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               type="button"
               className="btn-clinical btn-print"
               onClick={handlePrint}
-              title="Klinik epikrizni chop etish"
+              title={t("detail.print", lang)}
             >
               <Printer size={14} style={{ marginRight: 6 }} />
-              <span>Chop etish</span>
+              <span>{t("detail.print", lang)}</span>
             </button>
 
             {!activeTask && (
@@ -183,7 +185,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                 onClick={() => setIsDischargeModalOpen(true)}
               >
                 <LogOut size={14} style={{ marginRight: 6 }} />
-                <span>Statsionardan chiqarish</span>
+                <span>{t("detail.discharge_action", lang)}</span>
               </button>
             )}
 
@@ -297,17 +299,11 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
             </div>
             <div className="cdss-risk-indicator">
               <span className={`risk-probability-val ${patient.prognosis.risk_level}`}>
-                {patient.prognosis.risk_probability_pct}%
+                {t(`state.${patient.level}`, lang)}
               </span>
             </div>
           </div>
 
-          <div className="cdss-meter-track">
-            <div
-              className={`cdss-meter-fill ${patient.prognosis.risk_level}`}
-              style={{ width: `${patient.prognosis.risk_probability_pct}%` }}
-            />
-          </div>
 
           <div className="cdss-content-grid">
             <div className="cdss-summary-box">
@@ -376,7 +372,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
               <div key={addr.id} className={`address-detail-card ${addr.is_primary ? "primary-card" : ""}`}>
                 <div className="addr-card-header">
                   <span className="addr-kind-badge">{addr.kind.toUpperCase()}</span>
-                  {addr.is_primary && <span className="badge-primary-addr">Asosiy</span>}
+                  {addr.is_primary && <span className="badge-primary-addr">{t("detail.primary_badge", lang)}</span>}
                 </div>
 
                 <p className="addr-full-text">
@@ -412,7 +408,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                       className="addr-map-link"
                       style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
                     >
-                      <span>Xaritada</span>
+                      <span>{t("detail.map_view", lang)}</span>
                       <ExternalLink size={12} />
                     </a>
                   </div>
@@ -429,11 +425,11 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
             <table className="clinical-table-official">
               <thead>
                 <tr>
-                  <th>Dori</th>
-                  <th>Doza</th>
-                  <th>Vaqt</th>
-                  <th>Parametr</th>
-                  <th>Holat</th>
+                  <th>{t("detail.med_th_name", lang)}</th>
+                  <th>{t("detail.med_th_dose", lang)}</th>
+                  <th>{t("detail.med_th_freq", lang)}</th>
+                  <th>{t("detail.med_th_param", lang)}</th>
+                  <th>{t("detail.med_th_status", lang)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -451,7 +447,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                       </td>
                       <td>
                         <span className={`status-pill ${m.stopped_at ? "stopped" : "active"}`}>
-                          {m.stopped_at ? "To'xtatilgan" : "Faol"}
+                          {m.stopped_at ? t("detail.med_stopped", lang) : t("detail.med_active", lang)}
                         </span>
                       </td>
                     </tr>
@@ -466,7 +462,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
         <div className="tab-panel-card">
           <div className="profile-tri-grid">
             <div className="sub-profile-card">
-              <h4>Allergiyalar</h4>
+              <h4>{t("detail.allergies_heading", lang)}</h4>
               {fullProfile?.allergies && fullProfile.allergies.length > 0 ? (
                 <div className="allergies-list-box">
                   {fullProfile.allergies.map((al) => (
@@ -480,38 +476,38 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="empty-text">Yo'q</p>
+                <p className="empty-text">{t("detail.none", lang)}</p>
               )}
             </div>
 
             <div className="sub-profile-card">
-              <h4>Xavf omillari</h4>
+              <h4>{t("detail.risk_factors", lang)}</h4>
               <div className="risk-factors-list">
                 <div className="rf-row">
-                  <span className="rf-label">Yolg'iz:</span>
-                  <span className="rf-val">{fullProfile?.risk_factors?.lives_alone ? "Ha" : "Yo'q"}</span>
+                  <span className="rf-label">{t("detail.lives_alone", lang)}</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.lives_alone ? t("detail.yes", lang) : t("detail.no", lang)}</span>
                 </div>
                 <div className="rf-row">
-                  <span className="rf-label">Harakatchanlik:</span>
-                  <span className="rf-val">{fullProfile?.risk_factors?.mobility || "Mustaqil"}</span>
+                  <span className="rf-label">{t("detail.mobility", lang)}</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.mobility || t("detail.independent", lang)}</span>
                 </div>
                 <div className="rf-row">
-                  <span className="rf-label">Diabet:</span>
-                  <span className="rf-val">{fullProfile?.risk_factors?.diabetes ? "Bor" : "Yo'q"}</span>
+                  <span className="rf-label">{t("detail.diabetes", lang)}</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.diabetes ? t("detail.yes", lang) : t("detail.no", lang)}</span>
                 </div>
                 <div className="rf-row">
-                  <span className="rf-label">Buyrak (CKD):</span>
-                  <span className="rf-val">{fullProfile?.risk_factors?.ckd ? "Bor" : "Yo'q"}</span>
+                  <span className="rf-label">{t("detail.ckd", lang)}</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.ckd ? t("detail.yes", lang) : t("detail.no", lang)}</span>
                 </div>
                 <div className="rf-row">
-                  <span className="rf-label">Chekish:</span>
-                  <span className="rf-val">{fullProfile?.risk_factors?.smoking || "Yo'q"}</span>
+                  <span className="rf-label">{t("detail.smoking", lang)}</span>
+                  <span className="rf-val">{fullProfile?.risk_factors?.smoking || t("detail.no", lang)}</span>
                 </div>
               </div>
             </div>
 
             <div className="sub-profile-card">
-              <h4>Vazn</h4>
+              <h4>{t("detail.weight_heading", lang)}</h4>
               {fullProfile?.measurements && fullProfile.measurements.length > 0 ? (
                 <div className="measurements-history">
                   {fullProfile.measurements.map((m) => (
@@ -523,7 +519,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="empty-text">Ma'lumot yo'q</p>
+                <p className="empty-text">{t("detail.no_data", lang)}</p>
               )}
             </div>
           </div>
@@ -536,7 +532,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
           {nurseLoading ? (
             <div className="nurse-loading-state">
               <Loader2 className="spinner-rotate" size={28} color="#0284c7" />
-              <p>AI SBAR xisoboti tayyorlanmoqda…</p>
+              <p>{t("detail.sbar_loading", lang)}</p>
             </div>
           ) : nurseHandover ? (
             <NurseHandoverPanel
@@ -553,8 +549,8 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
           ) : (
             <div className="nurse-empty-state">
               <span className="nurse-empty-icon"><Building2 size={36} color="#94a3b8" /></span>
-              <h3>Hamshira SBAR Xisoboti mavjud emas</h3>
-              <p>AI xizmati vaqtincha mavjud emas yoki bemor uchun yetarli ma'lumot yo'q.</p>
+              <h3>{t("detail.sbar_empty_title", lang)}</h3>
+              <p>{t("detail.sbar_empty_desc", lang)}</p>
               <button
                 type="button"
                 className="btn-clinical"
@@ -566,7 +562,7 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({
                     .finally(() => setNurseLoading(false));
                 }}
               >
-                Qayta urinish
+                {t("error.retry", lang)}
               </button>
             </div>
           )}

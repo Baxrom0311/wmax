@@ -2448,7 +2448,7 @@ Bular har topshiriqda takrorlanmaydi — **doim amal qiladi**:
 
 - `GET /api/v1/realtime/status` — realtime transport holati.
 - `GET /api/v1/realtime/events?after_id=...` — WebSocket reconnectdan keyin Postgres outbox'dan catch-up.
-- `WS /api/v1/realtime/ws?token=...&topic=readings` — klinik xodimlar uchun live event kanali.
+- `WS /api/v1/realtime/ws?topic=*` — klinik xodimlar uchun live event kanali; access token `Sec-WebSocket-Protocol` handshake headerida uzatiladi, URL query'da emas.
 - `PipelineService.ingest_batch()` qabul qilingan batchdan keyin `readings`, `reading.accepted`, `reading.orphaned`, `reading.rejected` eventlarini chiqaradi.
 - `PipelineService.evaluate_patient()` alert yozilganda `alert.created` eventini chiqaradi.
 - `TaskService` vazifa yaratilganda yoki holati o'zgarganda `task.created`, `task.acknowledged`, `task.done`, `task.reassigned` eventlarini chiqaradi.

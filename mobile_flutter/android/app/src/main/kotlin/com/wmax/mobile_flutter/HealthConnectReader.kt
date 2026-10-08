@@ -2,6 +2,7 @@ package com.wmax.mobile_flutter
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BloodGlucoseRecord
 import androidx.health.connect.client.records.BloodPressureRecord
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+import kotlin.reflect.KClass
 
 interface HealthConnectResultCallback {
     fun onSuccess(payload: Map<String, Any?>)
@@ -75,6 +77,31 @@ object HealthConnectReader {
                 readSleep(client, range, sleepSessions)
                 readExercise(client, range, exerciseSessions)
 
+                val prefs = context.getSharedPreferences("wmax_health_state", Context.MODE_PRIVATE).edit()
+                samples.filter { it["metric"] == "oxygen_saturation_pct" }
+                    .maxByOrNull { (it["recorded_at"] as? String) ?: "" }
+                    ?.let { sample ->
+                        (sample["value_num"] as? Number)?.toFloat()?.let { spo2 ->
+                            prefs.putFloat("spo2_pct", spo2)
+                                .putString("spo2_at", sample["recorded_at"] as? String)
+                        }
+                    }
+                samples.filter { (it["metric"] as? String)?.startsWith("skin_temperature") == true }
+                    .maxByOrNull { (it["recorded_at"] as? String) ?: "" }
+                    ?.let { sample ->
+                        (sample["value_num"] as? Number)?.toFloat()?.let { temp ->
+                            prefs.putFloat("skin_temp_c", temp)
+                                .putString("skin_temp_at", sample["recorded_at"] as? String)
+                        }
+                    }
+                sleepSessions.maxByOrNull { (it["end_time"] as? String) ?: "" }?.let { sleep ->
+                    val stages = (sleep["stages"] as? List<*>)?.filterIsInstance<Map<String, Any?>>()
+                    val latestStage = stages?.maxByOrNull { (it["end_time"] as? String) ?: "" }?.get("stage") as? String
+                    prefs.putString("sleep_stage", latestStage ?: "asleep")
+                        .putString("sleep_at", (sleep["end_time"] as? String) ?: (sleep["start_time"] as? String))
+                }
+                prefs.apply()
+
                 callback.onSuccess(
                     mapOf(
                         "batch_id" to UUID.randomUUID().toString(),
@@ -103,7 +130,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(HeartRateRecord::class, range)).records) {
+        for (record in readAllRecords(client, HeartRateRecord::class, range)) {
             for (sample in record.samples) {
                 out.add(
                     sampleMap(
@@ -124,7 +151,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(StepsRecord::class, range)).records) {
+        for (record in readAllRecords(client, StepsRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "steps",
@@ -141,19 +168,19 @@ object HealthConnectReader {
     }
 
     private suspend fun readHeartRateVariability(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(HeartRateVariabilityRmssdRecord::class, range)).records) {
+        for (record in readAllRecords(client, HeartRateVariabilityRmssdRecord::class, range)) {
             out.add(sampleMap("heart_rate_variability_rmssd_ms", record.time, record.heartRateVariabilityMillis, "ms", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
         }
     }
 
     private suspend fun readBodyTemperature(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(BodyTemperatureRecord::class, range)).records) {
+        for (record in readAllRecords(client, BodyTemperatureRecord::class, range)) {
             out.add(sampleMap("body_temperature_c", record.time, doubleFromUnit(record.temperature, "getCelsius"), "celsius", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata) + mapOf("measurement_location" to record.measurementLocation)))
         }
     }
 
     private suspend fun readBloodPressure(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(BloodPressureRecord::class, range)).records) {
+        for (record in readAllRecords(client, BloodPressureRecord::class, range)) {
             val sourceId = record.metadata.safeId()
             val metadata = sourceMetadata(record.metadata) + mapOf("body_position" to record.bodyPosition, "measurement_location" to record.measurementLocation)
             out.add(sampleMap("blood_pressure_systolic_mmhg", record.time, doubleFromUnit(record.systolic, "getMillimetersOfMercury"), "mmHg", sourceRecordId = sourceId, metadata = metadata))
@@ -162,25 +189,25 @@ object HealthConnectReader {
     }
 
     private suspend fun readBloodGlucose(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(BloodGlucoseRecord::class, range)).records) {
+        for (record in readAllRecords(client, BloodGlucoseRecord::class, range)) {
             out.add(sampleMap("blood_glucose_mmol_l", record.time, doubleFromUnit(record.level, "getInMillimolesPerLiter"), "mmol/L", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata) + mapOf("meal_type" to record.mealType, "relation_to_meal" to record.relationToMeal, "specimen_source" to record.specimenSource)))
         }
     }
 
     private suspend fun readWeight(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(WeightRecord::class, range)).records) {
+        for (record in readAllRecords(client, WeightRecord::class, range)) {
             out.add(sampleMap("weight_kg", record.time, doubleFromUnit(record.weight, "getKilograms"), "kg", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
         }
     }
 
     private suspend fun readBodyFat(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(BodyFatRecord::class, range)).records) {
+        for (record in readAllRecords(client, BodyFatRecord::class, range)) {
             out.add(sampleMap("body_fat_pct", record.time, record.percentage.value, "%", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
         }
     }
 
     private suspend fun readVo2Max(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(Vo2MaxRecord::class, range)).records) {
+        for (record in readAllRecords(client, Vo2MaxRecord::class, range)) {
             out.add(sampleMap("vo2_max_ml_kg_min", record.time, record.vo2MillilitersPerMinuteKilogram, "mL/kg/min", sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata) + mapOf("measurement_method" to record.measurementMethod)))
         }
     }
@@ -190,7 +217,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(RespiratoryRateRecord::class, range)).records) {
+        for (record in readAllRecords(client, RespiratoryRateRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "respiratory_rate_bpm",
@@ -209,7 +236,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(OxygenSaturationRecord::class, range)).records) {
+        for (record in readAllRecords(client, OxygenSaturationRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "oxygen_saturation_pct",
@@ -228,7 +255,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, range)).records) {
+        for (record in readAllRecords(client, RestingHeartRateRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "resting_heart_rate_bpm",
@@ -247,7 +274,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(SkinTemperatureRecord::class, range)).records) {
+        for (record in readAllRecords(client, SkinTemperatureRecord::class, range)) {
             record.baseline?.let { baseline ->
                 out.add(
                     sampleMap(
@@ -282,7 +309,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(DistanceRecord::class, range)).records) {
+        for (record in readAllRecords(client, DistanceRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "distance_m",
@@ -303,7 +330,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, range)).records) {
+        for (record in readAllRecords(client, ActiveCaloriesBurnedRecord::class, range)) {
             out.add(
                 sampleMap(
                     metric = "active_calories_kcal",
@@ -324,7 +351,7 @@ object HealthConnectReader {
         range: TimeRangeFilter,
         out: MutableList<Map<String, Any?>>,
     ) {
-        for (record in client.readRecords(ReadRecordsRequest(SpeedRecord::class, range)).records) {
+        for (record in readAllRecords(client, SpeedRecord::class, range)) {
             for (sample in record.samples) {
                 out.add(
                     sampleMap(
@@ -341,7 +368,7 @@ object HealthConnectReader {
     }
 
     private suspend fun readTotalCalories(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
-        for (record in client.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class, range)).records) {
+        for (record in readAllRecords(client, TotalCaloriesBurnedRecord::class, range)) {
             out.add(sampleMap("total_calories_kcal", record.endTime, doubleFromUnit(record.energy, "getKilocalories"), "kcal", startedAt = record.startTime, endedAt = record.endTime, sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
         }
     }
@@ -352,7 +379,7 @@ object HealthConnectReader {
         out: MutableList<Map<String, Any?>>,
     ) {
         val stageNames = SleepSessionRecord.STAGE_TYPE_INT_TO_STRING_MAP
-        for (record in client.readRecords(ReadRecordsRequest(SleepSessionRecord::class, range)).records) {
+        for (record in readAllRecords(client, SleepSessionRecord::class, range)) {
             out.add(
                 mapOf(
                     "start_time" to record.startTime.toString(),
@@ -381,7 +408,7 @@ object HealthConnectReader {
         out: MutableList<Map<String, Any?>>,
     ) {
         val exerciseNames = ExerciseSessionRecord.EXERCISE_TYPE_INT_TO_STRING_MAP
-        for (record in client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class, range)).records) {
+        for (record in readAllRecords(client, ExerciseSessionRecord::class, range)) {
             out.add(
                 mapOf(
                     "exercise_type" to (exerciseNames[record.exerciseType] ?: "unknown"),
@@ -400,6 +427,27 @@ object HealthConnectReader {
                 ),
             )
         }
+    }
+
+    private suspend fun <T : Record> readAllRecords(
+        client: HealthConnectClient,
+        recordType: KClass<T>,
+        range: TimeRangeFilter,
+    ): List<T> {
+        val records = mutableListOf<T>()
+        var pageToken: String? = null
+        do {
+            val response = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = recordType,
+                    timeRangeFilter = range,
+                    pageToken = pageToken,
+                ),
+            )
+            records.addAll(response.records)
+            pageToken = response.pageToken?.takeIf(String::isNotEmpty)
+        } while (pageToken != null)
+        return records
     }
 
     private fun sampleMap(

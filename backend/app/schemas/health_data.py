@@ -69,6 +69,14 @@ class HealthSampleIn(BaseModel):
             raise ValueError("value_num yoki value_text talab qilinadi")
         if self.ended_at is not None and self.started_at is not None and self.ended_at < self.started_at:
             raise ValueError("ended_at started_at dan oldin bo'lishi mumkin emas")
+        if (
+            self.started_at is not None
+            and self.recorded_at < self.started_at
+        ) or (
+            self.ended_at is not None
+            and self.recorded_at > self.ended_at
+        ):
+            raise ValueError("recorded_at interval chegarasidan tashqarida")
         return self
 
     @field_validator("recorded_at", "started_at", "ended_at")
@@ -83,6 +91,12 @@ class SleepStageIn(BaseModel):
     stage: str
     start_time: datetime
     end_time: datetime
+
+    @model_validator(mode="after")
+    def validate_window(self) -> "SleepStageIn":
+        if self.end_time <= self.start_time:
+            raise ValueError("Uyqu bosqichi end_time start_time dan keyin bo'lishi kerak")
+        return self
 
     @field_validator("start_time", "end_time")
     @classmethod
@@ -102,6 +116,14 @@ class SleepSessionIn(BaseModel):
     def validate_window(self) -> "SleepSessionIn":
         if self.end_time <= self.start_time:
             raise ValueError("Uyqu sessiyasi end_time start_time dan keyin bo'lishi kerak")
+        if any(
+            stage.start_time < self.start_time or stage.end_time > self.end_time
+            for stage in self.stages
+        ):
+            raise ValueError("Uyqu bosqichlari sessiya vaqt oralig'idan tashqariga chiqmasligi kerak")
+        ordered = sorted(self.stages, key=lambda stage: stage.start_time)
+        if any(left.end_time > right.start_time for left, right in zip(ordered, ordered[1:])):
+            raise ValueError("Uyqu bosqichlari ustma-ust kelmasligi kerak")
         return self
 
     @field_validator("start_time", "end_time")

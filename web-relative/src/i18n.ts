@@ -40,12 +40,12 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Hero & AI Prognosis
     "hero.composite_deviation": "Kompozit og'ish",
-    "hero.prognosis_title": "AI 72-soatlik Erta ogohlantirish prognozi",
-    "hero.risk_prob": "Dekommutatsiya xavfi",
+    "hero.prognosis_title": "Joriy ko'rsatkichlar xulosasi",
+    "hero.risk_prob": "Signal darajasi",
     "hero.early_warning": "{h} soat oldin ogohlantirish",
-    "hero.risk_low": "Past",
-    "hero.risk_moderate": "O'rta",
-    "hero.risk_high": "Yuqori",
+    "hero.risk_low": "Bazaviy diapazonga yaqin",
+    "hero.risk_moderate": "E'tibor talab qiluvchi og'ish",
+    "hero.risk_high": "Kuchli og'ish",
 
     // Root-Cause Problems
     "problems.title": "Aniqlangan asosiy muammolar tahlili",
@@ -178,6 +178,52 @@ const translations: Record<Lang, Record<string, string>> = {
     "handoff.desc": "Bemor yaqinda {facility}dan chiqarildi. Tizim avtomatik ravishda yashash mahallangiz bo'yicha mas'ul patronaj hamshirasiga kartani uzatdi.",
     "handoff.assigned_nurse": "Mas'ul patronaj hamshirasi:",
     "handoff.call_nurse": "Hamshiraga sim qoqish",
+
+    // Peace of Mind Index (Tinchlik Ko'rsatkichi)
+    "peace.title": "Tinchlik Ko'rsatkichi",
+    "peace.subtitle": "Yaqiningizning umumiy xotirjamlik va barqarorlik darajasi",
+    "peace.status_peaceful": "Xotirjam / Barchasi joyida",
+    "peace.status_attention": "E'tibor talab / Nazoratda",
+    "peace.status_alert": "Shoshilinch / Shifokor bilan aloqa",
+    "peace.status_nodata": "Qurilma bilan aloqa yo'q",
+    "peace.score_label": "Tinchlik darajasi",
+    "peace.reassurance_label": "Yaqiningiz holati haqida:",
+    "peace.desc_peaceful": "Barcha fiziologik ko'rsatkichlar shaxsiy me'yorda. Xavotirga o'rin yo'q, holat to'liq barqaror va xavfsiz.",
+    "peace.desc_attention": "Ba'zi ko'rsatkichlarda me'yordan engil og'ishlar bor. Dori-darmon tartibiga va dam olishiga e'tibor bering.",
+    "peace.desc_alert": "Fiziologik parametrlarda tezkor tibbiy e'tibor talab qiluvchi og'ish aniqlandi. Zudlik bilan shifokor yoki 103 xizmati bilan bog'laning.",
+    "peace.desc_nodata": "Aqlli soatdan ma'lumot uzatilmayapti. Bemor bilan bog'lanib, soat taqilganligini tekshiring.",
+    "peace.advice_label": "Qarovchiga tavsiya:",
+    "peace.advice_peaceful": "Rejali kun tartibini va o'z vaqtida dori ichishni davom ettiring.",
+    "peace.advice_attention": "Kuzatuvni kuchaytiring, suv ichish tartibi va uyqu sifatini tekshiring.",
+    "peace.advice_alert": "Xotirjamlikni saqlang, bemorni tinchlantiring va shoshilinch yordam chaqiring.",
+    "peace.advice_nodata": "Soatni qayta taqish va zaryadlashni so'rang.",
+    "peace.stability": "Barqarorlik",
+
+    // Theme Switcher
+    "theme.toggle": "Mavzuni o'zgartirish",
+    "theme.light": "Yorug'",
+    "theme.dark": "Qorong'i",
+
+    // Plan & Subscription
+    "plan.title": "WMAX Oila Tarifi",
+    "plan.free": "Baza (Bepul)",
+    "plan.premium": "Premium (Tahliliy)",
+    "plan.premium_doc": "Premium + Shifokor",
+    "plan.manage": "Boshqarish",
+    "plan.trial": "Trial: {d} kun",
+    "plan.desc_free": "Asosiy monitoring",
+    "plan.desc_premium": "Qo'shimcha kuzatuv vositalari va PDF hisobot",
+    "plan.desc_premium_doc": "24/7 kardiolog, qizil signalda 15 daqiqada qo'ng'iroq",
+    "plan.compliance_doc": "Navbatchi kardiolog ulangan. Qizil signalda 15 daqiqada qo'ng'iroq qilinadi.",
+    "plan.compliance_nodoc": "Shifokor biriktirilmagan. Qizil holatda darhol 103 ga qo'ng'iroq qiling.",
+    "plan.modal_title": "WMAX Tariflari",
+    "plan.price_per_month": "so'm/oy",
+    "plan.payment_method": "To'lov usuli:",
+    "plan.payment_success": "To'lov muvaffaqiyatli! Tarif faollashtirildi.",
+    "plan.cancel": "Bekor qilish",
+    "plan.pay_with": "{p} orqali to'lash",
+    "plan.desc_premium_detail": "Qo'shimcha kuzatuv vositalari, cheksiz tarix va PDF hisobot.",
+    "plan.desc_premium_doc_detail": "24/7 navbatchi kardiolog, qizil signalda 15 daqiqada chaqiruv, oyda 2 video-konsultatsiya.",
   },
   ru: {
     // Backend emitted keys
@@ -216,12 +262,12 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Hero & AI Prognosis
     "hero.composite_deviation": "Совокупное отклонение",
-    "hero.prognosis_title": "AI 72-часовой Прогноз раннего предупреждения",
-    "hero.risk_prob": "Риск декомпенсации",
+    "hero.prognosis_title": "Сводка текущих показателей",
+    "hero.risk_prob": "Уровень сигнала",
     "hero.early_warning": "Предупреждение за {h} часов",
-    "hero.risk_low": "Низкий",
-    "hero.risk_moderate": "Умеренный",
-    "hero.risk_high": "Высокий",
+    "hero.risk_low": "Близко к базовому диапазону",
+    "hero.risk_moderate": "Отклонение требует внимания",
+    "hero.risk_high": "Сильное отклонение",
 
     // Root-Cause Problems
     "problems.title": "Анализ выявленных ключевых отклонений",
@@ -354,6 +400,52 @@ const translations: Record<Lang, Record<string, string>> = {
     "handoff.desc": "Пациент недавно выписан из {facility}. Система автоматически передала карту участковой патронажной медсестре.",
     "handoff.assigned_nurse": "Ответственная патронажная медсестра:",
     "handoff.call_nurse": "Связаться с медсестрой",
+
+    // Peace of Mind Index (Индекс спокойствия)
+    "peace.title": "Индекс спокойствия",
+    "peace.subtitle": "Общий уровень спокойствия и физиологической стабильности",
+    "peace.status_peaceful": "Спокойно / Всё под контролем",
+    "peace.status_attention": "Внимание / Требует заботы",
+    "peace.status_alert": "Тревога / Связь с врачом",
+    "peace.status_nodata": "Нет связи с устройством",
+    "peace.score_label": "Уровень спокойствия",
+    "peace.reassurance_label": "Состояние близкого:",
+    "peace.desc_peaceful": "Все физиологические показатели находятся в пределах индивидуальной нормы. Поводов для беспокойства нет, состояние стабильно.",
+    "peace.desc_attention": "Отмечены умеренные отклонения от привычной нормы. Проверьте своевременный приём препаратов и обеспечьте отдых.",
+    "peace.desc_alert": "Зафиксированы критические отклонения, требующие оперативного внимания. Свяжитесь с лечащим врачом или бригадой 103.",
+    "peace.desc_nodata": "Умные часы не передают данные. Пожалуйста, проверьте наличие часов на руке и уровень заряда батареи.",
+    "peace.advice_label": "Совет близким:",
+    "peace.advice_peaceful": "Продолжайте плановый приём препаратов и привычный режим дня.",
+    "peace.advice_attention": "Усильте наблюдение, проверьте питьевой режим и качество сна.",
+    "peace.advice_alert": "Сохраняйте спокойствие, помогите близкому прилечь и вызовите помощь.",
+    "peace.advice_nodata": "Попросите надеть часы и проверить зарядное устройство.",
+    "peace.stability": "Стабильность",
+
+    // Theme Switcher
+    "theme.toggle": "Переключить тему",
+    "theme.light": "Светлая",
+    "theme.dark": "Тёмная",
+
+    // Plan & Subscription
+    "plan.title": "Тариф WMAX Семья",
+    "plan.free": "Базовый (Бесплатно)",
+    "plan.premium": "Премиум (Аналитика)",
+    "plan.premium_doc": "Премиум + Врач",
+    "plan.manage": "Управление",
+    "plan.trial": "Триал: {d} дн.",
+    "plan.desc_free": "Базовый мониторинг",
+    "plan.desc_premium": "AI прогноз 72ч, журнал показателей, PDF отчёт",
+    "plan.desc_premium_doc": "24/7 кардиолог, звонок за 15 мин при красном сигнале",
+    "plan.compliance_doc": "Дежурный кардиолог подключён. Позвонит в течение 15 минут при красном сигнале.",
+    "plan.compliance_nodoc": "Личный врач не закреплён. При красном сигнале немедленно звоните 103.",
+    "plan.modal_title": "Тарифы WMAX",
+    "plan.price_per_month": "сум/мес",
+    "plan.payment_method": "Способ оплаты:",
+    "plan.payment_success": "Оплата прошла! Тариф активирован.",
+    "plan.cancel": "Отмена",
+    "plan.pay_with": "Оплатить через {p}",
+    "plan.desc_premium_detail": "AI прогноз 72ч, анализ лекарств, безлимитная история, PDF для врача.",
+    "plan.desc_premium_doc_detail": "24/7 кардиолог, вызов за 15 мин при критическом сигнале, 2 видеоконсультации в месяц.",
   },
   en: {
     // Backend emitted keys
@@ -392,12 +484,12 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Hero & AI Prognosis
     "hero.composite_deviation": "Composite deviation",
-    "hero.prognosis_title": "AI 72-hour Early warning prognosis",
-    "hero.risk_prob": "Decompensation risk",
+    "hero.prognosis_title": "Current measurement summary",
+    "hero.risk_prob": "Signal level",
     "hero.early_warning": "{h} hours early alert",
-    "hero.risk_low": "Low",
-    "hero.risk_moderate": "Moderate",
-    "hero.risk_high": "Elevated",
+    "hero.risk_low": "Near baseline range",
+    "hero.risk_moderate": "Deviation needs attention",
+    "hero.risk_high": "Large deviation",
 
     // Root-Cause Problems
     "problems.title": "Identified physiological deviations",
@@ -530,6 +622,52 @@ const translations: Record<Lang, Record<string, string>> = {
     "handoff.desc": "Patient was recently discharged from {facility}. The system automatically routed the medical dossier to your regional patrol nurse.",
     "handoff.assigned_nurse": "Assigned patrol nurse:",
     "handoff.call_nurse": "Call nurse",
+
+    // Peace of Mind Index
+    "peace.title": "Peace of Mind Index",
+    "peace.subtitle": "Overall tranquility and physiological stability for family members",
+    "peace.status_peaceful": "Peaceful / Everything serene",
+    "peace.status_attention": "Attention / Needs care",
+    "peace.status_alert": "Alert / Contact physician",
+    "peace.status_nodata": "Device disconnected",
+    "peace.score_label": "Peace of Mind level",
+    "peace.reassurance_label": "Loved one's status:",
+    "peace.desc_peaceful": "All vital metrics are within normal baseline corridors. No causes for concern, status is completely stable and secure.",
+    "peace.desc_attention": "Mild baseline deviations detected. Ensure adherence to prescribed medications and adequate rest.",
+    "peace.desc_alert": "Significant physiological deviations detected requiring prompt attention. Contact attending physician or 103 emergency services.",
+    "peace.desc_nodata": "No telemetry received from smartwatch. Please verify device placement and battery charge.",
+    "peace.advice_label": "Caregiver guidance:",
+    "peace.advice_peaceful": "Maintain scheduled medications and usual daily rhythm.",
+    "peace.advice_attention": "Keep closer observation, verify hydration and sleep quality.",
+    "peace.advice_alert": "Stay calm, assist patient into a comfortable resting posture, and call emergency services.",
+    "peace.advice_nodata": "Ask loved one to put on the smartwatch and check the charger.",
+    "peace.stability": "Stability",
+
+    // Theme Switcher
+    "theme.toggle": "Toggle theme",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+
+    // Plan & Subscription
+    "plan.title": "WMAX Family Plan",
+    "plan.free": "Basic (Free)",
+    "plan.premium": "Premium (Analytics)",
+    "plan.premium_doc": "Premium + Physician",
+    "plan.manage": "Manage",
+    "plan.trial": "Trial: {d} days",
+    "plan.desc_free": "Basic telemonitoring",
+    "plan.desc_premium": "Additional monitoring tools and PDF reports",
+    "plan.desc_premium_doc": "24/7 on-call cardiologist, 15-min call on red alert",
+    "plan.compliance_doc": "Attending cardiologist connected. Will call within 15 minutes upon red alert.",
+    "plan.compliance_nodoc": "No personal physician assigned. Upon red alert, call 103 immediately.",
+    "plan.modal_title": "WMAX Plans",
+    "plan.price_per_month": "UZS/month",
+    "plan.payment_method": "Payment method:",
+    "plan.payment_success": "Payment successful! Plan activated.",
+    "plan.cancel": "Cancel",
+    "plan.pay_with": "Pay with {p}",
+    "plan.desc_premium_detail": "Additional monitoring tools, unlimited history, and PDF reports.",
+    "plan.desc_premium_doc_detail": "24/7 cardiologist, 15-min call on red alert, 2 video consultations per month.",
   },
 };
 

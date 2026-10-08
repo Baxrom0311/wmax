@@ -5,11 +5,13 @@ from typing import Literal
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.rls import set_rls_context
 from app.core.security import decode_token
+from app.models import PatientAccess, PatientConsent, PatientMembership, TenantMember
 from app.schemas.auth import CurrentUser
 from app.schemas.common import CLINICIAN_ROLES
 
@@ -81,6 +83,43 @@ async def _apply_rls_context(
     principal: CurrentUser, session: AsyncSession | object
 ) -> CurrentUser:
     if hasattr(session, "execute"):
+        db = session  # type: ignore[assignment]
+        # Bootstrap PostgreSQL RLS with the signed scope so relationship reads
+        # below are visible; then replace it with the current database scope.
+        await set_rls_context(
+            db,
+            account_id=principal.id if principal.role != "patient" else None,
+            tenant_ids=principal.tenant_ids,
+            patient_ids=principal.patient_ids,
+        )
+        if principal.role in CLINICIAN_ROLES:
+            rows = await db.execute(
+                select(TenantMember.tenant_id).where(
+                    TenantMember.account_id == principal.id,
+                    TenantMember.left_at.is_(None),
+                )
+            )
+            principal.tenant_ids = list(rows.scalars().all())
+        elif principal.role == "relative":
+            rows = await db.execute(
+                select(PatientAccess.patient_id)
+                .join(
+                    PatientConsent,
+                    PatientConsent.patient_id == PatientAccess.patient_id,
+                )
+                .where(
+                    PatientAccess.account_id == principal.id,
+                    PatientAccess.accepted_at.is_not(None),
+                    PatientAccess.revoked_at.is_(None),
+                    PatientConsent.scope == "family_access",
+                    PatientConsent.granted.is_(True),
+                    PatientConsent.revoked_at.is_(None),
+                    PatientConsent.target_account_id == principal.id,
+                )
+            )
+            principal.patient_ids = list(set(rows.scalars().all()))
+        elif principal.role == "patient":
+            principal.patient_ids = [principal.id]
         await set_rls_context(
             session,  # type: ignore[arg-type]
             account_id=principal.id if principal.role != "patient" else None,

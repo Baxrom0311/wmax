@@ -13,6 +13,7 @@ import {
   FileEdit,
 } from "lucide-react";
 import type { Lang } from "../i18n";
+import { t } from "../i18n";
 
 export interface HandoffItem {
   id: string;
@@ -148,29 +149,8 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
 
   const isNurse = role === "nurse";
 
-  const title = isNurse
-    ? lang === "ru"
-      ? "Патронаж и приём пациентов"
-      : lang === "en"
-      ? "Nurse Intake & Home Patrol"
-      : "Patronaj va bemorlarni qabul qilish"
-    : lang === "ru"
-    ? "Направления и переводы пациентов"
-    : lang === "en"
-    ? "Patient Referrals & Discharge"
-    : "Bemorlarni yo'naltirish va patronaj";
-
-  const lead = isNurse
-    ? lang === "ru"
-      ? "Пациенты, выписанные из стационара в ваш участок. Требуется подтверждение и выезд в течение 24 часов."
-      : lang === "en"
-      ? "Patients discharged to your district. Confirmation and home visit required within 24 hours."
-      : "Statsionardan sizning mahallangizga chiqarilgan va 24 soat ichida patronaj ko'rigi talab etiladigan bemorlar."
-    : lang === "ru"
-    ? "Пациенты, выписанные из кардиостационара и направленные участковой медсестре и семейному врачу."
-    : lang === "en"
-    ? "Patients discharged from hospital and referred to district nurses and family doctors."
-    : "Statsionardan chiqarilib, hududiy hamshira va oilaviy shifokorga 24 soatlik nazoratga yo'naltirilgan bemorlar.";
+  const title = isNurse ? t("handoffs.title_nurse", lang) : t("handoffs.title_doctor", lang);
+  const lead = isNurse ? t("handoffs.lead_nurse", lang) : t("handoffs.lead_doctor", lang);
 
   return (
     <div className="doc-container">
@@ -192,27 +172,19 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
       <div className="handoff-kpi-bar">
         <div className="handoff-kpi-item">
           <span className="kpi-num">{items.length}</span>
-          <span className="kpi-label">
-            {lang === "ru" ? "Всего направлений" : lang === "en" ? "Total Referrals" : "Jami yo'naltirilgan"}
-          </span>
+          <span className="kpi-label">{t("handoffs.kpi_total", lang)}</span>
         </div>
         <div className="handoff-kpi-item warning">
           <span className="kpi-num">{pendingCount}</span>
-          <span className="kpi-label">
-            {lang === "ru" ? "Ожидают приёма" : lang === "en" ? "Awaiting Intake" : "Qabul kutilmoqda"}
-          </span>
+          <span className="kpi-label">{t("handoffs.kpi_pending", lang)}</span>
         </div>
         <div className="handoff-kpi-item active">
           <span className="kpi-num">{inPatronageCount}</span>
-          <span className="kpi-label">
-            {lang === "ru" ? "В процессе патронажа" : lang === "en" ? "In Patrol" : "Patronaj jarayonida"}
-          </span>
+          <span className="kpi-label">{t("handoffs.kpi_active", lang)}</span>
         </div>
         <div className="handoff-kpi-item success">
           <span className="kpi-num">{completedCount}</span>
-          <span className="kpi-label">
-            {lang === "ru" ? "Завершено" : lang === "en" ? "Completed" : "Bajarildi"}
-          </span>
+          <span className="kpi-label">{t("handoffs.kpi_completed", lang)}</span>
         </div>
       </div>
 
@@ -223,7 +195,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
           className={`handoff-filter-btn ${filter === "all" ? "active" : ""}`}
           onClick={() => setFilter("all")}
         >
-          {lang === "ru" ? "Все пациенты" : lang === "en" ? "All Patients" : "Barcha bemorlar"} ({items.length})
+          {t("handoffs.tab_all", lang)} ({items.length})
         </button>
         <button
           type="button"
@@ -231,7 +203,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
           onClick={() => setFilter("pending_ack")}
         >
           <Clock size={14} />
-          <span>{lang === "ru" ? "Ожидают подтверждения" : lang === "en" ? "Pending Ack" : "Qabul kutilayotgan"} ({pendingCount})</span>
+          <span>{t("handoffs.tab_pending", lang)} ({pendingCount})</span>
         </button>
         <button
           type="button"
@@ -239,7 +211,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
           onClick={() => setFilter("in_patronage")}
         >
           <Activity size={14} />
-          <span>{lang === "ru" ? "Активный патронаж" : lang === "en" ? "Active Patrol" : "Faol patronaj"} ({inPatronageCount})</span>
+          <span>{t("handoffs.tab_active", lang)} ({inPatronageCount})</span>
         </button>
       </div>
 
@@ -247,12 +219,10 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
       {filteredItems.length === 0 ? (
         <div className="handoff-empty" style={{ marginTop: 16 }}>
           <h2 className="handoff-empty-title">
-            {lang === "ru" ? "В этой категории нет пациентов" : "Bu toifada bemorlar mavjud emas"}
+            {t("handoffs.empty_title", lang)}
           </h2>
           <p className="handoff-empty-body">
-            {lang === "ru"
-              ? "Все выписанные пациенты обработаны."
-              : "Yo'naltirilgan barcha bemorlar bo'yicha amallar bajarilgan."}
+            {t("handoffs.empty_desc", lang)}
           </p>
         </div>
       ) : (
@@ -271,7 +241,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                     <div className="patient-name-line">
                       <span className="patient-name-title">{item.patient_name}</span>
                       <span className="patient-age-tag">
-                        {item.age} {lang === "ru" ? "лет" : "yosh"} · {item.sex === "m" ? "Erkak" : "Ayol"}
+                        {t("patients.age_years", lang, { age: item.age })} · {item.sex === "m" ? t("patients.sex_male", lang) : t("patients.sex_female", lang)}
                       </span>
                       <span className={`handoff-badge level-${item.triage_level}`}>
                         {item.triage_level.toUpperCase()}
@@ -288,12 +258,12 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                     {isDone ? (
                       <span className="timer-pill done">
                         <CheckCircle2 size={13} />
-                        <span>Patronaj yakunlandi</span>
+                        <span>{t("handoffs.timer_done", lang)}</span>
                       </span>
                     ) : (
                       <span className={`timer-pill ${item.due_hours_left <= 6 ? "urgent" : "active"}`}>
                         <Clock size={13} />
-                        <span>24s taymer: <b>{item.due_hours_left} soat qoldi</b></span>
+                        <span>{t("handoffs.timer_left", lang, { h: item.due_hours_left })}</span>
                       </span>
                     )}
                   </div>
@@ -302,7 +272,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                 {/* Clinical Diagnosis & Vitals */}
                 <div className="handoff-card-body">
                   <div className="diagnosis-box">
-                    <span className="section-label">Klinik tashxis:</span>
+                    <span className="section-label">{t("detail.passport_diag", lang)}</span>
                     <p className="diagnosis-text">{item.diagnosis}</p>
                   </div>
 
@@ -315,19 +285,19 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                       </span>
                     </div>
                     <div className="vital-item">
-                      <span className="vital-lbl">Puls:</span>
+                      <span className="vital-lbl">{lang === "ru" ? "Пульс:" : lang === "en" ? "Pulse:" : "Puls:"}</span>
                       <span className={`vital-val ${item.vitals.hr > 100 ? "text-red" : ""}`}>
                         {item.vitals.hr} bpm
                       </span>
                     </div>
                     {item.vitals.bp && (
                       <div className="vital-item">
-                        <span className="vital-lbl">Qon bosimi:</span>
+                        <span className="vital-lbl">{lang === "ru" ? "АД:" : lang === "en" ? "BP:" : "Qon bosimi:"}</span>
                         <span className="vital-val">{item.vitals.bp} mmHg</span>
                       </div>
                     )}
                     <div className="vital-item facility-meta">
-                      <span className="vital-lbl">Chiqaruvchi:</span>
+                      <span className="vital-lbl">{t("handoffs.discharged_by", lang)}</span>
                       <span className="vital-val">{item.discharged_by} ({item.from_department})</span>
                     </div>
                   </div>
@@ -335,28 +305,28 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                   {/* Responsible Team */}
                   <div className="responsible-row">
                     <div className="resp-col">
-                      <span className="resp-lbl"><Building2 size={13} /> Biriktirilgan poliklinika:</span>
+                      <span className="resp-lbl"><Building2 size={13} /> {t("handoffs.assigned_facility", lang)}</span>
                       <span className="resp-val">{item.to_facility}</span>
                     </div>
                     <div className="resp-col">
-                      <span className="resp-lbl"><UserCheck size={13} /> Mas'ul patronaj hamshirasi:</span>
+                      <span className="resp-lbl"><UserCheck size={13} /> {t("handoffs.assigned_nurse", lang)}</span>
                       <span className="resp-val">{item.assigned_nurse}</span>
                     </div>
                     <div className="resp-col">
-                      <span className="resp-lbl"><Stethoscope size={13} /> Mas'ul oilaviy shifokor:</span>
+                      <span className="resp-lbl"><Stethoscope size={13} /> {t("handoffs.assigned_doctor", lang)}</span>
                       <span className="resp-val">{item.assigned_doctor}</span>
                     </div>
                   </div>
 
                   {/* Discharge notes */}
                   <div className="notes-box">
-                    <span className="section-label">Epikriz ko'rsatmasi:</span>
+                    <span className="section-label">{t("handoffs.epicrisis", lang)}</span>
                     <p className="notes-text">{item.discharge_notes}</p>
                   </div>
 
                   {/* Prescribed Meds */}
                   <div className="meds-tags">
-                    <span className="section-label" style={{ marginRight: 6 }}>Tavsiya dorilari:</span>
+                    <span className="section-label" style={{ marginRight: 6 }}>{t("handoffs.recommended_meds", lang)}</span>
                     {item.medications.map((m) => (
                       <span key={m} className="med-tag">
                         <Pill size={12} />
@@ -372,19 +342,19 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                     {isPending && (
                       <span className="status-dot-pending">
                         <Clock size={13} />
-                        <span>Qabul qilinishi kutilmoqda (Telegram yuborilgan)</span>
+                        <span>{t("handoffs.status_pending_desc", lang)}</span>
                       </span>
                     )}
                     {isInProgress && (
                       <span className="status-dot-progress">
                         <Activity size={13} />
-                        <span>Qabul qilingan · Xonadon ko'rigi o'tkazilmoqda</span>
+                        <span>{t("handoffs.status_progress_desc", lang)}</span>
                       </span>
                     )}
                     {isDone && (
                       <span className="status-dot-done">
                         <CheckCircle2 size={13} />
-                        <span>1-patronaj muvaffaqiyatli yakunlangan</span>
+                        <span>{t("handoffs.status_done_desc", lang)}</span>
                       </span>
                     )}
                   </div>
@@ -397,7 +367,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                         onClick={() => onSelectPatient(item.patient_id)}
                       >
                         <FileText size={14} />
-                        <span>Bemor kartasi & Trendlar</span>
+                        <span>{t("handoffs.btn_chart", lang)}</span>
                       </button>
                     )}
 
@@ -408,7 +378,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                         onClick={() => handleAcknowledge(item.id, item.patient_name)}
                       >
                         <Check size={14} />
-                        <span>Qabul qildim</span>
+                        <span>{t("handoffs.btn_ack", lang)}</span>
                       </button>
                     )}
 
@@ -419,7 +389,7 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
                         onClick={() => handleCompletePatronage(item.id, item.patient_name)}
                       >
                         <FileEdit size={14} />
-                        <span>Patronaj aktini kiritish</span>
+                        <span>{t("handoffs.btn_complete", lang)}</span>
                       </button>
                     )}
                   </div>
@@ -433,28 +403,28 @@ export const HandoffsPage: React.FC<HandoffsPageProps> = ({
       {/* Workflow Explainer at bottom */}
       <div className="handoff-bottom-workflow">
         <h3 className="workflow-title">
-          {lang === "ru" ? "Регламент передачи и 24-часового патронажа" : "Bemor topshirish va 24 soatlik patronaj tartibi"}
+          {t("handoffs.workflow_title", lang)}
         </h3>
         <div className="workflow-steps-row">
           <div className="wf-step-item">
             <span className="wf-num">1</span>
-            <span className="wf-title">Statsionardan chiqarish</span>
-            <span className="wf-desc">Dispanser shifokori bemorni chiqaradi va raqamli epikrizni shakllantiradi.</span>
+            <span className="wf-title">{t("handoffs.step1_title", lang)}</span>
+            <span className="wf-desc">{t("handoffs.step1_desc", lang)}</span>
           </div>
           <div className="wf-step-item">
             <span className="wf-num">2</span>
-            <span className="wf-title">Avtomatik yo'naltirish</span>
-            <span className="wf-desc">Tizim bemor mahallasi bo'yicha mas'ul hamshira va oilaviy shifokorga kartani yo'llaydi.</span>
+            <span className="wf-title">{t("handoffs.step2_title", lang)}</span>
+            <span className="wf-desc">{t("handoffs.step2_desc", lang)}</span>
           </div>
           <div className="wf-step-item">
             <span className="wf-num">3</span>
-            <span className="wf-title">Qabul va 24s taymer</span>
-            <span className="wf-desc">Hamshira "Qabul qildim" deb tasdiqlagach, 24 soatlik xonadon patronaji taymeri ishga tushadi.</span>
+            <span className="wf-title">{t("handoffs.step3_title", lang)}</span>
+            <span className="wf-desc">{t("handoffs.step3_desc", lang)}</span>
           </div>
           <div className="wf-step-item">
             <span className="wf-num">4</span>
-            <span className="wf-title">Patronaj akti</span>
-            <span className="wf-desc">Hamshira xonadonda soat va bosimni o'lchab, tizimga dastlabki natijalarni kiritadi.</span>
+            <span className="wf-title">{t("handoffs.step4_title", lang)}</span>
+            <span className="wf-desc">{t("handoffs.step4_desc", lang)}</span>
           </div>
         </div>
       </div>

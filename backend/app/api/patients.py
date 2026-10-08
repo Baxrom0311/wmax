@@ -13,7 +13,15 @@ from app.auth.deps import CurrentUser, require_clinician, require_doctor
 from app.auth.scope import assert_patient_access
 from app.core.db import get_session
 from app.core.exceptions import ForbiddenException, ValidationException
-from app.models import PatientConsent, PatientMembership
+from app.models import (
+    DeviceAssignment,
+    DeviceCredential,
+    PatientAccess,
+    PatientConsent,
+    PatientMembership,
+    PatientSubscription,
+    Task,
+)
 from app.models.baseline import Baseline
 from app.models.patient import Patient
 from app.models.reading import Reading
@@ -87,8 +95,6 @@ def _patient_dict(patient: Patient) -> dict[str, Any]:
 
 
 def _assert_tenant_scope(current_user: CurrentUser, tenant_id: uuid.UUID) -> None:
-    if current_user.role == "admin":
-        return
     if tenant_id not in current_user.tenant_ids:
         raise ForbiddenException("Bu klinika bo'yicha amal bajarish huquqi yo'q")
 
@@ -114,8 +120,7 @@ async def list_patients(
     current_user: CurrentUser = Depends(require_clinician),
 ) -> list[PatientSummary]:
     service = PatientService(session)
-    tenant_ids = None if current_user.role == "admin" else current_user.tenant_ids
-    return await service.get_worklist(district=district, level=level, clinician_tenant_ids=tenant_ids)
+    return await service.get_worklist(district=district, level=level, clinician_tenant_ids=current_user.tenant_ids)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, summary="Create a new patient")
@@ -264,6 +269,43 @@ async def mark_deceased(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bemor topilmadi")
     patient.deceased_at = datetime.now(timezone.utc)
     patient.deceased_marked_by = current_user.id
+    now = patient.deceased_at
+    access_rows = (await session.execute(
+        select(PatientAccess).where(PatientAccess.patient_id == id, PatientAccess.revoked_at.is_(None))
+    )).scalars().all()
+    for access in access_rows:
+        access.revoked_at = now
+    consent_rows = (await session.execute(
+        select(PatientConsent).where(PatientConsent.patient_id == id, PatientConsent.revoked_at.is_(None))
+    )).scalars().all()
+    for consent in consent_rows:
+        consent.revoked_at = now
+    tasks = (await session.execute(
+        select(Task).where(Task.patient_id == id, Task.status.in_(("open", "acknowledged")))
+    )).scalars().all()
+    for task in tasks:
+        task.status = "cancelled"
+    subscriptions = (await session.execute(
+        select(PatientSubscription).where(PatientSubscription.patient_id == id)
+    )).scalars().all()
+    for subscription in subscriptions:
+        subscription.status = "lapsed"
+    assignments = (await session.execute(
+        select(DeviceAssignment).where(
+            DeviceAssignment.patient_id == id,
+            DeviceAssignment.released_at.is_(None),
+        )
+    )).scalars().all()
+    for assignment in assignments:
+        assignment.released_at = now
+        credentials = (await session.execute(
+            select(DeviceCredential).where(
+                DeviceCredential.device_id == assignment.device_id,
+                DeviceCredential.revoked_at.is_(None),
+            )
+        )).scalars().all()
+        for credential in credentials:
+            credential.revoked_at = now
     await session.flush()
     await session.commit()
     return _patient_dict(patient)

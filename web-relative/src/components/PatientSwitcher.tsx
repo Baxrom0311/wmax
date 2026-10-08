@@ -14,10 +14,10 @@ interface PatientSwitcherProps {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  green: "bg-green-100 text-green-700 border-green-200",
-  amber: "bg-amber-100 text-amber-700 border-amber-200",
-  red: "bg-red-100 text-red-700 border-red-200",
-  no_data: "bg-slate-100 text-slate-500 border-slate-200",
+  green: "bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  amber: "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  red: "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  no_data: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
 
 export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
@@ -63,8 +63,8 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
               className={cn(
                 "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 cursor-pointer text-left flex-shrink-0 outline-none",
                 isActive
-                  ? "bg-white shadow-md border-blue-300 ring-1 ring-blue-200"
-                  : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                  ? "bg-white dark:bg-slate-900 shadow-md border-blue-400 dark:border-blue-500 ring-1 ring-blue-300 dark:ring-blue-800"
+                  : "bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
               )}
             >
               {/* Avatar */}
@@ -82,7 +82,7 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
               {/* Info */}
               <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] font-bold text-blue-600">
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">
                     {p.relationship || t("patients.select", lang)}
                   </span>
                   <span
@@ -94,7 +94,7 @@ export const PatientSwitcher: React.FC<PatientSwitcherProps> = ({
                     {t(wordKey, lang)}
                   </span>
                 </div>
-                <span className="text-[13px] font-bold text-slate-800 truncate max-w-[120px]">
+                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[120px]">
                   {p.full_name}
                 </span>
               </div>

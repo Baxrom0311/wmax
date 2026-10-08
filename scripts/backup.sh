@@ -32,7 +32,10 @@ echo "  Starting Database Backup: ${TIMESTAMP}"
 echo "========================================================"
 
 # Find running postgres container
-CONTAINER_ID=$(docker compose -p "${COMPOSE_PROJECT_NAME:-compose}" -f "${ROOT_DIR}/docker/compose/docker-compose.yml" ps -q postgres 2>/dev/null || true)
+CONTAINER_ID=$(docker compose -p "${COMPOSE_PROJECT_NAME:-compose}" --env-file "${ROOT_DIR}/.env" -f "${ROOT_DIR}/docker/compose/docker-compose.yml" ps -q postgres 2>/dev/null || true)
+if [ -z "${CONTAINER_ID}" ]; then
+  CONTAINER_ID=$(docker ps -q -f name=postgres | head -n 1)
+fi
 
 if [ -z "${CONTAINER_ID}" ]; then
   echo "[-] ERROR: PostgreSQL container is not running!" >&2

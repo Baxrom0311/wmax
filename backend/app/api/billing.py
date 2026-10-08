@@ -42,7 +42,7 @@ def _assert_patient_billing_scope(current_user: CurrentUser, patient_id: uuid.UU
 def _assert_tenant_billing_scope(current_user: CurrentUser, tenant_id: uuid.UUID) -> None:
     if current_user.role not in {"doctor", "nurse", "admin", "dispatcher"}:
         raise ForbiddenException("Klinika billing ma'lumotlariga ruxsat yo'q")
-    if current_user.role != "admin" and tenant_id not in current_user.tenant_ids:
+    if tenant_id not in current_user.tenant_ids:
         raise ForbiddenException("Bu klinika billing ma'lumotlariga ruxsat yo'q")
 
 
@@ -132,8 +132,8 @@ async def checkout_patient_subscription(
     _assert_patient_billing_scope(current_user, id)
     service = BillingService(session)
     try:
-        return await service.upgrade_plan(
-            tenant_id=id,
+        return await service.upgrade_patient_plan(
+            patient_id=id,
             new_plan=req.plan,
             provider=req.provider,
             card_token=req.card_token,

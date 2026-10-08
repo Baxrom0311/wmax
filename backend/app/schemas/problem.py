@@ -17,12 +17,12 @@ class ProblemItem(BaseModel):
 
 class PrognosisInfo(BaseModel):
     risk_level: Literal["low", "moderate", "high"]
-    risk_probability_pct: int
-    early_warning_hours: int
+    risk_probability_pct: int | None = None
+    early_warning_hours: int | None = None
     summary: str
     recommendation: str
     evidence_citations: list[str] = []
-    confidence_score: float = 0.92
+    confidence_score: float | None = None
     uncertainty_note: str | None = None
 
 
@@ -49,6 +49,6 @@ class NurseHandoverSBAR(BaseModel):
     shift_checklist: list[NurseChecklistItem] = []
     clinical_urgency: Literal["routine", "urgent", "critical"]
     vital_flags: list[str] = []
-    confidence_score: float = 0.95
+    confidence_score: float | None = None
     evidence_citations: list[str] = []
     generated_at: str | None = None

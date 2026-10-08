@@ -48,6 +48,7 @@ public class MainActivity extends FlutterActivity {
             PermissionController.createRequestPermissionResultContract();
     private MethodChannel.Result pendingHealthPermissionResult;
     private MethodChannel.Result pendingWearHealthResult;
+    private boolean pendingWearPermissionOnly;
     private boolean activityRecognitionRequestAttempted;
 
     @Override
@@ -71,6 +72,21 @@ public class MainActivity extends FlutterActivity {
                         case "startWearHealthMonitoring":
                             startWearHealthMonitoring(result);
                             break;
+                        case "requestWearExercisePermissions":
+                            requestWearExercisePermissions(result);
+                            break;
+                        case "getWearHealthCapabilities":
+                            getWearHealthCapabilities(result);
+                            break;
+                        case "startWearExercise":
+                            startWearExercise(call.argument("exerciseType"), result);
+                            break;
+                        case "stopWearExercise":
+                            stopWearExercise(result);
+                            break;
+                        case "getWearExerciseStatus":
+                            result.success(getWearExerciseStatus());
+                            break;
                         case "drainWearDataLayerQueue":
                         case "getWearDataLayerQueue":
                             result.success(getWearQueue());
@@ -78,6 +94,14 @@ public class MainActivity extends FlutterActivity {
                         case "ackWearDataLayerQueue":
                             acknowledgeWearQueue(call.argument("payloads"));
                             result.success(true);
+                            break;
+                        case "enqueueWearPayload":
+                            String queuePayload = call.argument("payload");
+                            if (queuePayload != null && !queuePayload.trim().isEmpty()) {
+                                result.success(WmaxWearDataListenerService.enqueuePayload(this, queuePayload));
+                            } else {
+                                result.error("INVALID_PAYLOAD", "Payload cannot be empty", null);
+                            }
                             break;
                         case "openHealthConnectSettings":
                             openHealthConnectSettings();
@@ -226,6 +250,16 @@ public class MainActivity extends FlutterActivity {
         status.put("latest_heart_rate_at", healthState.getString("heart_rate_at", null));
         status.put("latest_daily_steps", healthState.getLong("daily_steps", -1L));
         status.put("latest_daily_steps_at", healthState.getString("daily_steps_at", null));
+        status.put("latest_spo2_pct", healthState.getFloat("spo2_pct", -1f));
+        status.put("latest_spo2_at", healthState.getString("spo2_at", null));
+        status.put("latest_skin_temp_c", healthState.getFloat("skin_temp_c", -1f));
+        status.put("latest_skin_temp_at", healthState.getString("skin_temp_at", null));
+        status.put("latest_activity_state", healthState.getString("activity_state", null));
+        status.put("latest_activity_state_at", healthState.getString("activity_state_at", null));
+        status.put("latest_sleep_stage", healthState.getString("sleep_stage", null));
+        status.put("latest_sleep_at", healthState.getString("sleep_at", null));
+        status.put("latest_vo2_max", healthState.getFloat("vo2_max", -1f));
+        status.put("latest_vo2_max_at", healthState.getString("vo2_max_at", null));
         status.put("queued_wear_batches", getWearQueue().size());
         status.put("health_connect_permissions", new ArrayList<>(requiredHealthConnectPermissions()));
         return status;
@@ -252,14 +286,103 @@ public class MainActivity extends FlutterActivity {
             return;
         }
         pendingWearHealthResult = result;
+        pendingWearPermissionOnly = false;
         activityRecognitionRequestAttempted = false;
-        if (checkSelfPermission(android.Manifest.permission.BODY_SENSORS) != PackageManager.PERMISSION_GRANTED) {
+        String heartRatePermission = Build.VERSION.SDK_INT >= 36
+                ? "android.permission.health.READ_HEART_RATE"
+                : android.Manifest.permission.BODY_SENSORS;
+        if (checkSelfPermission(heartRatePermission) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    new String[]{android.Manifest.permission.BODY_SENSORS},
+                    new String[]{heartRatePermission},
                     BODY_SENSOR_PERMISSION_REQUEST_CODE);
             return;
         }
         requestBackgroundPermissionOrRegister();
+    }
+
+    private void requestWearExercisePermissions(MethodChannel.Result result) {
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_WATCH)) {
+            result.error("NOT_WEAR_OS", "Exercise tracking is available on Wear OS watches.", null);
+            return;
+        }
+        if (pendingWearHealthResult != null) {
+            result.error("SENSOR_PERMISSION_IN_PROGRESS", "A sensor permission request is already in progress.", null);
+            return;
+        }
+        pendingWearHealthResult = result;
+        pendingWearPermissionOnly = true;
+        activityRecognitionRequestAttempted = false;
+        String heartRatePermission = Build.VERSION.SDK_INT >= 36
+                ? "android.permission.health.READ_HEART_RATE"
+                : android.Manifest.permission.BODY_SENSORS;
+        if (checkSelfPermission(heartRatePermission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{heartRatePermission}, BODY_SENSOR_PERMISSION_REQUEST_CODE);
+            return;
+        }
+        requestBackgroundPermissionOrRegister();
+    }
+
+    private void getWearHealthCapabilities(MethodChannel.Result result) {
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_WATCH)) {
+            result.success(WearHealthServices.capabilitySnapshot(this));
+            return;
+        }
+        new Thread(() -> {
+            try {
+                Map<String, Object> capabilities = WearHealthServices.capabilitySnapshot(this);
+                runOnUiThread(() -> result.success(capabilities));
+            } catch (Exception error) {
+                runOnUiThread(() -> result.error(
+                        "HEALTH_CAPABILITY_QUERY_FAILED",
+                        error.getMessage() == null ? "Could not query watch capabilities." : error.getMessage(),
+                        null));
+            }
+        }, "wmax-health-capabilities").start();
+    }
+
+    private void startWearExercise(String exerciseType, MethodChannel.Result result) {
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_WATCH)) {
+            result.error("NOT_WEAR_OS", "Exercise tracking is available on Wear OS watches.", null);
+            return;
+        }
+        Intent intent = new Intent()
+                .setClassName(getPackageName(), "com.wmax.mobile_flutter.WearExerciseService")
+                .setAction("com.wmax.mobile_flutter.action.START_EXERCISE")
+                .putExtra("exercise_type",
+                        exerciseType == null ? "WALKING" : exerciseType);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent);
+            else startService(intent);
+            result.success(true);
+        } catch (Exception error) {
+            result.error("EXERCISE_START_FAILED", error.getMessage(), null);
+        }
+    }
+
+    private void stopWearExercise(MethodChannel.Result result) {
+        Intent intent = new Intent()
+                .setClassName(getPackageName(), "com.wmax.mobile_flutter.WearExerciseService")
+                .setAction("com.wmax.mobile_flutter.action.STOP_EXERCISE");
+        try {
+            startService(intent);
+            result.success(true);
+        } catch (Exception error) {
+            result.error("EXERCISE_STOP_FAILED", error.getMessage(), null);
+        }
+    }
+
+    private Map<String, Object> getWearExerciseStatus() {
+        android.content.SharedPreferences prefs = getSharedPreferences(
+                "wmax_exercise_state", Context.MODE_PRIVATE);
+        Map<String, Object> status = new HashMap<>();
+        status.put("active", prefs.getBoolean("active", false));
+        status.put("state", prefs.getString("status", "idle"));
+        status.put("exercise_type", prefs.getString("type", null));
+        status.put("start_time", prefs.getString("start_time", null));
+        status.put("heart_rate_bpm", prefs.getFloat("latest_hr_value", -1f));
+        status.put("heart_rate_at", prefs.getString("latest_hr_at", null));
+        status.put("error", prefs.getString("error", null));
+        return status;
     }
 
     private void requestBackgroundPermissionOrRegister() {
@@ -271,14 +394,24 @@ public class MainActivity extends FlutterActivity {
                     ACTIVITY_RECOGNITION_PERMISSION_REQUEST_CODE);
             return;
         }
-        if (Build.VERSION.SDK_INT >= 33
-                && checkSelfPermission("android.permission.BODY_SENSORS_BACKGROUND") != PackageManager.PERMISSION_GRANTED) {
+        String backgroundSensorPermission = Build.VERSION.SDK_INT >= 36
+                ? "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+                : "android.permission.BODY_SENSORS_BACKGROUND";
+        if (!pendingWearPermissionOnly && Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(backgroundSensorPermission) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    new String[]{"android.permission.BODY_SENSORS_BACKGROUND"},
+                    new String[]{backgroundSensorPermission},
                     BACKGROUND_SENSOR_PERMISSION_REQUEST_CODE);
             return;
         }
-        registerWearHealthMonitoring();
+        if (pendingWearPermissionOnly) {
+            MethodChannel.Result pending = pendingWearHealthResult;
+            pendingWearHealthResult = null;
+            pendingWearPermissionOnly = false;
+            if (pending != null) pending.success(true);
+        } else {
+            registerWearHealthMonitoring();
+        }
     }
 
     private void registerWearHealthMonitoring() {
@@ -288,6 +421,7 @@ public class MainActivity extends FlutterActivity {
                 runOnUiThread(() -> {
                     MethodChannel.Result pending = pendingWearHealthResult;
                     pendingWearHealthResult = null;
+                    pendingWearPermissionOnly = false;
                     if (pending == null) return;
                     if (registered) {
                         Map<String, Object> status = new HashMap<>();
@@ -307,7 +441,7 @@ public class MainActivity extends FlutterActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == BODY_SENSOR_PERMISSION_REQUEST_CODE) {
             if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                finishWearHealthRequest("BODY_SENSOR_PERMISSION_DENIED");
+                finishWearHealthRequest("HEART_RATE_PERMISSION_DENIED");
             } else {
                 requestBackgroundPermissionOrRegister();
             }
@@ -315,7 +449,7 @@ public class MainActivity extends FlutterActivity {
             if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 finishWearHealthRequest("BACKGROUND_SENSOR_PERMISSION_DENIED");
             } else {
-                registerWearHealthMonitoring();
+                requestBackgroundPermissionOrRegister();
             }
         } else if (requestCode == ACTIVITY_RECOGNITION_PERMISSION_REQUEST_CODE) {
             requestBackgroundPermissionOrRegister();
@@ -325,6 +459,7 @@ public class MainActivity extends FlutterActivity {
     private void finishWearHealthRequest(String error) {
         MethodChannel.Result pending = pendingWearHealthResult;
         pendingWearHealthResult = null;
+        pendingWearPermissionOnly = false;
         if (pending != null) pending.error(error, "Sensor access is required for passive heart-rate monitoring.", null);
     }
 

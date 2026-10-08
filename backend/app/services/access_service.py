@@ -25,7 +25,9 @@ class AccessService:
             raise ForbiddenException("Bu ruxsat boshqa akkauntga tegishli")
         if access.revoked_at is not None:
             raise ValidationException("Ruxsat bekor qilingan")
-
+        if access.accepted_at is None:
+            from datetime import datetime, timezone
+            access.accepted_at = datetime.now(timezone.utc)
         await self.session.flush()
         await self.session.commit()
         return self._access_dict(access)
@@ -37,6 +39,6 @@ class AccessService:
             "account_id": str(access.account_id),
             "role": access.role,
             "relation": access.relation,
-            "accepted": True,
+            "accepted": access.accepted_at is not None,
             "granted_at": access.granted_at.isoformat() if access.granted_at else None,
         }

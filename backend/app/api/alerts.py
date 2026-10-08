@@ -25,14 +25,13 @@ async def list_alerts(
     current_user: CurrentUser = Depends(require_clinician),
 ) -> list[dict[str, Any]]:
     stmt = select(Alert).order_by(Alert.ts.desc()).limit(limit)
-    if current_user.role != "admin":
-        stmt = stmt.where(
-            exists().where(
-                PatientMembership.patient_id == Alert.patient_id,
-                PatientMembership.tenant_id.in_(current_user.tenant_ids),
-                PatientMembership.revoked_at.is_(None),
-            )
+    stmt = stmt.where(
+        exists().where(
+            PatientMembership.patient_id == Alert.patient_id,
+            PatientMembership.tenant_id.in_(current_user.tenant_ids),
+            PatientMembership.revoked_at.is_(None),
         )
+    )
     if patient_id is not None:
         stmt = stmt.where(Alert.patient_id == patient_id)
     if level is not None:

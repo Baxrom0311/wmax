@@ -212,10 +212,10 @@ export const NurseHandoverPanel: React.FC<NurseHandoverPanelProps> = ({
               <span
                 className="confidence-badge"
                 style={{
-                  color: handover.confidence_score >= 0.9 ? "#16a34a" : handover.confidence_score >= 0.7 ? "#d97706" : "#dc2626",
+                  color: (handover.confidence_score ?? 0) >= 0.9 ? "#16a34a" : (handover.confidence_score ?? 0) >= 0.7 ? "#d97706" : "#64748b",
                 }}
               >
-                {Math.round(handover.confidence_score * 100)}%
+                {handover.confidence_score == null ? "—" : `${Math.round(handover.confidence_score * 100)}%`}
               </span>
             </div>
           </div>

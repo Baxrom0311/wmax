@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 
 from app.domain.access import requires_audit_log, visible_patients
 from app.domain.attribution import attribute_reading, orphan_candidates
 from app.domain.billing_calc import invoice_total, patient_days
+from app.domain.device_assignment import assignment_covers_interval
 from app.domain.entitlement import Feature, NEVER_PAYWALLED, clinical_pipeline_enabled, family_features
 from app.domain.health_quality import is_worn_window
 from app.domain.quality import task_kind
@@ -149,6 +151,14 @@ def test_attribution_uses_historical_assignment_window():
     assert attribute_reading(ts(4, 23), "watch-1", windows) == first_patient
     assert attribute_reading(ts(5), "watch-1", windows) == second_patient
     assert attribute_reading(ts(4), "watch-2", windows) is None
+
+
+def test_assignment_must_cover_the_entire_measurement_interval():
+    first_patient = SimpleNamespace(assigned_at=ts(1), released_at=ts(5))
+
+    assert assignment_covers_interval(first_patient, ts(4), ts(5)) is True
+    assert assignment_covers_interval(first_patient, ts(4), ts(6)) is False
+    assert assignment_covers_interval(first_patient, ts(5), ts(5)) is False
 
 
 def test_orphan_candidates_are_limited_to_same_device_and_range():

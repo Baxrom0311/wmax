@@ -79,7 +79,7 @@ async def test_device_bearer_token_resolves_active_credential():
                 secret_hash=hashlib.sha256(secret.encode()).hexdigest(),
             )
 
-        async def execute(self, stmt, params):
+        async def execute(self, stmt, params=None):
             return None
 
     principal = await get_current_device(credentials=credentials, session=Session())

@@ -19,7 +19,7 @@ class ResolveOrphanRequest(BaseModel):
 
 
 def _tenant_scope(current_user: CurrentUser) -> list[uuid.UUID] | None:
-    return None if current_user.role == "admin" else current_user.tenant_ids
+    return current_user.tenant_ids
 
 
 @router.get("", summary="List unresolved orphan readings")

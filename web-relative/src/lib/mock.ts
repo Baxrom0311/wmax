@@ -56,10 +56,10 @@ export const MOCK_RELATIVE_VIEW_PRO: RelativeView = {
   },
   prognosis: {
     risk_level: "moderate",
-    risk_probability_pct: 68,
-    early_warning_hours: 48,
+    risk_probability_pct: null,
+    early_warning_hours: null,
     summary: "Oxirgi 48 soatda kislorod to'yinishi (SpO2) pasayib, tungi tinch holatdagi puls ko'tarilgan. Salbiy tendensiya kuzatilmoqda.",
-    recommendation: "Shifokor bilan bog'lanib, qabul qilinayotgan dorilar dozasini qayta ko'rib chiqish tavsiya etiladi.",
+    recommendation: "O'lchovlar va bemor holatini klinik mas'ul bilan ko'rib chiqing.",
   },
   problems: [
     {
@@ -202,8 +202,8 @@ export const MOCK_RELATIVE_VIEW_STABLE: RelativeView = {
   },
   prognosis: {
     risk_level: "low",
-    risk_probability_pct: 12,
-    early_warning_hours: 0,
+    risk_probability_pct: null,
+    early_warning_hours: null,
     summary: "Barcha ko'rsatkichlar shaxsiy me'yor koridorida barqaror.",
     recommendation: "Rejali kundalik rejimni davom ettiring.",
   },

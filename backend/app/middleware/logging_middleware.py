@@ -16,7 +16,13 @@ class AccessLoggingMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         start_time = time.perf_counter()
-        client_ip = request.client.host if request.client else "unknown"
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            client_ip = forwarded.split(",")[0].strip()
+        elif request.headers.get("x-real-ip"):
+            client_ip = request.headers["x-real-ip"].strip()
+        else:
+            client_ip = request.client.host if request.client else "unknown"
         method = request.method
         path = request.url.path
 

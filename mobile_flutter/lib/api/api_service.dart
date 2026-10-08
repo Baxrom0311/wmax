@@ -319,12 +319,10 @@ class ApiService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         return RelativePatientView.fromJson(data);
       } else {
-        // Fallback to local simulated data if backend view fails
-        return _generateFallbackPatientView(patientId, patientName);
+        return _generateOfflineNoDataView(patientId, patientName);
       }
     } catch (_) {
-      // Offline fallback
-      return _generateFallbackPatientView(patientId, patientName);
+      return _generateOfflineNoDataView(patientId, patientName);
     }
   }
 
@@ -350,8 +348,8 @@ class ApiService {
       final body = <String, dynamic>{
         'patient_id': patientId,
         'source': 'relative_portal',
-        'device_lat': lat ?? latitude ?? 41.5562,
-        'device_lon': lon ?? longitude ?? 60.6311,
+        'device_lat': lat ?? latitude,
+        'device_lon': lon ?? longitude,
         'device_accuracy_m': 15.0,
       };
       if (reason != null) {
@@ -364,13 +362,46 @@ class ApiService {
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (_) {
-      // In offline mode, treat as acknowledged
-      return true;
+      return false;
+    }
+  }
+
+  /// Device emergency SOS: POST /api/v1/ingest/sos with per-device bearer token
+  static Future<bool> triggerDeviceSos({
+    required String deviceToken,
+    String source = 'watch_button',
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+  }) async {
+    final baseUrl = await SessionService.getBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/api/v1/ingest/sos');
+      final body = <String, dynamic>{
+        'source': source,
+        'device_lat': ?latitude,
+        'device_lon': ?longitude,
+        'device_accuracy_m': ?accuracy,
+      };
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $deviceToken',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 8));
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
     }
   }
 
   static RelativePatientView generateFallbackView(String id, String name) {
-    return _generateFallbackPatientView(id, name);
+    return _generateOfflineNoDataView(id, name);
   }
 
   /// Fallback demo patients list when starting in offline/demo mode
@@ -399,6 +430,49 @@ class ApiService {
     ];
   }
 
+  /// Offline view representing disconnected state honestly without inventing vitals
+  static RelativePatientView _generateOfflineNoDataView(
+    String id,
+    String name,
+  ) {
+    return RelativePatientView(
+      patientId: id,
+      patientName: name,
+      relationship: 'Bemor',
+      level: AlertLevel.noData,
+      levelWordKey: 'state.no_data',
+      compositeScore: 0.0,
+      lastReadingAt: null,
+      prognosis: PrognosisData(
+        riskLevel: 'unknown',
+        riskProbabilityPct: null,
+        summary: "Aloqa mavjud emas. Ko'rsatkichlar yangilanmadi.",
+      ),
+      vitals: VitalsData(
+        hr: 0.0,
+        spo2: 0.0,
+        temp: 0.0,
+        rr: 0.0,
+        steps: 0,
+        sleepHours: 0.0,
+        battery: 0,
+      ),
+      doctorContact: DoctorContact(
+        name: 'Navbatchi shifokor',
+        phone: '+998901234567',
+      ),
+      problems: [
+        ClinicalProblem(
+          key: 'conn_lost',
+          title: 'Aloqa uzilgan',
+          detail: "Server bilan bog'lanishda xatolik yuz berdi",
+          severity: 'warning',
+        ),
+      ],
+      sparkline: const [],
+    );
+  }
+
   /// Fallback simulated view for offline / demo mode
   static RelativePatientView _generateFallbackPatientView(
     String id,
@@ -415,7 +489,7 @@ class ApiService {
       lastReadingAt: DateTime.now().subtract(const Duration(minutes: 5)),
       prognosis: PrognosisData(
         riskLevel: isFather ? 'high' : 'moderate',
-        riskProbabilityPct: isFather ? 82 : 45,
+        riskProbabilityPct: null,
         summary: isFather
             ? 'SpO2 89% gacha pasaygan, puls 108 bpm. Shifokor bilan bog\'lanish tavsiya etiladi.'
             : 'Ko\'rsatkichlar me\'yorda, biroq qon bosimi va puls o\'rtacha ko\'tarilgan.',

@@ -185,6 +185,7 @@ class PatientAccess(Base):
     __tablename__ = "patient_access"
     __table_args__ = (
         UniqueConstraint("patient_id", "account_id", name="uq_access"),
+        UniqueConstraint("access_token", name="uq_patient_access_link_token"),
         Index("idx_access_active", "account_id", postgresql_where=text("revoked_at IS NULL")),
     )
 
@@ -195,6 +196,9 @@ class PatientAccess(Base):
     relation: Mapped[str | None] = mapped_column(Text)
     invited_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("accounts.id"))
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    access_token: Mapped[str | None] = mapped_column(Text)
+    access_token_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
@@ -509,8 +513,10 @@ class Task(Base):
     alert_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("alerts.id", ondelete="SET NULL"))
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reminded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reminder_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    escalation_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

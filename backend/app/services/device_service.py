@@ -214,18 +214,32 @@ class DeviceService:
         If patient changes device, existing baseline is invalidated and patient
         phase resets to 'calib' so new sensor characteristics don't cause false alerts.
         """
-        device = await self.session.get(Device, device_id)
+        device = (
+            await self.session.execute(
+                select(Device).where(Device.id == device_id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if not device:
             raise ValueError("Qurilma topilmadi")
         self._assert_device_scope(device, tenant_ids)
         if device.status not in ("in_stock", "returning"):
             raise ValueError(f"Qurilma hozir bo'sh emas (holati: {device.status})")
 
-        patient = await self.session.get(Patient, patient_id)
+        patient = (
+            await self.session.execute(
+                select(Patient).where(Patient.id == patient_id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if not patient:
             raise ValueError("Bemor topilmadi")
+        if patient.deceased_at is not None:
+            raise ValueError("Vafot etgan bemorga qurilma biriktirib bo'lmaydi")
         if device.owner_tenant_id is not None:
             await self._assert_patient_in_tenant(patient.id, device.owner_tenant_id)
+            if tenant_ids is not None and device.owner_tenant_id not in set(tenant_ids):
+                raise ValueError("Qurilma klinikangizga tegishli emas")
+        elif tenant_ids is not None:
+            await self._assert_patient_in_any_tenant(patient.id, tenant_ids)
 
         # Baseline reset check if changing hardware
         serial = self._serial(device)
@@ -271,14 +285,22 @@ class DeviceService:
         device_id: uuid.UUID,
         battery_health_pct: int | None = None,
         return_notes: str | None = None,
-        refund_deposit: bool = True,
+        refund_deposit: bool = False,
         tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> dict[str, Any]:
         """Processes return of a rented device, inspection, and deposit refund."""
-        device = await self.session.get(Device, device_id)
+        if refund_deposit:
+            raise ValueError("Depozit qaytarish provayderi ulanmagan; qaytarish alohida bajarilishi kerak")
+        device = (
+            await self.session.execute(
+                select(Device).where(Device.id == device_id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if not device:
             raise ValueError("Qurilma topilmadi")
         self._assert_device_scope(device, tenant_ids)
+        if device.status != "assigned":
+            raise ValueError("Faqat biriktirilgan qurilmani qaytarish mumkin")
 
         # Find active assignment
         stmt = (
@@ -290,21 +312,27 @@ class DeviceService:
                 )
             )
             .order_by(DeviceAssignment.assigned_at.desc())
+            .limit(1)
+            .with_for_update()
         )
         res = await self.session.execute(stmt)
         assignment = res.scalar_one_or_none()
+        if not assignment:
+            raise ValueError("Faol qurilma biriktirishi topilmadi")
 
         now = datetime.now(timezone.utc)
         if assignment:
             assignment.released_at = now
             assignment.return_notes = return_notes
-            assignment.deposit_refunded = refund_deposit
+            # The application has no payment processor/refund adapter. Do not
+            # record a refund as completed based on a request flag.
+            assignment.deposit_refunded = False
 
         if battery_health_pct is not None:
             device.battery_health_pct = battery_health_pct
 
         # If battery degraded < 80%, retire the device
-        if device.battery_health_pct and device.battery_health_pct < 80:
+        if device.battery_health_pct is not None and device.battery_health_pct < 80:
             device.status = "retired"
         else:
             device.status = "in_stock"
@@ -317,7 +345,7 @@ class DeviceService:
             "status": device.status,
             "battery_health_pct": device.battery_health_pct,
             "returned_at": now.isoformat(),
-            "deposit_refunded": refund_deposit,
+            "deposit_refunded": False,
         }
 
     async def revoke_credential(
@@ -384,3 +412,22 @@ class DeviceService:
         ).scalar_one_or_none()
         if not membership:
             raise ValueError("Bemor bu qurilma klinikasiga biriktirilmagan")
+
+    async def _assert_patient_in_any_tenant(
+        self,
+        patient_id: uuid.UUID,
+        tenant_ids: Sequence[uuid.UUID],
+    ) -> None:
+        if not tenant_ids:
+            raise ValueError("Bemor uchun klinik scope topilmadi")
+        membership = (
+            await self.session.execute(
+                select(PatientMembership.id).where(
+                    PatientMembership.patient_id == patient_id,
+                    PatientMembership.tenant_id.in_(list(tenant_ids)),
+                    PatientMembership.revoked_at.is_(None),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if membership is None:
+            raise ValueError("Bemor qurilma klinikangizga biriktirilmagan")

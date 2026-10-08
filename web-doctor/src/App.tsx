@@ -47,6 +47,24 @@ export const App: React.FC = () => {
     return urlParams.get("demo") === "true" || isDemoSession();
   });
 
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const saved = localStorage.getItem("wmax_theme");
+    if (saved === "light" || saved === "dark") return saved;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("wmax_theme", theme);
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+      root.setAttribute("data-theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      root.setAttribute("data-theme", "light");
+    }
+  }, [theme]);
+
   // Data states
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -129,18 +147,63 @@ export const App: React.FC = () => {
     }
   }, [token, loadPatients]);
 
-  // Periodic 15s auto-refresh polling (matches clinical workstation telemetry interval)
+  // Live changes refresh the active view; polling remains as a reconnect fallback.
   useEffect(() => {
-    if (!token) return;
-    const interval = setInterval(() => {
-      if (selectedPatientId) {
-        loadDetail(selectedPatientId, true);
-      } else {
-        loadPatients(true);
-      }
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [token, selectedPatientId, loadDetail, loadPatients]);
+    if (!token || isDemo) return;
+    let socket: WebSocket | null = null;
+    let reconnectTimer: number | undefined;
+    let reconnectDelay = 1000;
+    let disposed = false;
+
+    const refreshActiveView = () => {
+      if (selectedPatientId) loadDetail(selectedPatientId, true);
+      else loadPatients(true);
+    };
+
+    const connect = () => {
+      if (disposed) return;
+      const currentToken = getStoredToken() ?? token;
+      const scheme = window.location.protocol === "https:" ? "wss:" : "ws:";
+      socket = new WebSocket(
+        `${scheme}//${window.location.host}/api/v1/realtime/ws?topic=*`,
+        ["wmax", `bearer.${currentToken}`],
+      );
+      socket.onopen = () => {
+        reconnectDelay = 1000;
+        refreshActiveView();
+      };
+      socket.onmessage = (message) => {
+        try {
+          const event = JSON.parse(message.data) as { topic?: string };
+          if (
+            event.topic === "reading.accepted" ||
+            event.topic === "alert.created" ||
+            event.topic?.startsWith("task.") ||
+            event.topic?.startsWith("sos.")
+          ) refreshActiveView();
+        } catch {
+          // Ignore malformed frames and keep the live connection available.
+        }
+      };
+      socket.onclose = () => {
+        if (disposed) return;
+        reconnectTimer = window.setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      };
+      socket.onerror = () => socket?.close();
+    };
+
+    connect();
+    const fallback = window.setInterval(() => {
+      if (socket?.readyState !== WebSocket.OPEN) refreshActiveView();
+    }, 60000);
+    return () => {
+      disposed = true;
+      window.clearInterval(fallback);
+      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [token, isDemo, selectedPatientId, loadDetail, loadPatients]);
 
   // Keep active SOS counter reactive
   useEffect(() => {
@@ -211,6 +274,8 @@ export const App: React.FC = () => {
           activeTab={activeTab}
           openHandoffsCount={2}
           activeSosCount={sosCount}
+          theme={theme}
+          onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
           onTabChange={(tab) => {
             handleTabChange(tab);
             setSelectedPatientId(null);
@@ -238,6 +303,7 @@ export const App: React.FC = () => {
       <React.Suspense fallback={<div className="route-loading">{t("app.loading", lang)}</div>}>
       {isSosDispatcherOpen || activeTab === "sos" ? (
         <SosDispatcher
+          lang={lang}
           onClose={() => {
             setIsSosDispatcherOpen(false);
             handleTabChange("patients");

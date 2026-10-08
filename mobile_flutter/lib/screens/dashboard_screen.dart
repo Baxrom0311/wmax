@@ -8,6 +8,7 @@ import '../widgets/watch_sheet.dart';
 import '../widgets/language_selector.dart';
 import '../services/native_health_bridge.dart';
 import '../services/device_credential_store.dart';
+import '../utils/launcher_utils.dart';
 
 class CaregiverMainDashboard extends StatefulWidget {
   final bool isUzbek;
@@ -203,38 +204,72 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
 
   void _triggerSos([String? reason]) async {
     final p = currentPatient;
-    await ApiService.triggerSos(
+    final success = await ApiService.triggerSos(
       patientId: p.id,
-      lat: _currentPatientView?.lat ?? 41.556,
-      lon: _currentPatientView?.lon ?? 60.631,
+      lat: _currentPatientView?.lat,
+      lon: _currentPatientView?.lon,
       reason: reason ?? "Qarovchi mobil ilovasidan SOS signali berildi",
     );
 
-    setState(() {
-      _alerts.insert(0, {
-        "titleUz": "🚨 Shoshilinch SOS chaqiruvi!",
-        "titleRu": "🚨 Экстренный SOS вызов!",
-        "descUz":
-            "${p.fullName} uchun 103 dispetcher va navbatchi shifokorga signal uzatildi.",
-        "descRu":
-            "Сигнал для ${p.fullName} передан в диспетчерскую 103 и дежурному врачу.",
-        "time": "Hozirgina",
-        "isCritical": true,
+    if (success) {
+      setState(() {
+        _alerts.insert(0, {
+          "titleUz": "🚨 Shoshilinch SOS chaqiruvi!",
+          "titleRu": "🚨 Экстренный SOS вызов!",
+          "descUz":
+              "${p.fullName} uchun 103 dispetcher va navbatchi shifokorga signal uzatildi.",
+          "descRu":
+              "Сигнал для ${p.fullName} передан в диспетчерскую 103 и дежурному врачу.",
+          "time": "Hozirgina",
+          "isCritical": true,
+        });
       });
-    });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.isUzbek
-                ? "🚨 SOS qabul qilindi! Shifokor va 103 ga yetkazildi."
-                : "🚨 SOS принят! Сигнал передан врачу и 103.",
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isUzbek
+                  ? "🚨 SOS qabul qilindi! Shifokor va 103 ga yetkazildi."
+                  : "🚨 SOS принят! Сигнал передан врачу и 103.",
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+            duration: const Duration(seconds: 4),
           ),
-          backgroundColor: const Color(0xFFDC2626),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+        );
+      }
+    } else {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(widget.isUzbek ? "⚠️ Aloqa xatosi!" : "⚠️ Ошибка связи!"),
+            content: Text(
+              widget.isUzbek
+                  ? "Server bilan aloqa uzildi! SOS signali yetib bormasligi mumkin. Iltimos, darhol 103 ga to'g'ridan-to'g'ri telefon qiling!"
+                  : "Связь с сервером прервана! Сигнал SOS может не дойти. Пожалуйста, немедленно позвоните в 103 напрямую!",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(widget.isUzbek ? "Yopish" : "Закрыть"),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  makePhoneCall("103");
+                },
+                icon: const Icon(Icons.phone),
+                label: Text(widget.isUzbek ? "103 ga qo'ng'iroq" : "Позвонить в 103"),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
@@ -678,8 +713,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                         const SizedBox(width: 8),
                         Text(
                           uz
-                              ? "AI Klinik Xulosa & Xavf"
-                              : "AI Прогноз & Оценка",
+                              ? "Joriy signal xulosasi"
+                              : "Сводка текущего сигнала",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -694,17 +729,17 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: view.prognosis.riskScore > 50
+                        color: view.prognosis.riskLevel == 'high'
                             ? const Color(0xFFFEE2E2)
                             : const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "${uz ? 'Xavf' : 'Риск'}: ${view.prognosis.riskScore}%",
+                        "${uz ? 'Signal' : 'Сигнал'}: ${view.prognosis.riskLevel}",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: view.prognosis.riskScore > 50
+                          color: view.prognosis.riskLevel == 'high'
                               ? const Color(0xFFDC2626)
                               : const Color(0xFF16A34A),
                         ),
@@ -1039,13 +1074,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                           ElevatedButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    "${doc?.phone ?? '+998 90 123 45 67'} ga qo'ng'iroq qilinmoqda...",
-                                  ),
-                                ),
-                              );
+                              makePhoneCall(doc?.phone ?? '+998901234567');
                             },
                             child: Text(uz ? "Qo'ng'iroq" : "Позвонить"),
                           ),
@@ -1472,10 +1501,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
               IconButton(
                 onPressed: () {
                   final ph =
-                      _currentPatientView?.doctor?.phone ?? "+998 90 123 45 67";
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("$ph ga ulanmoqda...")),
-                  );
+                      _currentPatientView?.doctor?.phone ?? "+998901234567";
+                  makePhoneCall(ph);
                 },
                 icon: const Icon(
                   Icons.phone_rounded,

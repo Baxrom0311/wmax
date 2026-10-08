@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timezone
 from types import SimpleNamespace
 import uuid
@@ -36,8 +36,9 @@ async def test_realtime_hub_unsubscribe_removes_subscriber():
 
 
 @pytest.mark.asyncio
-async def test_live_event_service_persists_event_before_publish(monkeypatch):
-    session = AsyncMock()
+async def test_live_event_service_persists_without_publishing_before_commit(monkeypatch):
+    session = MagicMock()
+    session.flush = AsyncMock()
     async def flush_with_id():
         session.add.call_args.args[0].id = 123
 
@@ -45,15 +46,15 @@ async def test_live_event_service_persists_event_before_publish(monkeypatch):
     publisher = AsyncMock(return_value=0)
     monkeypatch.setattr("app.services.live_event_service.realtime_hub.publish", publisher)
 
-    delivered = await LiveEventService(session).publish("readings", {"accepted": ["w1"]})
+    event_id = await LiveEventService(session).publish("readings", {"accepted": ["w1"]})
 
-    assert delivered == 0
+    assert event_id == 123
     event = session.add.call_args.args[0]
     assert isinstance(event, RealtimeEventOutbox)
     assert event.topic == "readings"
     assert event.payload == {"accepted": ["w1"]}
     session.flush.assert_awaited_once()
-    publisher.assert_awaited_once_with("readings", {"accepted": ["w1"]}, event_id=123)
+    publisher.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -185,3 +186,12 @@ def test_realtime_hub_marks_own_stream_events():
 
     assert hub._is_own_stream_event({"origin": hub.instance_id}) is True
     assert hub._is_own_stream_event({"origin": "other-instance"}) is False
+
+
+def test_realtime_visibility_fails_closed_for_unscoped_events():
+    from app.api.realtime import _payload_visible
+
+    assert _payload_visible({"windows": ["w1"]}, role="doctor", tenant_ids={"tenant-a"}) is False
+    assert _payload_visible(
+        {"tenant_ids": ["tenant-a"]}, role="doctor", tenant_ids={"tenant-a"}
+    ) is True

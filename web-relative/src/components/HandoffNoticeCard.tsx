@@ -21,46 +21,46 @@ export const HandoffNoticeCard: React.FC<HandoffNoticeCardProps> = ({
   lang,
 }) => {
   return (
-    <div className="mx-4 mb-3 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50/60 border border-blue-200/80 p-4 shadow-sm flex flex-col gap-3 animate-fade-up">
+    <div className="mx-4 mb-3 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50/60 dark:from-slate-900 dark:to-indigo-950/30 border border-blue-200/80 dark:border-blue-900/50 p-4 shadow-sm flex flex-col gap-3 animate-fade-up">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
             <Building2 size={16} />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider block">
               {t("handoff.badge", lang)}
             </span>
-            <h4 className="text-[14px] font-extrabold text-slate-800 leading-tight">
+            <h4 className="text-[14px] font-extrabold text-slate-800 dark:text-slate-100 leading-tight">
               {t("handoff.title", lang, { name: patientName })}
             </h4>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full flex-shrink-0">
+        <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 px-2.5 py-0.5 rounded-full flex-shrink-0">
           <Clock size={11} />
           {t("handoff.hours_left", lang, { h: hoursLeft })}
         </span>
       </div>
 
-      <p className="text-[12px] text-slate-600 leading-relaxed">
+      <p className="text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed">
         {t("handoff.desc", lang, { facility: facilityName })}
       </p>
 
-      <div className="bg-white rounded-xl p-3 border border-blue-100 flex items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-800/90 rounded-xl p-3 border border-blue-100 dark:border-slate-700 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+          <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-800">
             <CheckCircle2 size={18} />
           </div>
           <div className="min-w-0">
-            <span className="text-[10px] font-bold text-slate-400 block">{t("handoff.assigned_nurse", lang)}</span>
-            <p className="text-[13px] font-bold text-slate-800 truncate">{nurseName} (OvaBMU)</p>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 block">{t("handoff.assigned_nurse", lang)}</span>
+            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate">{nurseName} (OvaBMU)</p>
           </div>
         </div>
 
         <a
           href={`tel:${nursePhone}`}
-          className="flex items-center gap-1 text-[12px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl hover:bg-blue-100 active:scale-95 transition-all flex-shrink-0"
+          className="flex items-center gap-1 text-[12px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 px-3 py-1.5 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/60 active:scale-95 transition-all flex-shrink-0"
         >
           <Phone size={13} />
           <span>{t("handoff.call_nurse", lang)}</span>

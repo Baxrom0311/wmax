@@ -13,30 +13,18 @@ class LiveEventService:
     def __init__(self, session: Any | None = None) -> None:
         self.session = session
 
-    async def publish_reading_batch(
-        self,
-        *,
-        accepted: list[str],
-        duplicate: list[str],
-        orphaned: list[str],
-        rejected: list[dict[str, Any]],
-    ) -> None:
-        await self.publish(
-            "readings",
-            payload={
-                "accepted": accepted,
-                "duplicate": duplicate,
-                "orphaned": orphaned,
-                "rejected": rejected,
+    async def publish_patient_readings(
+        self, patient_id: Any, windows: list[str]
+    ) -> int:
+        tenant_ids = await self._patient_tenant_ids(patient_id)
+        return await self.publish(
+            "reading.accepted",
+            {
+                "patient_id": str(patient_id),
+                "tenant_ids": [str(item) for item in tenant_ids],
+                "windows": windows,
             },
         )
-
-        if accepted:
-            await self.publish("reading.accepted", {"windows": accepted})
-        if orphaned:
-            await self.publish("reading.orphaned", {"windows": orphaned})
-        if rejected:
-            await self.publish("reading.rejected", {"items": rejected})
 
     async def publish_alert(self, alert: Any) -> int:
         tenant_ids = await self._patient_tenant_ids(alert.patient_id)
@@ -98,6 +86,7 @@ class LiveEventService:
                 await added
             await self.session.flush()
             event_id = event.id
+            return event_id
         return await realtime_hub.publish(topic, payload, event_id=event_id)
 
     def _iso(self, value: Any) -> str | None:

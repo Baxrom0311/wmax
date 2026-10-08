@@ -114,8 +114,8 @@ export interface ProblemItem {
 
 export interface PrognosisInfo {
   risk_level: "low" | "moderate" | "high";
-  risk_probability_pct: number;
-  early_warning_hours: number;
+  risk_probability_pct: number | null;
+  early_warning_hours: number | null;
   summary: string;
   recommendation: string;
 }

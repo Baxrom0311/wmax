@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from sqlalchemy import text
+from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.core.db import get_engine
 from app.workers.escalation_worker import run_escalation_worker
+from app.workers.realtime_outbox_worker import run_realtime_outbox_worker
+from app.workers.partition_worker import run_partition_worker
 
 logger = logging.getLogger("wmax.workers.manager")
 
@@ -41,8 +43,7 @@ class WorkerManager:
         try:
             connection = await engine.connect()
             result = await connection.execute(
-                text("SELECT pg_try_advisory_lock(:lock_id)"),
-                {"lock_id": settings.WORKER_LOCK_ID},
+                select(func.pg_try_advisory_lock(settings.WORKER_LOCK_ID))
             )
             acquired = bool(result.scalar())
             if acquired:
@@ -66,7 +67,11 @@ class WorkerManager:
             )
             await asyncio.sleep(LOCK_RETRY_SECONDS)
 
-        await run_escalation_worker(interval_seconds=60)
+        await asyncio.gather(
+            run_escalation_worker(interval_seconds=60),
+            run_realtime_outbox_worker(),
+            run_partition_worker(interval_seconds=86400),
+        )
 
     def start_workers(self) -> None:
         """Starts the leader-election task unless workers are disabled."""

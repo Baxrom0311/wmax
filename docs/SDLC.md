@@ -23,13 +23,60 @@ defines how that design is changed, verified, released, and recovered.
    acceptance/rejection, queue lag, and alert delivery after release. Record
    incidents and follow-up work.
 
+## Engineering principles
+
+These rules resolve day-to-day implementation tradeoffs. `IDEOLOGY.md` remains
+the product authority and `ARCHITECTURE.md` the target design; neither is a
+reason to replace working code or data in one broad rewrite.
+
+1. **Ship one complete slice at a time.** Choose a user-visible or operational
+   outcome, trace its API, domain rule, persistence, client, and failure path,
+   then finish that slice before starting unrelated features. Prefer a small
+   deployable change over a large phase that stays unfinished.
+2. **Make the rule easy to find.** Each business decision has one clear owner in
+   the domain/service layer. Keep endpoints and repositories unsurprising:
+   transport validates and delegates; persistence reads/writes; neither hides
+   product policy. Refactor only as part of a concrete behavior change.
+3. **Optimize for correct, readable behavior, not test count.** Tests protect
+   clinical, authorization, data-integrity, and recovery invariants. Avoid
+   duplicate tests and mock-heavy checks that merely restate implementation.
+   A focused explanation and a clear function are preferable to abstractions
+   introduced only to make a test pass.
+4. **Persist before notifying.** For device ingest and asynchronous work, make
+   accepted data durable and idempotent before acknowledging it. Queues may
+   retry; consumers must tolerate duplicate delivery. WebSocket/push is a
+   low-latency notification or view-update channel, never the only copy of a
+   measurement or command. Reconnects must recover from persisted state/cursors.
+5. **Treat every boundary as untrusted.** Derive patient and tenant scope from
+   authenticated server-side relationships, not request bodies. Validate
+   ownership, consent, freshness, units, and provenance before data affects a
+   clinical workflow. Fail closed when scope or provenance is ambiguous.
+6. **Change data structures in compatible steps.** Audit existing rows and
+   consumers first; use expand, backfill/verify, switch reads/writes, then
+   contract. Do not delete legacy code, tables, or records solely because the
+   target architecture omits them.
+7. **Make failure visible and recoverable.** Give every important async step a
+   durable status, bounded retry policy, and actionable structured log/metric.
+   A green HTTP response is not proof that downstream work completed; expose
+   accepted, rejected, and pending outcomes distinctly.
+8. **Spend effort by risk and evidence.** Prioritize data loss, privacy,
+   incorrect clinical escalation, and inability to recover above cosmetic
+   improvements or speculative algorithms. Add a new signal/algorithm only
+   when its inputs, limitations, validation evidence, and operational response
+   are defined.
+
+Before implementation, the change proposal should state: the outcome, the
+affected data/API boundary, the main failure mode, and how an operator or user
+will know it worked. If any answer is unknown, narrow the scope or resolve that
+unknown before widening the change.
+
 ## Required CI gates
 
 - Python: mandatory `ruff check` and pytest for `backend/app/tests`,
   `backend/algo/tests`, and `notifier/tests`.
-- Database: PostgreSQL 16 migration upgrade, `alembic check`, downgrade to
-  base, and upgrade to head. This is a release dependency, not an informational
-  workflow.
+- Database: PostgreSQL 16 migration upgrade, `alembic check`, destructive
+  downgrade to base, and upgrade to head on a disposable CI database. This only
+  exercises migration mechanics; it is not a production rollback procedure.
 - Web: install from lockfiles, lint, and production build for both web apps.
 - Flutter: dependency resolution, `flutter analyze --fatal-infos`, Flutter
   tests, and debug builds for Android `phone` and `wear` flavors. iOS release
@@ -68,6 +115,11 @@ same commit passes required CI. The deploy uses `DEPLOY_RELEASE=<full commit
 SHA>`, the existing Compose project name (`compose` by default), and the `edge`
 profile. Promote no source changes between validation and deployment. Secrets are provisioned on the
 server/GitHub environment, never committed or copied by `rsync`.
+
+The Enterprise workflow is canonical for `main` and `develop` pushes and `main`
+pull requests. The legacy CI workflow remains for `master` pushes and PRs into
+`develop` or `master`, avoiding duplicate full client builds on canonical
+branches.
 
 Repository administrators must configure `main` branch protection to require
 the Enterprise workflow's `Code Quality & Static Analysis`, `Unit & Integration

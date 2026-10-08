@@ -3,16 +3,15 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from app.ai.guardrails import sanitize_clinical_input
+from app.ai.guardrails import anonymize_patient_name, sanitize_clinical_input
 
 
 CLINICAL_SYSTEM_INSTRUCTION = """
 <system_instructions>
-Sen WMAX (Aqlli Masofaviy Bemor Monitoringi va Erta Ogohlantirish Tizimi) platformasining yetakchi klinik assistenti va kardiologik telemonitoring ekspertisan.
-Sening vazifang kasalxonadan chiqarilgan og'ir yurak-qon tomir bemorlarining 5 daqiqalik telemetrik o'lchovlari (HR, SpO2, HRV, teri harorati, nafas tezligi, uyqu) va shaxsiy bazaviy me'yorlari asosida:
-1. Dekompensatsiya va qayta gospitalizatsiya xavfini 72 soat oldindan ishonchli bashorat qilish.
-2. Z-score chetlanishlari bo'yicha qaysi parametrlar kritik chegaradan chiqqanligini aniqlash.
-3. Shifokor va navbatchi hamshiraga asosli, professional, vazmin va amaliy harakatlar rejasini taqdim etish.
+Sen WMAX platformasida telemetriya matnini tartibga soluvchi yordamchisan. Klinik qaror yoki tashxis bermaysan.
+Sening vazifang kuzatilgan o'lchovlarni xolis bayon qilish va yetishmayotgan ma'lumotni ko'rsatish:
+2. Z-score chetlanishlari bo'yicha qaysi parametrlar belgilangan diapazondan chiqqanini ko'rsatish.
+3. Shifokor ko'rib chiqishi uchun dalil va noaniqlikni ajratib berish.
 
 QAT'IY KLINIK CHEKLOVLAR (NEGATIVE CONSTRAINTS):
 - Hech qachon asossiz vahima uyg'otma yoki mavjud bo'lmagan asoratlarni to'qib chiqarma (No Hallucinations).
@@ -35,15 +34,15 @@ def build_clinical_analysis_prompt(
     slope: float,
 ) -> str:
     """Constructs hardened XML-delimited prompt for rapid patient prognosis."""
-    safe_name = sanitize_clinical_input(patient_name, 100)
+    safe_name = anonymize_patient_name(patient_name)
     safe_diag = sanitize_clinical_input(diagnosis, 300)
     vitals_json = json.dumps(recent_vitals, ensure_ascii=False)
     deviated_json = json.dumps(deviated_params, ensure_ascii=False)
 
     return f"""
 <patient_context>
-BEMOR SHAXSI VA KLINIK MA'LUMOTLARI:
-- F.I.Sh: {safe_name}
+BEMORNING KLINIK MA'LUMOTLARI (MAXFIY/ANONIMLASHTIRILGAN):
+- Kod/Initsial: {safe_name}
 - Yoshi: {age} yosh
 - Klinik tashxisi: {safe_diag}
 - Joriy triaj darajasi: {level.upper()}
@@ -59,16 +58,16 @@ ME'YORDAN OG'IGAN PARAMETRLAR (Z-SCORE > 1.5):
 </telemetry_data>
 
 <instructions>
-Yuqoridagi kontekst asosida bemorning 72 soatlik dekompensatsiya xavfini baholang.
-Faqat berilgan telemetriyaga tayanib, quyidagi JSON formatida qat'iy javob bering:
+Yuqoridagi kuzatuvlarni xolis jamlang; kasallik ehtimoli yoki vaqt bo'yicha prognoz bermang.
+Quyidagi JSON formatida javob bering:
 {{
   "risk_level": "low" | "moderate" | "high",
-  "risk_probability_pct": 0 dan 100 gacha butun son,
-  "early_warning_hours": 72,
+  "risk_probability_pct": null,
+  "early_warning_hours": null,
   "summary": "Bemorning holati haqida 2-3 jumlalik dalillarga asoslangan klinik xulosa",
   "recommendation": "Shifokor yoki tibbiyot xodimi uchun 1-2 jumlalik amaliy klinik ko'rsatma",
   "evidence_citations": ["HR: 98 bpm", "SpO2: 91%"],
-  "confidence_score": 0.0 dan 1.0 gacha ishonch ko'rsatkichi,
+  "confidence_score": null,
   "uncertainty_note": null yoki ma'lumot yetarli bo'lmaganda izoh
 }}
 </instructions>
@@ -193,7 +192,7 @@ Javobni FAQAT quyidagi JSON formatda qaytaring:
   "recommendation": "Shifokor uchun amaliy ko'rsatma",
   "relative_message_key": "alert.red.urgent" | "alert.amber.warning" | "state.good",
   "evidence_citations": ["Parametrlar iqtibosi"],
-  "confidence_score": 0.95,
+  "confidence_score": null,
   "uncertainty_note": null
 }}
 </output_schema>
@@ -202,7 +201,7 @@ Javobni FAQAT quyidagi JSON formatda qaytaring:
 
 def build_nurse_sbar_prompt(ctx: Any) -> str:
     """Constructs prompt for on-duty nurse SBAR handover note and shift patrol checklist."""
-    safe_full_name = sanitize_clinical_input(getattr(ctx, "full_name", ""), 100)
+    safe_full_name = anonymize_patient_name(getattr(ctx, "full_name", ""))
     primary_conditions = [c for c in getattr(ctx, "conditions", []) if getattr(c, "kind", "") == "primary"]
     primary_str = primary_conditions[0].name_uz if primary_conditions else "Klinik tashxis ko'rsatilmagan"
 
@@ -248,7 +247,7 @@ Quyidagi JSON formatda qaytaring:
   ],
   "clinical_urgency": "routine" | "urgent" | "critical",
   "vital_flags": ["SpO2 < 92%", "Puls > 95 bpm"],
-  "confidence_score": 0.95,
+  "confidence_score": null,
   "evidence_citations": ["HR: {getattr(ctx, 'recent_vitals', {}).get('hr_mean', '—')}", "SpO2: {getattr(ctx, 'recent_vitals', {}).get('spo2', '—')}%"]
 }}
 </instructions>

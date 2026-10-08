@@ -76,7 +76,7 @@ async def test_payment_webhook_is_idempotent_for_duplicate_provider_ref(mock_ses
 
     result = await PaymentWebhookService(mock_session).record(
         provider="payme",
-        payload={"provider_ref": "txn-1", "status": "succeeded"},
+        payload={"provider_ref": "txn-1", "amount_uzs": 1000, "status": "succeeded"},
     )
 
     assert result["duplicate"] is True
@@ -88,6 +88,29 @@ async def test_payment_webhook_is_idempotent_for_duplicate_provider_ref(mock_ses
 async def test_payment_webhook_requires_provider_ref(mock_session):
     with pytest.raises(ValidationException):
         await PaymentWebhookService(mock_session).record(provider="payme", payload={})
+
+
+@pytest.mark.asyncio
+async def test_payment_webhook_rejects_invoice_amount_mismatch(mock_session):
+    invoice = Invoice(
+        id=uuid.uuid4(), tenant_id=uuid.uuid4(), period_start="2026-09-01",
+        period_end="2026-09-30", patient_days_total=30, patient_days_with_data=30,
+        min_commitment=30, billed_days=30, amount_uzs=85000, status="open",
+    )
+    mock_session.execute.return_value = _execute_result(None)
+    mock_session.get = AsyncMock(return_value=invoice)
+    with pytest.raises(ValidationException, match="invoice summasiga mos emas"):
+        await PaymentWebhookService(mock_session).record(
+            provider="payme",
+            payload={
+                "provider_ref": "txn-mismatch",
+                "invoice_id": str(invoice.id),
+                "amount_uzs": 1,
+                "status": "paid",
+            },
+        )
+    assert invoice.status == "open"
+    mock_session.commit.assert_not_awaited()
 
 
 def test_payment_webhook_signature_validation(monkeypatch, mock_session):
@@ -127,3 +150,44 @@ async def test_payment_webhook_activates_patient_subscription(mock_session):
     assert subscription.status == "active"
     assert subscription.period_end is not None
     assert subscription.provider_ref == "txn-sub-1"
+
+
+@pytest.mark.asyncio
+async def test_payment_webhook_pending_transition_to_paid(mock_session):
+    invoice_id = uuid.uuid4()
+    invoice = Invoice(
+        id=invoice_id,
+        tenant_id=uuid.uuid4(),
+        period_start="2026-09-01",
+        period_end="2026-09-30",
+        patient_days_total=30,
+        patient_days_with_data=28,
+        min_commitment=30,
+        billed_days=30,
+        amount_uzs=50000,
+        status="open",
+    )
+    existing_pending = Payment(
+        id=123,
+        invoice_id=invoice_id,
+        provider="payme",
+        provider_ref="txn-pending-1",
+        amount_uzs=50000,
+        status="pending",
+    )
+    mock_session.execute.return_value = _execute_result(existing_pending)
+    mock_session.get = AsyncMock(return_value=invoice)
+
+    result = await PaymentWebhookService(mock_session).record(
+        provider="payme",
+        payload={
+            "invoice_id": str(invoice_id),
+            "provider_ref": "txn-pending-1",
+            "amount_uzs": 50000,
+            "status": "paid",
+        },
+    )
+
+    assert result["duplicate"] is False
+    assert existing_pending.status == "paid"
+    assert invoice.status == "paid"

@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +15,6 @@ from app.auth.deps import (
     require_clinician,
 )
 from app.auth.scope import assert_patient_access
-from app.core.config import settings
 from app.core.db import get_session
 from app.core.security import decode_token
 from app.schemas.common import CLINICIAN_ROLES
@@ -45,7 +44,7 @@ def _uuid_list(raw: object) -> list[uuid.UUID]:
 
 
 def _tenant_scope(clinician: CurrentUser) -> list[uuid.UUID] | None:
-    return None if clinician.role == "admin" else clinician.tenant_ids
+    return clinician.tenant_ids
 
 
 def _principal_from_authorization(auth_header: str | None) -> CurrentUser:
@@ -88,19 +87,12 @@ async def raise_sos_endpoint(
     req: SosRaiseRequest,
     request: Request,
     db: AsyncSession = Depends(get_session),
-    x_ingest_key: str | None = Header(None, alias="X-Ingest-Key"),
 ) -> Any:
     """Raises an emergency SOS from smart watch, companion phone, or patient portal."""
-    # Allow authentication via either valid X-Ingest-Key (watch/phone) OR Bearer token
-    has_valid_key = False
-    if x_ingest_key and settings.INGEST_API_KEY:
-        import secrets
-        if secrets.compare_digest(x_ingest_key, settings.INGEST_API_KEY):
-            has_valid_key = True
-
-    if not has_valid_key:
-        principal = _principal_from_authorization(request.headers.get("Authorization"))
-        await assert_patient_access(db, principal, req.patient_id)
+    # A shared ingest key proves the app installation, not which patient the
+    # caller may act for. SOS requires a user token with patient-level scope.
+    principal = _principal_from_authorization(request.headers.get("Authorization"))
+    await assert_patient_access(db, principal, req.patient_id)
 
     service = SosService(db)
     event = await service.raise_sos(
@@ -229,20 +221,23 @@ async def get_patient_sos_history_endpoint(
     return await service.get_patient_sos_history(id)
 
 
+from app.core.db import get_db_context
+
+
 @router.get(
     "/api/v1/sos/stream",
     summary="SSE live stream for active SOS events (Architecture V2 Section 10.4)",
 )
 async def stream_sos_events_endpoint(
     clinician: CurrentUser = Depends(require_clinician),
-    db: AsyncSession = Depends(get_session),
 ) -> StreamingResponse:
     """Streams active SOS updates using Server-Sent Events."""
     async def sse_generator():
-        service = SosService(db)
         while True:
             try:
-                active = await service.get_active_sos(tenant_ids=_tenant_scope(clinician))
+                async with get_db_context() as session:
+                    service = SosService(session)
+                    active = await service.get_active_sos(tenant_ids=_tenant_scope(clinician))
                 # Serialize to SSE
                 clean_data = [
                     {k: str(v) if isinstance(v, uuid.UUID) else v for k, v in item.items()}

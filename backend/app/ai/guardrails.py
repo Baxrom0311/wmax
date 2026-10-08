@@ -40,6 +40,17 @@ def detect_prompt_injection(text: str) -> tuple[bool, str | None]:
     return False, None
 
 
+def anonymize_patient_name(text: str) -> str:
+    """Masks patient names to pseudonymous initials to preserve clinical privacy under PHI rules."""
+    if not text:
+        return "Bemor (Anonim)"
+    parts = text.strip().split()
+    if len(parts) >= 2:
+        initials = "".join(f"{p[0].upper()}." for p in parts[:3])
+        return f"Bemor {initials}"
+    return f"Bemor {text[0].upper()}."
+
+
 def sanitize_clinical_input(text: str, max_length: int = 2000) -> str:
     """Sanitizes and bounds clinical input text before feeding to prompt templates."""
     if not text:
@@ -83,7 +94,6 @@ def validate_prognosis_factuality(
             "Guardrail tripped: LLM returned risk_level='low' for patient in 'red' alert state. Overriding to 'high'."
         )
         prognosis.risk_level = "high"
-        prognosis.risk_probability_pct = max(75, prognosis.risk_probability_pct)
         prognosis.uncertainty_note = "Klinik ogohlantirish (Red) sababli xavf darajasi 'high' qilib to'g'rilandi."
 
     # Guard 2: Green level must not be evaluated as high risk
@@ -92,7 +102,6 @@ def validate_prognosis_factuality(
             "Guardrail tripped: LLM returned risk_level='high' for stable 'green' patient without trigger. Overriding to 'moderate'."
         )
         prognosis.risk_level = "moderate"
-        prognosis.risk_probability_pct = min(40, prognosis.risk_probability_pct)
         prognosis.uncertainty_note = "Barqaror telemetriya fonida xavf darajasi ehtiyotkorlik bilan 'moderate' ga moslashtirildi."
 
     # Guard 3: Ensure citations are present
@@ -100,8 +109,10 @@ def validate_prognosis_factuality(
         prognosis.evidence_citations = vitals_citations
 
     # Guard 4: Bound confidence score
-    if not (0.0 <= prognosis.confidence_score <= 1.0):
-        prognosis.confidence_score = 0.90
+    # No WMAX-specific outcome validation exists to support these numbers.
+    prognosis.risk_probability_pct = None
+    prognosis.early_warning_hours = None
+    prognosis.confidence_score = None
 
     return prognosis
 

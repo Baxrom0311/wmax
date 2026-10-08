@@ -5,6 +5,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseStoreFile = providers.gradleProperty("WMAX_UPLOAD_STORE_FILE").orNull
+    ?: System.getenv("WMAX_UPLOAD_STORE_FILE")
+val releaseStorePassword = providers.gradleProperty("WMAX_UPLOAD_STORE_PASSWORD").orNull
+    ?: System.getenv("WMAX_UPLOAD_STORE_PASSWORD")
+val releaseKeyAlias = providers.gradleProperty("WMAX_UPLOAD_KEY_ALIAS").orNull
+    ?: System.getenv("WMAX_UPLOAD_KEY_ALIAS")
+val releaseKeyPassword = providers.gradleProperty("WMAX_UPLOAD_KEY_PASSWORD").orNull
+    ?: System.getenv("WMAX_UPLOAD_KEY_PASSWORD")
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.wmax.mobile_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -39,10 +54,16 @@ android {
     }
 
     buildTypes {
+        if (hasReleaseSigning) {
+            signingConfigs.create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
 }

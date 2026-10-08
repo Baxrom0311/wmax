@@ -7,6 +7,8 @@ import pytest
 from app.auth import service as auth_service_module
 from app.auth.service import AuthService, _SMS_CODES
 from app.core.config import settings
+from app.core.exceptions import ValidationException
+from app.services.sms import EskizSmsProvider, send_sms_text
 
 
 @pytest.fixture
@@ -42,3 +44,13 @@ async def test_request_code_hides_dev_code_in_production(mock_session, monkeypat
 
     assert dev_code is None
     sender.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_unconfigured_eskiz_and_emergency_sms_never_claim_delivery(monkeypatch):
+    monkeypatch.setattr(settings, "SMS_PROVIDER", "eskiz")
+    with pytest.raises(ValidationException, match="adapter ulanmagan"):
+        await EskizSmsProvider().send_code(
+            phone="+998900000000", code="123456", expires_at=auth_service_module.now_utc()
+        )
+    assert await send_sms_text(phone="+998900000000", message="test") is False

@@ -16,6 +16,7 @@ from app.repositories.sos_repo import SosRepository
 from app.services.emergency.dispatcher import EmergencyDispatcher, ManualDispatch
 from app.services.live_event_service import LiveEventService
 from app.services.patient_context import PatientContextBuilder
+from app.services.sms import send_sms_text
 
 logger = logging.getLogger("wmax.sos.service")
 
@@ -41,6 +42,9 @@ class SosService:
         device_lon: float | None = None,
         device_accuracy_m: float | None = None,
     ) -> SosEvent:
+        patient_record = await self.session.get(Patient, patient_id)
+        if not patient_record or patient_record.deceased_at is not None:
+            raise NotFoundException("Faol bemor profili topilmadi")
         context = await self.context_builder.build(patient_id)
         if not context:
             raise NotFoundException("Bemor topilmadi")
@@ -49,8 +53,7 @@ class SosService:
         if context.primary_address:
             address_snap = context.primary_address.model_dump()
         else:
-            patient = await self.session.get(Patient, patient_id)
-            district = patient.district if patient else "Noma'lum"
+            district = patient_record.district
             address_snap = {
                 "region": "Xorazm",
                 "district": district,
@@ -82,20 +85,39 @@ class SosService:
 
         # Trigger emergency dispatcher
         try:
-            await self.dispatcher.dispatch(event, context)
+            dispatch_result = await self.dispatcher.dispatch(event, context)
+            if not dispatch_result.accepted:
+                event.dispatch_method = "unavailable"
+                event.dispatch_ref = "not_dispatched"
         except Exception as e:
             logger.error(f"Emergency dispatch execution failed: {e}", exc_info=True)
+            event.dispatch_method = "unavailable"
+            event.dispatch_ref = "dispatch_error"
 
-        # Queue notifications for emergency contacts
+        # Queue and deliver notifications for emergency contacts
         for contact in context.emergency_contacts:
             recipient_ref = str(contact.telegram_chat_id or contact.phone)
             channel = "telegram" if contact.telegram_chat_id else "sms"
+            delivered = False
+            error = None
+            if channel == "sms" and contact.phone:
+                try:
+                    msg = f"DIQQAT! WMAX: Bemor {context.full_name} SOS favqulodda yordam signalini yoqdi!"
+                    delivered = await send_sms_text(phone=contact.phone, message=msg)
+                    if not delivered:
+                        error = "sms_provider_unavailable"
+                except Exception as ex:
+                    error = type(ex).__name__
+            elif channel == "telegram":
+                error = "telegram_delivery_not_configured_in_api"
+
             await self.sos_repo.add_notification(
                 sos_id=event.id,
                 recipient_kind="relative",
                 recipient_ref=recipient_ref,
                 channel=channel,
-                delivered=False,
+                delivered=delivered,
+                error=error,
             )
 
         logger.warning(

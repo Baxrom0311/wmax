@@ -48,7 +48,7 @@ async def test_expired_access_token_rejected(monkeypatch):
         relationship="farzandi",
         phone="+998901110011",
         access_token="expired_token_test",
-        created_at=expired_created_at,
+        access_token_created_at=expired_created_at,
     )
     service.relative_repo.get_by_token = AsyncMock(return_value=mock_relative)
 

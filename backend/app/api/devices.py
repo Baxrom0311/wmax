@@ -34,7 +34,7 @@ class DeviceAssignRequest(BaseModel):
 class DeviceReturnRequest(BaseModel):
     battery_health_pct: int | None = Field(None, ge=0, le=100)
     return_notes: str | None = None
-    refund_deposit: bool = True
+    refund_deposit: bool = False
 
 
 class DeviceEnrollRequest(BaseModel):
@@ -60,12 +60,12 @@ class DeviceClaimResponse(BaseModel):
 
 
 def _tenant_scope(current_user: CurrentUser) -> list[uuid.UUID] | None:
-    return None if current_user.role == "admin" else current_user.tenant_ids
+    return current_user.tenant_ids
 
 
 def _resolve_device_tenant(current_user: CurrentUser, tenant_id: uuid.UUID | None) -> uuid.UUID:
     if tenant_id is not None:
-        if current_user.role != "admin" and tenant_id not in current_user.tenant_ids:
+        if tenant_id not in current_user.tenant_ids:
             raise ForbiddenException("Bu klinikaga qurilma qo'shish huquqi yo'q")
         return tenant_id
     if len(current_user.tenant_ids) == 1:

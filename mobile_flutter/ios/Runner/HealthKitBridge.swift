@@ -22,6 +22,16 @@ final class HealthKitBridge: NSObject, FlutterPlugin {
       saveDeviceCredential(arguments?["token"] as? String, result: result)
     case "clearDeviceCredential":
       clearDeviceCredential(result: result)
+    case "getWearExerciseStatus":
+      result(["supported": false, "active": false, "status": "unsupported_platform"])
+    case "getWearHealthCapabilities":
+      result(["supported": false, "exercise_types": [], "passive_data_types": []])
+    case "getWearDataLayerQueue", "drainWearDataLayerQueue":
+      result([String]())
+    case "ackWearDataLayerQueue":
+      result(true)
+    case "startWearHealthMonitoring", "requestWearExercisePermissions", "startWearExercise", "stopWearExercise":
+      result(FlutterError(code: "WEAR_OS_UNAVAILABLE", message: "Wear OS workout controls are not available on iOS.", details: nil))
     case "requestHealthConnectPermissions", "requestHealthDataPermissions":
       requestReadAuthorization(result: result)
     case "readRecentHealthConnect", "readRecentHealthData":
@@ -164,7 +174,9 @@ final class HealthKitBridge: NSObject, FlutterPlugin {
         let mapped = (resultSamples as? [HKQuantitySample] ?? []).map { sample in
           self.sample(
             metric: metric,
-            value: sample.quantity.doubleValue(for: unit),
+            value: self.percentMetrics.contains(metric)
+              ? sample.quantity.doubleValue(for: unit) * 100
+              : sample.quantity.doubleValue(for: unit),
             unit: unitName,
             start: sample.startDate,
             end: sample.endDate,
@@ -221,6 +233,8 @@ final class HealthKitBridge: NSObject, FlutterPlugin {
       ])
     }
   }
+
+  private let percentMetrics: Set<String> = ["body_fat_pct", "oxygen_saturation_pct"]
 
   private func requestedReadTypes() -> Set<HKObjectType> {
     var types = Set<HKObjectType>()

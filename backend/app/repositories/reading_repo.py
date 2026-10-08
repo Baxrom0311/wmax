@@ -74,6 +74,29 @@ class ReadingRepository:
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
+    async def get_assignment_covering(
+        self, device_id: uuid.UUID, start: datetime, end: datetime
+    ) -> DeviceAssignment | None:
+        """Return an assignment only when it owns the entire half-open interval."""
+        release_bound = (
+            DeviceAssignment.released_at >= end
+            if end > start
+            else DeviceAssignment.released_at > start
+        )
+        stmt = (
+            select(DeviceAssignment)
+            .where(
+                DeviceAssignment.device_id == device_id,
+                DeviceAssignment.assigned_at <= start,
+                (DeviceAssignment.released_at.is_(None))
+                | release_bound,
+            )
+            .order_by(DeviceAssignment.assigned_at.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_assignments_for_device_range(
         self,
         device_id: uuid.UUID,

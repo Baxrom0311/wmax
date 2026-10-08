@@ -28,32 +28,32 @@ export const ActionContactBar: React.FC<ActionContactBarProps> = ({
     <section className="px-4 pb-4 flex flex-col gap-3 animate-fade-up">
       {/* Section title */}
       <div className="flex items-center gap-2">
-        <Stethoscope size={16} className="text-blue-600" />
-        <h3 className="text-[14px] font-bold text-slate-800" style={{ fontFamily: "'Outfit',sans-serif" }}>
+        <Stethoscope size={16} className="text-blue-600 dark:text-blue-400" />
+        <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-100" style={{ fontFamily: "'Outfit',sans-serif" }}>
           {t("actions.title", lang)}
         </h3>
       </div>
 
       {/* Doctor Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 flex flex-col gap-4">
         {/* Doctor info row */}
         <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-2xl flex-shrink-0">
+          <div className="relative w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/50 border-2 border-blue-100 dark:border-blue-800 flex items-center justify-center text-2xl flex-shrink-0">
             👨‍⚕️
-            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-[10.5px] font-bold text-blue-600 uppercase tracking-wide">
+            <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
               {t("actions.doctor_name", lang)}
             </span>
-            <h4 className="text-[15px] font-extrabold text-slate-800 leading-tight" style={{ fontFamily: "'Outfit',sans-serif" }}>
+            <h4 className="text-[15px] font-extrabold text-slate-800 dark:text-slate-100 leading-tight" style={{ fontFamily: "'Outfit',sans-serif" }}>
               {doctorContact?.name || "Dr. Bahrom Alimov"}
             </h4>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {t("actions.doc_specialty", lang)}
             </span>
             {recommendation && (
-              <p className="text-[12px] text-slate-600 mt-1 leading-snug">
+              <p className="text-[12px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">
                 💬 {recommendation}
               </p>
             )}
@@ -78,7 +78,7 @@ export const ActionContactBar: React.FC<ActionContactBarProps> = ({
             rel="noreferrer"
             className={cn(
               "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-semibold text-[13px] transition-all",
-              "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 active:scale-95"
+              "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/60 active:scale-95"
             )}
           >
             <Send size={15} />
@@ -89,13 +89,13 @@ export const ActionContactBar: React.FC<ActionContactBarProps> = ({
 
       {/* Active patronaj notice */}
       {activeTask && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-xl p-4">
-          <Clock3 size={20} className="text-amber-600 flex-shrink-0" />
+        <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 border-l-4 border-l-amber-500 rounded-xl p-4">
+          <Clock3 size={20} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div>
-            <strong className="text-[13px] text-amber-800">
+            <strong className="text-[13px] text-amber-800 dark:text-amber-200">
               {t("actions.active_call_status", lang)}:
             </strong>
-            <p className="text-[12px] text-amber-700">
+            <p className="text-[12px] text-amber-700 dark:text-amber-300">
               {t("actions.active_call_scheduled", lang)}
             </p>
           </div>

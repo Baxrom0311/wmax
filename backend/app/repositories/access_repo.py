@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Account, Patient, PatientAccess
+from app.models import PatientConsent
 
 
 class PatientAccessRepository:
@@ -35,8 +36,19 @@ class PatientAccessRepository:
             select(PatientAccess, Patient, Account)
             .join(Account, PatientAccess.account_id == Account.id)
             .join(Patient, PatientAccess.patient_id == Patient.id)
-            .where(Account.phone == phone, PatientAccess.revoked_at.is_(None))
+            .join(PatientConsent, PatientConsent.patient_id == PatientAccess.patient_id)
+            .where(
+                Account.phone == phone,
+                Account.is_active.is_(True),
+                Account.password_hash.is_not(None),
+                PatientAccess.accepted_at.is_not(None),
+                PatientAccess.revoked_at.is_(None),
+                PatientConsent.target_account_id == PatientAccess.account_id,
+                PatientConsent.scope == "family_access",
+                PatientConsent.granted.is_(True),
+                PatientConsent.revoked_at.is_(None),
+                Patient.deceased_at.is_(None),
+            )
         )
         res = await self.session.execute(stmt)
         return [(row[0], row[1], row[2]) for row in res.all()]
-

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActionContactBar } from "./components/ActionContactBar";
 import { HeroStatusPrognosis } from "./components/HeroStatusPrognosis";
 import { LanguageSelector } from "./components/LanguageSelector";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { PatientSwitcher } from "./components/PatientSwitcher";
 import { ProblemBreakdown } from "./components/ProblemBreakdown";
 import { PlanStatusCard } from "./components/PlanStatusCard";
@@ -46,6 +47,23 @@ const InteractiveMetrics = React.lazy(() =>
 
 export const App: React.FC = () => {
   const [lang, setLang] = useState<Lang>("uz");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const saved = localStorage.getItem("wmax_relative_theme");
+    if (saved === "dark" || saved === "light") return saved;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.colorScheme === "dark") return "dark";
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    localStorage.setItem("wmax_relative_theme", theme);
+  }, [theme]);
+
   const [authToken, setAuthToken] = useState<string | null>(getStoredToken());
   const [viewToken, setViewToken] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState<boolean>(() => {
@@ -203,9 +221,19 @@ export const App: React.FC = () => {
         const res = await loginPatient(phone, pin);
         setAuthToken(res.access_token);
         setIsDemo(false);
-        const patView = await getDemoRelativeView("patient", "green");
-        setViewData({ ...patView, patient_name: res.full_name });
-        setLoading(false);
+        const patientItem: RelativePatientItem = {
+          id: "patient_self",
+          full_name: res.full_name,
+          relationship: "Bemor",
+          access_token: res.access_token,
+          level: "green",
+          diagnosis: "",
+          age: 0,
+          last_reading_at: null,
+        };
+        setPatients([patientItem]);
+        setActivePatientId("patient_self");
+        setViewToken(res.access_token);
       } else {
         const res = await loginRelative(phone, pin);
         setAuthToken(res.access_token);
@@ -330,6 +358,11 @@ export const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle
+            theme={theme}
+            onToggle={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
+            lang={lang}
+          />
           <LanguageSelector lang={lang} onChange={setLang} />
           {hasSession && !isTMA && (
             <RelativeProfilePopover

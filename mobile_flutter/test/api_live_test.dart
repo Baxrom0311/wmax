@@ -10,6 +10,11 @@ void main() {
   });
 
   test('Live backend integration test with https://wmax.boos.uz', () async {
+    final enableLive = Platform.environment['ENABLE_LIVE_SOS_TEST'] == 'true';
+    if (!enableLive) {
+      // Skipped by default to prevent firing live emergency alerts to production/staging servers
+      return;
+    }
     SharedPreferences.setMockInitialValues({});
     await SessionService.setBaseUrl('https://wmax.boos.uz');
 

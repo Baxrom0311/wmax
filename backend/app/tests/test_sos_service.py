@@ -8,6 +8,7 @@ import pytest
 
 from app.core.exceptions import ForbiddenException, ValidationException
 from app.models.sos import SosEvent
+from app.models.patient import Patient
 from app.services.emergency.dispatcher import Service103Adapter
 from app.services.patient_context import PatientContext
 from app.services.sos_service import SosService
@@ -36,6 +37,7 @@ async def test_raise_sos_creates_event_and_snapshots(mock_session):
     dispatcher_mock = AsyncMock()
 
     service = SosService(mock_session, dispatcher=dispatcher_mock)
+    mock_session.get = AsyncMock(return_value=Patient(id=patient_id, full_name="Alisher Navoiy"))
     service.context_builder.build = AsyncMock(return_value=context)
 
     fake_event = SosEvent(
@@ -143,7 +145,7 @@ async def test_acknowledge_and_resolve_sos(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_service_103_adapter_falls_back_to_manual_dispatch():
+async def test_service_103_adapter_does_not_claim_dispatch_without_provider():
     event = SosEvent(id=uuid.uuid4(), patient_id=uuid.uuid4(), source="watch_button")
     event.address_snapshot = {}
     context = PatientContext(
@@ -155,5 +157,6 @@ async def test_service_103_adapter_falls_back_to_manual_dispatch():
 
     result = await Service103Adapter().dispatch(event, context)
 
-    assert result.accepted is True
+    assert result.accepted is False
     assert result.method == "manual_call_103"
+    assert "qo'ng'iroq qiling" in result.message

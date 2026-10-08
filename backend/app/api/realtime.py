@@ -4,10 +4,10 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy import select
+from sqlalchemy import false, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import CurrentUser, require_clinician
+from app.auth.deps import CurrentUser, require_admin, require_clinician
 from app.core.db import get_session
 from app.core.realtime import realtime_hub, send_websocket_events
 from app.core.security import decode_token
@@ -15,6 +15,19 @@ from app.models import RealtimeEventOutbox
 from app.schemas.common import CLINICIAN_ROLES
 
 router = APIRouter(prefix="/api/v1/realtime", tags=["realtime"])
+ALLOWED_TOPICS = {
+    "reading.accepted",
+    "alert.created",
+    "task.created",
+    "task.acknowledged",
+    "task.done",
+    "task.reassigned",
+    "sos.raised",
+    "sos.cancelled",
+    "sos.acknowledged",
+    "sos.dispatched",
+    "sos.resolved",
+}
 
 
 def _uuid_set(raw: object) -> set[str]:
@@ -30,20 +43,19 @@ def _uuid_set(raw: object) -> set[str]:
 
 
 def _payload_visible(payload: dict[str, Any], *, role: str, tenant_ids: set[str]) -> bool:
-    if role == "admin":
-        return True
     tenant_id = payload.get("tenant_id")
     if tenant_id and str(tenant_id) in tenant_ids:
         return True
     payload_tenant_ids = payload.get("tenant_ids")
     if isinstance(payload_tenant_ids, list) and tenant_ids.intersection(str(item) for item in payload_tenant_ids):
         return True
-    return "patient_id" not in payload
+    return False
 
 
 @router.get("/status", summary="Realtime transport status")
-async def realtime_status() -> dict:
-    return realtime_hub.stats()
+async def realtime_status(_: CurrentUser = Depends(require_admin)) -> dict:
+    stats = realtime_hub.stats()
+    return {"backend": stats["backend"], "subscribers": stats["subscribers"]}
 
 
 @router.get("/events", summary="Replay persisted realtime events after reconnect")
@@ -60,10 +72,18 @@ async def list_realtime_events(
         .order_by(RealtimeEventOutbox.id.asc())
         .limit(limit)
     )
+    tenant_ids = [str(item) for item in current_user.tenant_ids]
+    scoped_events = [
+        RealtimeEventOutbox.payload["tenant_id"].astext.in_(tenant_ids),
+        *[
+            RealtimeEventOutbox.payload["tenant_ids"].contains([tenant_id])
+            for tenant_id in tenant_ids
+        ],
+    ]
+    stmt = stmt.where(or_(*scoped_events) if scoped_events else false())
     if topic:
         stmt = stmt.where(RealtimeEventOutbox.topic == topic)
     rows = (await session.execute(stmt)).scalars().all()
-    tenant_ids = {str(item) for item in current_user.tenant_ids}
     return [
         {
             "id": row.id,
@@ -73,21 +93,38 @@ async def list_realtime_events(
             "published_at": row.published_at.isoformat() if row.published_at else None,
         }
         for row in rows
-        if _payload_visible(row.payload, role=current_user.role, tenant_ids=tenant_ids)
     ]
 
 
 @router.websocket("/ws")
 async def realtime_ws(websocket: WebSocket) -> None:
-    token = websocket.query_params.get("token")
+    offered_protocols = {
+        item.strip()
+        for item in websocket.headers.get("sec-websocket-protocol", "").split(",")
+    }
+    authorization = websocket.headers.get("authorization", "")
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        token = next(
+            (
+                item.removeprefix("bearer.")
+                for item in offered_protocols
+                if item.startswith("bearer.")
+            ),
+            "",
+        )
     topic = websocket.query_params.get("topic", "*")
     try:
-        payload = decode_token(token or "")
+        if "wmax" not in offered_protocols and not authorization:
+            raise ValueError("WebSocket auth protocol required")
+        payload = decode_token(token)
         role = payload.get("role")
         if payload.get("type") != "access" or role not in CLINICIAN_ROLES:
             await websocket.close(code=1008)
             return
         tenant_ids = _uuid_set(payload.get("tenant_ids"))
+        if topic != "*" and topic not in ALLOWED_TOPICS:
+            raise ValueError("Unsupported realtime topic")
     except Exception:
         await websocket.close(code=1008)
         return
@@ -101,6 +138,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 role=str(role),
                 tenant_ids=tenant_ids,
             ),
+            subprotocol="wmax" if "wmax" in offered_protocols else None,
         )
     except WebSocketDisconnect:
         return

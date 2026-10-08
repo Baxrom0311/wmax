@@ -4,9 +4,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Sequence
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import ForbiddenException, NotFoundException
+from app.models import TenantMember
 from app.models.task import Task
 from app.repositories.task_repo import TaskRepository
 from app.schemas.common import TaskStatus
@@ -97,6 +99,21 @@ class TaskService:
         request: TaskReassignRequest,
         tenant_ids: Sequence[uuid.UUID] | None = None,
     ) -> TaskSchema:
+        task = await self.task_repo.get_by_id_in_scope(task_id, tenant_ids=tenant_ids)
+        if not task:
+            raise NotFoundException(message="Topshiriq topilmadi", resource_name="Task")
+        eligible = (
+            await self.session.execute(
+                select(TenantMember.id).where(
+                    TenantMember.account_id == request.assignee_account_id,
+                    TenantMember.tenant_id == task.tenant_id,
+                    TenantMember.left_at.is_(None),
+                    TenantMember.role.in_(["doctor", "head_doctor", "nurse"]),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if eligible is None:
+            raise ForbiddenException("Topshiriqni faqat faol klinik shifokor yoki hamshiraga berish mumkin")
         updated = await self.task_repo.update_status(
             task_id,
             "open",

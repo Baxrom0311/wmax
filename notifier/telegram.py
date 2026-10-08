@@ -59,12 +59,8 @@ admin_input_state: dict[int | str, str] = {}
 async def send_telegram_message(chat_id: int | str, text: str, reply_markup: dict | None = None) -> bool:
     """Send Telegram message or log it if token is not configured."""
     if not TELEGRAM_BOT_TOKEN:
-        logger.info(
-            "[TELEGRAM MOCK SEND] To chat_id=%s:\n%s",
-            chat_id,
-            text,
-        )
-        return True
+        logger.error("Telegram delivery unavailable; bot token is not configured")
+        return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload: dict[str, Any] = {
@@ -482,7 +478,7 @@ def format_sysinfo() -> tuple[str, dict]:
 
 def format_relative_alert(patient_name: str, access_token: str, level: str) -> str:
     """Relative message template — clinical diagnosis is never disclosed."""
-    link = f"{PUBLIC_BASE_URL}/r/{access_token}"
+    link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     if level == "red":
         prefix = "\U0001f6a8 <b>DIQQAT: ZUDLIK BILAN E'TIBOR TALAB ETILADI</b>"
     elif level == "amber":
@@ -553,7 +549,7 @@ def format_overdue_escalation(patient_name: str, doctor_name: str | None, distri
 
 
 def format_no_data_alert(patient_name: str, access_token: str) -> str:
-    link = f"{PUBLIC_BASE_URL}/r/{access_token}"
+    link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     return (
         f"\u2139\ufe0f <b>Soat aloqasi yo'q</b>\n\n"
         f"Bemor <b>{patient_name}</b>ning aqlli soati 45 daqiqadan beri ma'lumot yubormayapti.\n"

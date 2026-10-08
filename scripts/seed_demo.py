@@ -2,18 +2,7 @@
 """Seeds demo data directly into the database through the ORM.
 
 Replaces the old `gen_seed.py` + `contracts/seed.sql` pair. Schema comes from
-Alembic, data comes from here — there is no hand-maintained SQL in either path,
-so a column rename in a model can never leave a stale INSERT behind.
-
-Timestamps are anchored to "now", so the seed is never stale: a rebuild on demo
-day still produces 14 days of history ending a few minutes ago rather than
-leaving every patient in `no_data`.
-
-Usage:
-    python scripts/seed_demo.py              # skips if patients already exist
-    python scripts/seed_demo.py --force      # wipes demo rows and reseeds
-
-Refuses to run against ENV=production unless --force is given explicitly.
+Alembic, data comes from here — there is no hand-maintained SQL in either path.
 """
 from __future__ import annotations
 
@@ -39,7 +28,18 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.core.config import settings
 from app.core.db import get_sessionmaker
 from app.core.security import hash_password
-from app.models import Patient, Reading, Relative, Task, User
+from app.models import (
+    Account,
+    Device,
+    DeviceAssignment,
+    Patient,
+    PatientAccess,
+    PatientMembership,
+    Reading,
+    Task,
+    Tenant,
+    TenantMember,
+)
 from app.repositories.baseline_repo import BaselineRepository
 from app.services.pipeline_service import PipelineService
 from algo.baseline import compute_baselines
@@ -51,12 +51,12 @@ TZ = ZoneInfo(settings.TZ_LOCAL)
 DAYS = 14
 STEP_MIN = 5
 N = DAYS * 24 * 60 // STEP_MIN  # 4032 readings per patient
-# Days of monitoring after the doctor signs off the baseline.
 LEARNING_DAYS = 6
 
 DOCTOR_PASSWORD = "wmax123"
 RELATIVE_PIN = "112233"
 
+TENANT_ID = uuid.UUID("10000000-0000-0000-0000-000000000001")
 DOC_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 NURSE_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
@@ -81,19 +81,14 @@ RELATIVES = [
 
 
 def severity(trajectory: str, day: float) -> float:
-    """0.0 = healthy, 1.0 = clearly decompensating, as a function of day (0..14)."""
     if trajectory == "stable":
         return 0.0
     if trajectory == "worsening":
-        # Silent drift from day 9, clearly abnormal by day 13-14. This is the
-        # window the early-warning engine is supposed to catch.
         return 0.0 if day < 9 else min(1.0, (day - 9) / 4.5)
-    # improving: starts rough, normalises by day 8
     return max(0.0, 1.0 - day / 8.0) * 0.7
 
 
-def generate_readings(patient_id: uuid.UUID, trajectory: str) -> list[dict]:
-    """Builds 14 days of 5-minute aggregates with circadian shape and a charging gap."""
+def generate_readings(patient_id: uuid.UUID, device_id: uuid.UUID, trajectory: str) -> list[dict]:
     now = datetime.now(timezone.utc)
     hr_base, spo2_base, temp_base, rmssd_base, rr_base = 66.0, 97.0, 34.2, 38.0, 15.5
     rows: list[dict] = []
@@ -108,16 +103,15 @@ def generate_readings(patient_id: uuid.UUID, trajectory: str) -> list[dict]:
         asleep = hour >= 23 or hour < 6.5
         circadian = -6.0 if asleep else 6.0 * math.sin((hour - 6) / 24 * 2 * math.pi)
 
-        # The watch comes off to charge 03:00-04:00 local — this is what makes
-        # the `no_data` path exercisable with realistic data.
         worn = not (3.0 <= hour < 4.0)
         battery = 100 - int((minutes_ago % 1440) / 1440 * 45)
 
         if not worn:
-            # Every row must carry the same keys: a multi-row INSERT renders one
-            # VALUES clause, so a missing column in one dict breaks the whole batch.
             rows.append({
-                "patient_id": patient_id, "ts": ts,
+                "patient_id": patient_id,
+                "device_id": device_id,
+                "window_start": ts,
+                "window_end": ts + timedelta(minutes=STEP_MIN),
                 "hr_mean": None, "hr_min": None, "hr_max": None,
                 "rmssd": None, "sdnn": None, "spo2": None, "skin_temp": None,
                 "steps": None, "rr_est": None, "sleep_frag": None,
@@ -136,7 +130,9 @@ def generate_readings(patient_id: uuid.UUID, trajectory: str) -> list[dict]:
 
         rows.append({
             "patient_id": patient_id,
-            "ts": ts,
+            "device_id": device_id,
+            "window_start": ts,
+            "window_end": ts + timedelta(minutes=STEP_MIN),
             "hr_mean": round(hr, 1),
             "hr_min": round(hr - random.uniform(3, 7), 1),
             "hr_max": round(hr + random.uniform(4, 12), 1),
@@ -155,13 +151,22 @@ def generate_readings(patient_id: uuid.UUID, trajectory: str) -> list[dict]:
 
 
 async def clear_demo_rows(session) -> None:
-    """Removes the demo fixtures only — never touches other rows."""
     patient_ids = [p[0] for p in PATIENTS]
+    device_ids = [uuid.uuid5(uuid.NAMESPACE_DNS, f"device_{pid}") for pid in patient_ids]
+    caregiver_account_ids = [
+        uuid.uuid5(uuid.NAMESPACE_DNS, f"caregiver_{phone}")
+        for _rid, _pid, _name, phone in RELATIVES
+    ]
     await session.execute(delete(Task).where(Task.patient_id.in_(patient_ids)))
     await session.execute(delete(Reading).where(Reading.patient_id.in_(patient_ids)))
-    await session.execute(delete(Relative).where(Relative.patient_id.in_(patient_ids)))
+    await session.execute(delete(DeviceAssignment).where(DeviceAssignment.patient_id.in_(patient_ids)))
+    await session.execute(delete(Device).where(Device.id.in_(device_ids)))
+    await session.execute(delete(PatientAccess).where(PatientAccess.patient_id.in_(patient_ids)))
+    await session.execute(delete(PatientMembership).where(PatientMembership.patient_id.in_(patient_ids)))
     await session.execute(delete(Patient).where(Patient.id.in_(patient_ids)))
-    await session.execute(delete(User).where(User.id.in_([DOC_ID, NURSE_ID])))
+    await session.execute(delete(TenantMember).where(TenantMember.account_id.in_([DOC_ID, NURSE_ID])))
+    await session.execute(delete(Tenant).where(Tenant.id == TENANT_ID))
+    await session.execute(delete(Account).where(Account.id.in_([DOC_ID, NURSE_ID] + caregiver_account_ids)))
     await session.commit()
 
 
@@ -184,126 +189,143 @@ async def seed(force: bool) -> None:
         password_hash = hash_password(DOCTOR_PASSWORD)
         pin_hash = hash_password(RELATIVE_PIN)
 
+        session.add(Tenant(
+            id=TENANT_ID,
+            kind="polyclinic",
+            name="Urganch Shahar Ko'p Tarmoqli Poliklinikasi",
+            region="Xorazm",
+            district="Urganch",
+            is_active=True,
+        ))
         session.add_all([
-            User(id=DOC_ID, full_name="Doktor Islom Yusupov", phone="+998901234567",
-                 password_hash=password_hash, role="doctor", district="Urganch"),
-            User(id=NURSE_ID, full_name="Hamshira Zilola Otajonova", phone="+998901234568",
-                 password_hash=password_hash, role="nurse", district="Urganch"),
+            Account(id=DOC_ID, full_name="Doktor Islom Yusupov", phone="+998901234567",
+                    password_hash=password_hash, is_active=True),
+            Account(id=NURSE_ID, full_name="Hamshira Zilola Otajonova", phone="+998901234568",
+                    password_hash=password_hash, is_active=True),
+        ])
+        session.add_all([
+            TenantMember(tenant_id=TENANT_ID, account_id=DOC_ID, role="doctor"),
+            TenantMember(tenant_id=TENANT_ID, account_id=NURSE_ID, role="nurse"),
         ])
         await session.flush()
 
         today = date.today()
+        patient_devices: dict[uuid.UUID, uuid.UUID] = {}
         for pid, name, birth_year, sex, diagnosis, district, _traj in PATIENTS:
+            dev_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"device_{pid}")
+            patient_devices[pid] = dev_id
+            session.add(Device(
+                id=dev_id,
+                serial=f"GW5-{str(pid)[:4]}",
+                model="Galaxy Watch 5",
+                tier="tier1_wearos",
+                owner_tenant_id=TENANT_ID,
+                status="assigned",
+            ))
             session.add(Patient(
                 id=pid,
                 full_name=name,
                 birth_date=date(birth_year, 6, 15),
-                age=today.year - birth_year,
                 sex=sex,
                 diagnosis=diagnosis,
                 district=district,
                 discharge_date=today - timedelta(days=13),
                 phase="full",
-                doctor_id=DOC_ID,
-                nurse_id=NURSE_ID,
                 device_id=f"GW5-{str(pid)[:4]}",
             ))
 
         for rid, pid, name, phone in RELATIVES:
-            session.add(Relative(
-                id=rid,
-                patient_id=pid,
+            caregiver_account_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"caregiver_{phone}")
+            session.add(Account(
+                id=caregiver_account_id,
                 full_name=name,
                 phone=phone,
-                pin_hash=pin_hash,
-                access_token="r_" + str(rid).replace("-", "")[:24] + "x7k2",
+                password_hash=pin_hash,
+                is_active=True,
+            ))
+            session.add(PatientAccess(
+                id=rid,
+                patient_id=pid,
+                account_id=caregiver_account_id,
+                role="caregiver",
+                relation="qarovchi",
+            ))
+        await session.flush()
+
+        for pid, name, *_rest in PATIENTS:
+            dev_id = patient_devices[pid]
+            session.add(PatientMembership(
+                patient_id=pid,
+                tenant_id=TENANT_ID,
+                kind="care",
+                granted_by=DOC_ID,
+            ))
+            session.add(DeviceAssignment(
+                id=uuid.uuid5(uuid.NAMESPACE_DNS, f"assign_{pid}"),
+                device_id=dev_id,
+                patient_id=pid,
+                assigned_at=datetime.now(timezone.utc) - timedelta(days=14),
             ))
         await session.flush()
 
         total = 0
         readings_by_patient: dict[uuid.UUID, list[dict]] = {}
         for pid, name, *_rest, trajectory in PATIENTS:
-            rows = generate_readings(pid, trajectory)
+            dev_id = patient_devices[pid]
+            rows = generate_readings(pid, dev_id, trajectory)
             readings_by_patient[pid] = rows
-            # Ingest is idempotent on (patient_id, ts); reseeding must behave the same.
             for chunk_start in range(0, len(rows), 1000):
                 chunk = rows[chunk_start:chunk_start + 1000]
                 await session.execute(
-                    pg_insert(Reading)
+                    pg_insert(Reading.__table__)
                     .values(chunk)
-                    .on_conflict_do_nothing(index_elements=["patient_id", "ts"])
+                    .on_conflict_do_nothing(index_elements=["device_id", "window_start"])
                 )
             total += len(rows)
             print(f"  {name}: {len(rows)} o'lchov ({trajectory})")
 
-        # One open active-call task so the doctor panel is not empty on day one.
         now = datetime.now(timezone.utc)
         session.add(Task(
             patient_id=PATIENTS[0][0],
-            doctor_id=DOC_ID,
-            type="active_call",
-            status="sent",
+            tenant_id=TENANT_ID,
+            assignee_account_id=DOC_ID,
+            kind="clinical",
+            status="open",
             created_at=now - timedelta(hours=6),
             due_at=now + timedelta(hours=18),
         ))
 
         await session.commit()
 
-        # Run the clinical pipeline once per patient. Without this the seed
-        # leaves every patient at `green` with no baselines: the signal engine
-        # only learns a personal norm when it actually evaluates readings, so a
-        # freshly seeded demo would show the deteriorating patient as healthy.
         print("\nKlinik dvigatel ishga tushirilmoqda (baseline + signal)...")
         pipeline = PipelineService(session)
         baseline_repo = BaselineRepository(session)
-
-        # Reproduce the real timeline: the first week after discharge is the
-        # learning window, the doctor signs the baseline off, and only then does
-        # monitoring begin. Learning from all 14 days instead would let the
-        # deteriorating patient's own decline define their "normal" — the
-        # baseline would absorb the very signal we need to catch.
         learning_end = datetime.now(timezone.utc) - timedelta(days=LEARNING_DAYS)
 
         for pid, name, *_rest in PATIENTS:
             learning_vecs = [
                 ReadingVec(
-                    ts=r["ts"], hr_mean=r["hr_mean"], hr_min=r["hr_min"],
+                    ts=r["window_start"], hr_mean=r["hr_mean"], hr_min=r["hr_min"],
                     hr_max=r["hr_max"], rmssd=r["rmssd"], sdnn=r["sdnn"],
                     spo2=r["spo2"], skin_temp=r["skin_temp"], steps=r["steps"],
                     rr_est=r["rr_est"], sleep_frag=r["sleep_frag"], worn=r["worn"],
                 )
                 for r in readings_by_patient[pid]
-                if r["ts"] < learning_end
+                if r["window_start"] < learning_end
             ]
             await baseline_repo.upsert_baselines(pid, compute_baselines(learning_vecs))
 
-            patient = await session.get(Patient, pid)
-            patient.baseline_approved_by = DOC_ID
-            patient.baseline_approved_at = learning_end
-            await session.flush()
+        for pid, name, *_rest, trajectory in PATIENTS:
+            eval_result = await pipeline.evaluate_patient(patient_id=pid)
+            print(f"  {name} ({trajectory}) -> {eval_result.level.upper()}")
 
-            result = await pipeline.evaluate_patient(pid)
-            icon = {"red": "🔴", "amber": "🟡", "green": "🟢"}.get(result.level, "⚪")
-            print(
-                f"  {icon} {name}: {result.level} "
-                f"(ball {result.composite_score:.2f}, sabab: {result.reason or '—'})"
-            )
-        await session.commit()
-
-        print(f"\n✓ Seed tugadi · {len(PATIENTS)} bemor · {total} o'lchov")
-        print(f"  Shifokor: +998901234567 / {DOCTOR_PASSWORD}")
-        print(f"  Qarovchi: +998901110011 / PIN {RELATIVE_PIN}")
+        print(f"\nTayyor: {len(PATIENTS)} bemor, {total} o'lchov, baselinelar hisoblandi.")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed demo data via the ORM.")
-    parser.add_argument("--force", action="store_true",
-                        help="Wipe existing demo rows and reseed; also required in production.")
+    parser = argparse.ArgumentParser(description="WMAX demo ma'lumotlarini yuklash")
+    parser.add_argument("--force", action="store_true", help="Mavjud ma'lumotlarni o'chirib qayta yuklash")
     args = parser.parse_args()
-
-    if settings.ENV == "production" and not args.force:
-        print("ENV=production — demo ma'lumot kiritish rad etildi. Ataylab bo'lsa --force bering.")
-        raise SystemExit(1)
 
     asyncio.run(seed(force=args.force))
 

@@ -192,6 +192,8 @@ def validate_production_settings(cfg: Settings = settings) -> None:
         problems.append("REALTIME_TRANSPORT must be redis_streams in production")
     if getattr(cfg, "REALTIME_TRANSPORT", "memory") == "redis_streams" and not getattr(cfg, "REDIS_URL", ""):
         problems.append("REDIS_URL is required for redis_streams realtime transport")
+    if not getattr(cfg, "PAYMENT_WEBHOOK_SECRET", ""):
+        problems.append("PAYMENT_WEBHOOK_SECRET is required to secure payment webhooks in production")
 
     if problems:
         raise InsecureConfigurationError(

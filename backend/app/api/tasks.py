@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
 
 
 def _tenant_scope(current_user: CurrentUser):
-    return None if current_user.role == "admin" else current_user.tenant_ids
+    return current_user.tenant_ids
 
 
 @router.get(

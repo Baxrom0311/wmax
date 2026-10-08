@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import secrets
 from datetime import datetime, timezone
 from typing import Any
 
@@ -105,6 +106,10 @@ class PatientRelationshipService:
             )
         ).scalar_one_or_none()
         if existing:
+            if not existing.access_token:
+                existing.access_token = secrets.token_urlsafe(32)
+                existing.access_token_created_at = datetime.now(timezone.utc)
+                await self.session.commit()
             return self._access_dict(existing)
 
         access = PatientAccess(
@@ -113,6 +118,8 @@ class PatientRelationshipService:
             role=role,
             relation=relation,
             invited_by=invited_by,
+            access_token=secrets.token_urlsafe(32),
+            access_token_created_at=datetime.now(timezone.utc),
         )
         self.session.add(access)
         await self.session.flush()
@@ -194,4 +201,5 @@ class PatientRelationshipService:
             "patient_id": str(access.patient_id),
             "account_id": str(access.account_id),
             "role": access.role,
+            "access_token": access.access_token,
         }

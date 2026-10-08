@@ -1,7 +1,8 @@
 package com.wmax.mobile_flutter
 
+import android.content.Context
+import android.os.BatteryManager
 import android.os.SystemClock
-import android.util.Log
 import androidx.health.services.client.PassiveListenerService
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
@@ -10,7 +11,6 @@ import androidx.health.services.client.data.UserActivityState
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
-import java.util.UUID
 
 class WmaxPassiveHealthService : PassiveListenerService() {
     override fun onUserActivityInfoReceived(info: UserActivityInfo) {
@@ -21,6 +21,15 @@ class WmaxPassiveHealthService : PassiveListenerService() {
             else -> return
         }
         val changedAt = info.stateChangeTime
+        val prefs = getSharedPreferences("wmax_health_state", Context.MODE_PRIVATE).edit()
+        prefs.putString("activity_state", state)
+            .putString("activity_state_at", changedAt.toString())
+        if (state == "asleep") {
+            prefs.putString("sleep_stage", "asleep")
+                .putString("sleep_at", changedAt.toString())
+        }
+        prefs.apply()
+
         val samples = JSONArray().put(
             JSONObject()
                 .put("metric", "activity_state")
@@ -28,7 +37,7 @@ class WmaxPassiveHealthService : PassiveListenerService() {
                 .put("value_text", state)
                 .put("source_record_id", "activity-state-${changedAt.toEpochMilli()}"),
         )
-        enqueueBatch(this, samples)
+        enqueueBatch(samples)
     }
 
     override fun onNewDataPointsReceived(dataPoints: DataPointContainer) {
@@ -110,47 +119,81 @@ class WmaxPassiveHealthService : PassiveListenerService() {
                 point.getEndInstant(bootInstant),
             )
         }
+        for (point in dataPoints.getData(DataType.CALORIES_DAILY)) {
+            appendInterval(
+                "total_calories_kcal",
+                point.value,
+                "kcal",
+                point.getStartInstant(bootInstant),
+                point.getEndInstant(bootInstant),
+            )
+        }
+        for (point in dataPoints.getData(DataType.DISTANCE_DAILY)) {
+            appendInterval(
+                "distance_m",
+                point.value,
+                "m",
+                point.getStartInstant(bootInstant),
+                point.getEndInstant(bootInstant),
+            )
+        }
+        var latestVo2: Double? = null
+        var latestVo2At: Instant? = null
+        for (point in dataPoints.getData(DataType.VO2_MAX)) {
+            val timestamp = point.getTimeInstant(bootInstant)
+            latestVo2 = point.value
+            latestVo2At = timestamp
+            samples.put(
+                JSONObject()
+                    .put("metric", "vo2_max_ml_kg_min")
+                    .put("recorded_at", timestamp.toString())
+                    .put("value_num", point.value)
+                    .put("unit", "mL/kg/min")
+                    .put("source_record_id", "vo2-${timestamp.toEpochMilli()}")
+                    .put("quality", 1.0),
+            )
+        }
+        val batteryManager = getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+        val batteryPct = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
+        if (batteryPct in 0..100) {
+            samples.put(
+                JSONObject()
+                    .put("metric", "battery_pct")
+                    .put("recorded_at", Instant.now().toString())
+                    .put("value_num", batteryPct)
+                    .put("unit", "%")
+                    .put("source_record_id", "battery-${System.currentTimeMillis()}")
+                    .put("quality", 1.0),
+            )
+        }
         if (samples.length() == 0) return
 
-        if ((latestHeartRate != null && latestTimestamp != null) || latestDailySteps != null) {
-            val state = getSharedPreferences("wmax_health_state", MODE_PRIVATE).edit()
-            if (latestHeartRate != null && latestTimestamp != null) {
-                state.putFloat("heart_rate_bpm", latestHeartRate.toFloat())
-                    .putString("heart_rate_at", latestTimestamp.toString())
-            }
-            if (latestDailySteps != null && latestDailyStepsAt != null) {
-                state.putLong("daily_steps", latestDailySteps)
-                    .putString("daily_steps_at", latestDailyStepsAt.toString())
-            }
-            state.commit()
+        val state = getSharedPreferences("wmax_health_state", MODE_PRIVATE).edit()
+        if (latestHeartRate != null && latestTimestamp != null) {
+            state.putFloat("heart_rate_bpm", latestHeartRate.toFloat())
+                .putString("heart_rate_at", latestTimestamp.toString())
         }
-        enqueueBatch(this, samples)
+        if (latestDailySteps != null && latestDailyStepsAt != null) {
+            state.putLong("daily_steps", latestDailySteps)
+                .putString("daily_steps_at", latestDailyStepsAt.toString())
+        }
+        if (latestVo2 != null && latestVo2At != null) {
+            state.putFloat("vo2_max", latestVo2.toFloat())
+                .putString("vo2_max_at", latestVo2At.toString())
+        }
+        if (batteryPct in 0..100) {
+            state.putInt("battery_pct", batteryPct)
+        }
+        state.commit()
+        enqueueBatch(samples)
     }
 
-    private fun enqueueBatch(context: android.content.Context, samples: JSONArray) {
-        for (start in 0 until samples.length() step MAX_SAMPLES_PER_ITEM) {
-            val chunk = JSONArray()
-            val end = minOf(start + MAX_SAMPLES_PER_ITEM, samples.length())
-            for (index in start until end) chunk.put(samples.getJSONObject(index))
-
-            val batchId = UUID.randomUUID().toString()
-            val payload = JSONObject()
-                .put("batch_id", batchId)
-                .put("source", "wear_health_services")
-                .put("samples", chunk)
-                .put("sleep_sessions", JSONArray())
-                .put("exercise_sessions", JSONArray())
-                .put("metadata", JSONObject().put("collector", "health_services_passive"))
-                .toString()
-            if (!WearHealthOutbox.enqueue(context, payload)) {
-                Log.e(TAG, "Wear health outbox could not persist a batch")
-            }
-        }
-        WearHealthOutbox.scheduleFlush(context)
-    }
-
-    companion object {
-        private const val TAG = "WmaxPassiveHealth"
-        private const val MAX_SAMPLES_PER_ITEM = 200
+    private fun enqueueBatch(samples: JSONArray) {
+        WearHealthOutbox.enqueueHealthBatch(
+            context = this,
+            source = "wear_health_services",
+            samples = samples,
+            collector = "health_services_passive",
+        )
     }
 }

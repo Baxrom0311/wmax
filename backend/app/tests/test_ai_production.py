@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.ai.cache import AICache, ai_cache
-from app.ai.clinical_ai import ClinicalAIService, compute_deterministic_risk_pct
+from app.ai.clinical_ai import ClinicalAIService
 from app.ai.guardrails import (
     detect_prompt_injection,
     sanitize_clinical_input,
@@ -90,7 +90,7 @@ def test_guardrail_clamps_hallucinated_high_risk_on_green_patient():
     guarded = validate_prognosis_factuality(hallucinated, level="green", recent_vitals=vitals)
 
     assert guarded.risk_level == "moderate"
-    assert guarded.risk_probability_pct <= 40
+    assert guarded.risk_probability_pct is None
     assert "moderate" in guarded.uncertainty_note
     assert "HR: 72 bpm" in guarded.evidence_citations
 
@@ -108,7 +108,7 @@ def test_guardrail_overrides_hallucinated_low_risk_on_red_patient():
     guarded = validate_prognosis_factuality(hallucinated, level="red", recent_vitals=vitals)
 
     assert guarded.risk_level == "high"
-    assert guarded.risk_probability_pct >= 75
+    assert guarded.risk_probability_pct is None
     assert "Red" in guarded.uncertainty_note
 
 
@@ -129,15 +129,6 @@ def test_validate_nurse_handover_ensures_checklist():
     assert "vitals" in categories
     assert "medication" in categories
     assert "device" in categories
-
-
-# ── 3. Deterministic Statistical Fallback Calibration ────────────────────────
-
-def test_compute_deterministic_risk_pct():
-    assert 70 <= compute_deterministic_risk_pct("red", composite_score=3.5) <= 95
-    assert 30 <= compute_deterministic_risk_pct("amber", composite_score=1.8) <= 65
-    assert compute_deterministic_risk_pct("no_data") == 0
-    assert 3 <= compute_deterministic_risk_pct("green", slope=0.1) <= 20
 
 
 # ── 4. LRU TTL Cache Tests ──────────────────────────────────────────────────
@@ -192,7 +183,9 @@ async def test_clinical_ai_service_prognosis_cache_and_fallback():
 
     assert isinstance(prognosis1, PrognosisInfo)
     assert prognosis1.risk_level == "moderate"
-    assert 30 <= prognosis1.risk_probability_pct <= 65
+    assert prognosis1.risk_probability_pct is None
+    assert prognosis1.early_warning_hours is None
+    assert prognosis1.confidence_score is None
 
     # Second call should hit the cache without calling generate_structured again
     mock_provider.generate_structured.reset_mock()
@@ -232,6 +225,6 @@ async def test_clinical_ai_service_nurse_handover():
 
     assert isinstance(handover, NurseHandoverSBAR)
     assert handover.clinical_urgency == "critical"
-    assert len(handover.shift_checklist) >= 3
-    assert any("qon bosimi" in t.task.lower() for t in handover.shift_checklist)
-    assert handover.confidence_score >= 0.8
+    assert len(handover.shift_checklist) == 2
+    assert any("klinik protokol" in t.task.lower() for t in handover.shift_checklist)
+    assert handover.confidence_score is None

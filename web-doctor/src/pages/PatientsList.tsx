@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Search,
   X,
@@ -55,8 +55,8 @@ export const PatientsList: React.FC<PatientsListProps> = ({
   };
 
   type SortField = "priority" | "name" | "age" | "score" | "due";
-  const sortBy: SortField = "priority";
-  const sortAsc = true;
+  const [sortBy, setSortBy] = useState<SortField>("priority");
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
 
 
   const filteredPatients = patients
@@ -267,6 +267,35 @@ export const PatientsList: React.FC<PatientsListProps> = ({
             </select>
           </div>
 
+          <div className="filter-select-group">
+            <label htmlFor="filter-sort-select" className="filter-label-official">
+              {t("patients.sort_label", lang)}
+            </label>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <select
+                id="filter-sort-select"
+                className="filter-select-official"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortField)}
+              >
+                <option value="priority">{t("sort.priority", lang)}</option>
+                <option value="name">{t("sort.name", lang)}</option>
+                <option value="age">{t("sort.age", lang)}</option>
+                <option value="score">{t("sort.score", lang)}</option>
+                <option value="due">{t("sort.due", lang)}</option>
+              </select>
+              <button
+                type="button"
+                className="btn-ghost-secondary"
+                style={{ padding: "4px 8px", cursor: "pointer", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}
+                onClick={() => setSortAsc(!sortAsc)}
+                title={sortAsc ? t("patients.order_asc", lang) : t("patients.order_desc", lang)}
+              >
+                {sortAsc ? "▲" : "▼"}
+              </button>
+            </div>
+          </div>
+
           {isFiltering && (
             <button
               type="button"
@@ -301,7 +330,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   type="button"
                   className="wl-open"
                   onClick={() => onSelectPatient(p.id)}
-                  aria-label={`${p.full_name} — batafsil ko'rish`}
+                  aria-label={t("patients.card_view", lang, { name: p.full_name })}
                 >
                   {/* Left accent spine */}
                   <span className="wl-spine" aria-hidden="true" />
@@ -310,7 +339,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                   <span className="wl-left">
                     <span className="wl-name">{p.full_name}</span>
                     <span className="wl-meta">
-                      {p.age} {lang === "ru" ? "лет" : lang === "en" ? "yrs" : "yosh"}
+                      {t("patients.age_years", lang, { age: p.age })}
                       <span className="wl-meta-sep">·</span>
                       {p.district}
                     </span>
@@ -337,12 +366,12 @@ export const PatientsList: React.FC<PatientsListProps> = ({
                         {isOverdue ? (
                           <>
                             <Clock size={11} strokeWidth={2.2} />
-                            <span>Muddati o'tdi</span>
+                            <span>{t("patients.overdue", lang)}</span>
                           </>
                         ) : (
                           <>
                             <ClipboardList size={11} strokeWidth={2.2} />
-                            <span>Patronaj</span>
+                            <span>{t("patients.task_active_call", lang)}</span>
                           </>
                         )}
                       </span>

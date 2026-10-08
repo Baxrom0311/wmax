@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
@@ -34,6 +34,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
     stmt_remind = (
         select(Task)
         .where(
+            exists().where(Patient.id == Task.patient_id, Patient.deceased_at.is_(None)),
             Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= remind_threshold,
             Task.due_at > now,
@@ -56,6 +57,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
     stmt_escalate = (
         select(Task)
         .where(
+            exists().where(Patient.id == Task.patient_id, Patient.deceased_at.is_(None)),
             Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= now,
             Task.escalated_at.is_(None),
@@ -80,7 +82,7 @@ async def check_task_escalations(session: AsyncSession) -> None:
 async def check_patient_silence(session: AsyncSession) -> None:
     """Scans all active patients to ensure that missing readings (>=45 min) raise no_data alerts."""
     now = datetime.now(timezone.utc)
-    stmt_patients = select(Patient)
+    stmt_patients = select(Patient).where(Patient.deceased_at.is_(None))
     res_p = await session.execute(stmt_patients)
     patients = res_p.scalars().all()
 

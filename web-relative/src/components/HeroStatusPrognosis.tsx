@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import type { AlertLevel, PrognosisInfo } from "../lib/types";
 import { LEVEL_COLOR, LEVEL_WORD_KEY } from "../lib/types";
 import { cn } from "../lib/utils";
+import { PeaceOfMindCard } from "./PeaceOfMindCard";
 import {
   ShieldCheck,
   AlertTriangle,
@@ -12,7 +13,6 @@ import {
   Clock,
   BrainCircuit,
   Lightbulb,
-  Timer,
   TrendingUp,
 } from "lucide-react";
 
@@ -31,10 +31,10 @@ const ORB_ICON: Record<AlertLevel, React.ReactNode> = {
   no_data: <Signal size={36} strokeWidth={2.5} />,
 };
 
-const RISK_COLORS = {
-  low: { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0", bar: "#22c55e" },
-  moderate: { bg: "#fffbeb", text: "#d97706", border: "#fde68a", bar: "#f59e0b" },
-  high: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca", bar: "#ef4444" },
+const RISK_BADGES: Record<string, string> = {
+  low: "bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  moderate: "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  high: "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
 };
 
 export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
@@ -61,8 +61,6 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
     if (diffMins < 60) return t("updated.mins_ago", lang, { m: diffMins });
     return t("updated.hours_ago", lang, { h: Math.round(diffMins / 60) });
   };
-
-  const riskC = prognosis ? RISK_COLORS[prognosis.risk_level] : RISK_COLORS.low;
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-3 pb-4 animate-fade-up">
@@ -91,21 +89,21 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
           {/* Meta row */}
           <div className="flex flex-col items-center gap-2 w-full">
             {/* Composite score badge */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-4 py-1.5">
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-1.5">
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: color }}
               />
-              <span className="text-xs text-slate-600">
+              <span className="text-xs text-slate-600 dark:text-slate-300">
                 {t("hero.composite_deviation", lang)}:{" "}
-                <strong className="text-blue-600 font-bold">
+                <strong className="text-blue-600 dark:text-blue-400 font-bold">
                   {compositeScore > 0 ? `+${compositeScore.toFixed(1)}` : compositeScore.toFixed(1)}σ
                 </strong>
               </span>
             </div>
 
             {/* Last updated */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
               <Clock size={12} />
               {formatLastUpdated(lastReadingAt)}
             </div>
@@ -113,21 +111,28 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
         </div>
       </div>
 
-      {/* ── AI 72h Prognosis Card ── */}
+      {/* ── Tinchlik Ko'rsatkichi (Peace of Mind Index) Card ── */}
+      <PeaceOfMindCard
+        level={level}
+        compositeScore={compositeScore}
+        lang={lang}
+      />
+
+      {/* ── Signal summary; no unvalidated probability or forecast ── */}
       {level !== "no_data" && prognosis && (
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5 flex flex-col gap-4">
+        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-5 flex flex-col gap-4">
           {/* Header row */}
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <BrainCircuit size={15} className="text-blue-600" />
+              <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center">
+                <BrainCircuit size={15} className="text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10.5px] font-extrabold bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 rounded tracking-wider uppercase">
-                    {t("hero.ai_engine_tag", lang)}
+                  <span className="text-[10.5px] font-extrabold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded tracking-wider uppercase">
+                    {t("hero.prognosis_title", lang)}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
                     {t("hero.circadian_tag", lang)}
                   </span>
                 </div>
@@ -135,43 +140,26 @@ export const HeroStatusPrognosis: React.FC<HeroStatusPrognosisProps> = ({
             </div>
             {/* Risk level badge */}
             <span
-              className="text-xs font-bold px-3 py-1 rounded-full border"
-              style={{
-                backgroundColor: riskC.bg,
-                color: riskC.text,
-                borderColor: riskC.border,
-              }}
+              className={cn(
+                "text-xs font-bold px-3 py-1 rounded-full border",
+                RISK_BADGES[prognosis.risk_level] || RISK_BADGES.low
+              )}
             >
-              {t(`hero.risk_${prognosis.risk_level}`, lang)}: {prognosis.risk_probability_pct}%
+              {t(`hero.risk_${prognosis.risk_level}`, lang)}
             </span>
           </div>
 
-          <h3 className="text-[14px] font-bold text-slate-800" style={{ fontFamily: "'Outfit',sans-serif" }}>
+          <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-100" style={{ fontFamily: "'Outfit',sans-serif" }}>
             {t("hero.prognosis_title", lang)}
           </h3>
 
-          {/* Progress bar */}
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${prognosis.risk_probability_pct}%`,
-                background: `linear-gradient(90deg, ${riskC.bar}bb, ${riskC.bar})`,
-              }}
-            />
-          </div>
+          <p className="text-[13.5px] text-slate-700 dark:text-slate-300 leading-relaxed">{prognosis.summary}</p>
 
-          <p className="text-[13.5px] text-slate-700 leading-relaxed">{prognosis.summary}</p>
-
-          <div className="border-t border-slate-100 pt-3 flex flex-col gap-3">
-            <div className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-              <Timer size={13} />
-              {t("hero.early_warning", lang, { h: prognosis.early_warning_hours || 48 })}
-            </div>
-            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <Lightbulb size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[12.5px] text-slate-700 leading-snug">
-                <strong className="text-slate-800">{t("hero.rec_label", lang)} </strong>
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-3">
+            <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 rounded-xl p-3">
+              <Lightbulb size={16} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[12.5px] text-slate-700 dark:text-slate-300 leading-snug">
+                <strong className="text-slate-800 dark:text-slate-100">{t("hero.rec_label", lang)} </strong>
                 {prognosis.recommendation}
               </p>
             </div>

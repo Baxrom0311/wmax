@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.models.device import Device, DeviceCredential
+from app.models.device_assignment import DeviceAssignment
 from app.models.patient import Patient
 from app.services.device_service import DeviceService
 
@@ -57,14 +58,10 @@ async def test_assign_device_changes_status_and_resets_baseline_on_hardware_chan
         device_id="GW4-OLD-SERIAL",  # Old device
     )
 
-    async def fake_get(model, pk):
-        if model == Device:
-            return fake_device
-        if model == Patient:
-            return fake_patient
-        return None
-
-    mock_session.get = AsyncMock(side_effect=fake_get)
+    mock_session.execute = AsyncMock(side_effect=[
+        _scalar_result(fake_device),
+        _scalar_result(fake_patient),
+    ])
 
     service = DeviceService(mock_session)
     res = await service.assign_device_to_patient(
@@ -92,11 +89,14 @@ async def test_return_device_retires_if_battery_degraded(mock_session):
         status="assigned",
         battery_health_pct=90,
     )
-    mock_session.get = AsyncMock(return_value=fake_device)
-
-    mock_exec_res = MagicMock()
-    mock_exec_res.scalar_one_or_none.return_value = None
-    mock_session.execute.return_value = mock_exec_res
+    assignment = DeviceAssignment(
+        id=uuid.uuid4(), device_id=device_id, patient_id=uuid.uuid4(),
+        assigned_at=datetime.now(timezone.utc),
+    )
+    mock_session.execute = AsyncMock(side_effect=[
+        _scalar_result(fake_device),
+        _scalar_result(assignment),
+    ])
 
     service = DeviceService(mock_session)
     # Returning with 74% battery health (< 80% threshold)
@@ -104,12 +104,18 @@ async def test_return_device_retires_if_battery_degraded(mock_session):
         device_id=device_id,
         battery_health_pct=74,
         return_notes="Battery degraded after 2 years of clinical circulation",
-        refund_deposit=True,
+        refund_deposit=False,
     )
 
     assert res["status"] == "retired"
     assert fake_device.status == "retired"
     assert fake_device.battery_health_pct == 74
+
+
+def _scalar_result(value):
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = value
+    return result
 
 
 @pytest.mark.asyncio

@@ -52,6 +52,47 @@ export function clearTokens(): void {
   localStorage.removeItem(DEMO_KEY);
 }
 
+async function attemptRefresh(): Promise<string | null> {
+  const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refresh || refresh.startsWith("demo_")) return null;
+  try {
+    const res = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+    if (!res.ok) return null;
+    const data: TokenPair = await res.json();
+    saveTokens(data);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getStoredToken();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const baseHeaders = (options.headers as Record<string, string>) || {};
+  const mergedHeaders: Record<string, string> = { ...baseHeaders, ...authHeader };
+
+  let res = await fetch(url, { ...options, headers: mergedHeaders });
+
+  if (res.status === 401) {
+    const newToken = await attemptRefresh();
+    if (newToken) {
+      const retryHeaders = { ...mergedHeaders, Authorization: `Bearer ${newToken}` };
+      res = await fetch(url, { ...options, headers: retryHeaders });
+    }
+    if (res.status === 401) {
+      clearTokens();
+      throw new Error("UNAUTHORIZED");
+    }
+  }
+
+  return res;
+}
+
 /**
  * Production Relative Login: Strictly authenticates with /api/v1/auth/relative/login.
  * Never falls back to mock data!
@@ -127,8 +168,8 @@ export async function getDemoRelativeView(
         prognosis: {
           ...MOCK_RELATIVE_VIEW_PRO.prognosis,
           risk_level: "high",
-          risk_probability_pct: 88,
-          summary: "SpO2 88% gacha pasaygan, taxikardiya 114 bpm. Zudlik bilan shifokor ko'rigi talab etiladi!",
+          risk_probability_pct: null,
+          summary: "SpO2 va puls bo'yicha keskin og'ish bor. O'lchovlarni tasdiqlang va klinik protokolga amal qiling.",
         },
       };
     }
@@ -162,16 +203,7 @@ export async function fetchRelativeView(
     throw new Error("UNAUTHORIZED");
   }
 
-  const res = await fetch(`/api/v1/relatives/${encodeURIComponent(token)}/view`, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  });
-
-  if (res.status === 401) {
-    clearTokens();
-    throw new Error("UNAUTHORIZED");
-  }
+  const res = await apiFetch(`/api/v1/relatives/${encodeURIComponent(token)}/view`);
 
   if (!res.ok) {
     let msg = `Server xatoligi: ${res.status} ${res.statusText}`;
@@ -223,12 +255,10 @@ export async function recordPatientMeasurement(
   systolicBp?: number,
   diastolicBp?: number
 ): Promise<void> {
-  const authToken = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/measurements`, {
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/measurements`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     body: JSON.stringify({
       measured_at: new Date().toISOString(),
@@ -258,12 +288,10 @@ export async function updatePatientAddress(
     flat?: string;
   }
 ): Promise<void> {
-  const authToken = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/addresses/${encodeURIComponent(addressId)}`, {
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/addresses/${encodeURIComponent(addressId)}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -277,12 +305,10 @@ export async function updatePatientAddress(
  * Patient / Relative Emergency SOS signal trigger.
  */
 export async function triggerEmergencySos(patientId: string): Promise<void> {
-  const authToken = getStoredToken();
-  const res = await fetch("/api/v1/sos", {
+  const res = await apiFetch("/api/v1/sos", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     body: JSON.stringify({
       patient_id: patientId,

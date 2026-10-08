@@ -170,8 +170,8 @@ class RealtimeHub:
             raise RuntimeError("redis package is required for redis_streams realtime transport") from exc
         self._redis = aioredis.from_url(
             settings.REDIS_URL,
-            socket_timeout=1.0,
-            socket_connect_timeout=1.0,
+            socket_timeout=10.0,
+            socket_connect_timeout=5.0,
             decode_responses=True,
         )
         return self._redis
@@ -213,10 +213,11 @@ async def send_websocket_events(
     websocket: WebSocket,
     topic: str,
     event_filter: Callable[[RealtimeEvent], bool] | None = None,
+    subprotocol: str | None = None,
 ) -> None:
     queue = await realtime_hub.subscribe(topic)
     try:
-        await websocket.accept()
+        await websocket.accept(subprotocol=subprotocol)
         while True:
             event = await queue.get()
             if event_filter is None or event_filter(event):

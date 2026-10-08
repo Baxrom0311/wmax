@@ -33,18 +33,14 @@ class EmergencyDispatcher(ABC):
 
 
 class ManualDispatch(EmergencyDispatcher):
-    """Dispatcher displaying complete card to on-duty staff for human 103 dialing."""
+    """Explicitly unavailable placeholder until a real duty workflow is wired."""
 
     async def dispatch(self, event: SosEvent, context: PatientContext) -> DispatchResult:
-        logger.info(
-            f"Manual dispatch invoked for SOS {event.id} (Patient {event.patient_id}): "
-            f"address={event.address_snapshot.get('street', UNKNOWN)}, "
-            f"landmark={event.address_snapshot.get('landmark', UNKNOWN)}"
-        )
+        logger.error("No emergency dispatch provider configured for SOS %s", event.id)
         return DispatchResult(
-            accepted=True,
+            accepted=False,
             method="manual_call_103",
-            message="Navbatchi xabardor qilindi — 103 ga qo'ng'iroq kutilmoqda",
+            message="Navbatchi yoki 103 ga avtomatik xabar yuborilmadi. Mahalliy tez yordam raqamiga qo'ng'iroq qiling.",
         )
 
 
@@ -52,5 +48,5 @@ class Service103Adapter(EmergencyDispatcher):
     """Future adapter for direct automated National 103 Ambulance REST API integration."""
 
     async def dispatch(self, event: SosEvent, context: PatientContext) -> DispatchResult:
-        logger.warning("103 API is not yet plugged in, falling back to manual dispatch")
+        logger.error("103 API is not configured")
         return await ManualDispatch().dispatch(event, context)

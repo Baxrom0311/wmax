@@ -5,6 +5,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     /* shadcn CSS variables — blue theme */
@@ -59,6 +61,52 @@
     --color-nodata-border: #e2e8f0;
     --color-nodata-text: #475569;
   }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 12%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 10%;
+
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 213 27% 84%;
+
+    --color-good-bg: #052e16;
+    --color-good-border: #14532d;
+    --color-good-text: #86efac;
+
+    --color-attention-bg: #451a03;
+    --color-attention-border: #78350f;
+    --color-attention-text: #fde047;
+
+    --color-risk-bg: #450a0a;
+    --color-risk-border: #7f1d1d;
+    --color-risk-text: #fca5a5;
+
+    --color-nodata-bg: #0f172a;
+    --color-nodata-border: #1e293b;
+    --color-nodata-text: #94a3b8;
+  }
 }
 
 @layer base {
@@ -70,8 +118,8 @@
   }
 
   body {
-    background-color: hsl(210 40% 98%);
-    color: hsl(222 84% 5%);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh;
     display: flex;
@@ -79,6 +127,7 @@
     align-items: flex-start;
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   button, input, select, textarea {
@@ -189,4 +238,62 @@
   border-radius: 10px !important;
   border-color: hsl(var(--border)) !important;
   font-size: 12px !important;
+}
+
+/* ===== DARK THEME VISUAL HARMONY ===== */
+.dark body {
+  background-color: #090d16;
+  color: #f1f5f9;
+}
+
+.dark header {
+  background-color: rgba(9, 13, 22, 0.92) !important;
+  border-color: #1e293b !important;
+}
+
+.dark .bg-white {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f1f5f9;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #94a3b8;
+}
+
+.dark .text-slate-400 {
+  color: #64748b;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200 {
+  border-color: #1e293b;
+}
+
+.dark .bg-slate-50 {
+  background-color: #131c2e;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b;
+}
+
+.dark input {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark input::placeholder {
+  color: #475569 !important;
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
 }

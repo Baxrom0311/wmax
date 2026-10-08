@@ -371,18 +371,18 @@ class DoctorContact {
 /// AI Prognosis information
 class PrognosisData {
   final String riskLevel;
-  final int riskProbabilityPct;
+  final int? riskProbabilityPct;
   final String summary;
   final String? recommendation;
-  final int earlyWarningHours;
+  final int? earlyWarningHours;
   final String? primaryConcern;
 
   PrognosisData({
     required this.riskLevel,
-    required this.riskProbabilityPct,
+    this.riskProbabilityPct,
     required this.summary,
     this.recommendation,
-    this.earlyWarningHours = 72,
+    this.earlyWarningHours,
     this.primaryConcern,
   });
 
@@ -391,17 +391,17 @@ class PrognosisData {
       riskLevel: json['risk_level'] ?? 'low',
       riskProbabilityPct: json['risk_probability_pct'] is int
           ? json['risk_probability_pct']
-          : (int.tryParse('${json['risk_probability_pct']}') ?? 12),
+          : null,
       summary: json['summary'] ?? 'Barcha ko\'rsatkichlar me\'yorida.',
       recommendation: json['recommendation'],
       earlyWarningHours: json['early_warning_hours'] is int
           ? json['early_warning_hours']
-          : 72,
+          : null,
       primaryConcern: json['primary_concern'],
     );
   }
 
-  int get riskScore => riskProbabilityPct;
+  int? get riskScore => riskProbabilityPct;
   String get recommendationUz =>
       (recommendation != null && recommendation!.isNotEmpty)
       ? recommendation!

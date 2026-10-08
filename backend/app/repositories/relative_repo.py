@@ -22,23 +22,21 @@ class RelativeRepository:
         return res.scalar_one_or_none()
 
     async def get_by_phone(self, phone: str) -> Sequence[Relative]:
-        stmt = select(Relative).where(Relative.phone == phone)
-        res = await self.session.execute(stmt)
-        return res.scalars().all()
+        rows = await self.access.get_assigned_patients_by_phone(phone)
+        return [row[0] for row in rows]
 
     async def get_assigned_patients(
         self, phone: str
     ) -> list[tuple[Relative, Patient]]:
         rows = await self.access.get_assigned_patients_by_phone(phone)
-        if rows:
-            return [(access, patient) for access, patient, _account in rows]
-        stmt = (
-            select(Relative, Patient)
-            .join(Patient, Relative.patient_id == Patient.id)
-            .where(Relative.phone == phone)
-        )
-        res = await self.session.execute(stmt)
-        return [(row[0], row[1]) for row in res.all()]
+        results = []
+        for access, patient, account in rows:
+            setattr(access, "pin_hash", account.password_hash)
+            setattr(access, "full_name", account.full_name)
+            setattr(access, "account", account)
+            setattr(access, "relationship", access.relation or "")
+            results.append((access, patient))
+        return results
 
     async def get_by_id_and_patient(
         self, relative_id: uuid.UUID, patient_id: uuid.UUID
@@ -55,7 +53,7 @@ class RelativeRepository:
     ) -> Relative:
         from datetime import datetime, timezone
         relative.access_token = new_token
-        relative.created_at = datetime.now(timezone.utc)
+        relative.access_token_created_at = datetime.now(timezone.utc)
         self.session.add(relative)
         await self.session.flush()
         return relative

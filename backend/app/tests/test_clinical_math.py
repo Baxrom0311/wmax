@@ -199,30 +199,24 @@ class TestContractConstants:
         assert PARAM_DIRECTION["rr_est"] == +1
 
 
-# ── Pipeline fallback function tests ─────────────────────────────────────────
+# ── Runtime clinical algorithm tests ──────────────────────────────────────────
 
 @pytest.mark.skipif(not HAS_CONTRACTS, reason="algo_interface not installed")
-class TestPipelineFallbackFunctions:
-    """Tests the contract-compliant fallback implementations in pipeline_service.py."""
+class TestClinicalAlgorithmFunctions:
+    """Exercise the algorithm modules used by PipelineService at runtime."""
 
-    def _get_fallback_functions(self):
-        """Import fallback functions from pipeline_service."""
-        import sys
-        # Force reload to get fallback path
-        try:
-            from app.services.pipeline_service import (
-                compute_baselines,
-                compute_zscores,
-                evaluate_alert,
-                compute_trend,
-            )
-            return compute_baselines, compute_zscores, evaluate_alert, compute_trend
-        except ImportError:
-            pytest.skip("pipeline_service not available")
+    @staticmethod
+    def _get_algorithm_functions():
+        """Import the same pure functions that the production pipeline calls."""
+        from algo.baseline import compute_baselines, compute_zscores
+        from algo.signal import evaluate_alert
+        from algo.trend import compute_trend
+
+        return compute_baselines, compute_zscores, evaluate_alert, compute_trend
 
     def test_critical_spo2_override_bypasses_composite(self):
         """SpO2 < 88 must immediately produce red regardless of other parameters."""
-        _, _, evaluate_alert, _ = self._get_fallback_functions()
+        _, _, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading(spo2=85.0, steps=5)
         baselines = [make_baseline("spo2", median=97.0, mad=1.0)]
         result = evaluate_alert(reading, baselines, [], phase="full")
@@ -231,7 +225,7 @@ class TestPipelineFallbackFunctions:
 
     def test_critical_hr_at_rest_override(self):
         """HR > 130 at rest (steps<=20) must immediately produce red."""
-        _, _, evaluate_alert, _ = self._get_fallback_functions()
+        _, _, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading(hr_mean=140.0, steps=10)
         baselines = [make_baseline("hr_mean", median=70.0, mad=5.0)]
         result = evaluate_alert(reading, baselines, [], phase="full")
@@ -240,7 +234,7 @@ class TestPipelineFallbackFunctions:
 
     def test_hr_deviation_ignored_when_active(self):
         """HR deviation should NOT trigger when steps > REST_STEPS_MAX."""
-        _, compute_zscores, evaluate_alert, _ = self._get_fallback_functions()
+        _, compute_zscores, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading(hr_mean=140.0, steps=100)  # Active = ignore HR
         baselines = [make_baseline("hr_mean", median=70.0, mad=5.0)]
         result = evaluate_alert(reading, baselines, [], phase="full")
@@ -250,7 +244,7 @@ class TestPipelineFallbackFunctions:
 
     def test_calib_phase_always_green(self):
         """During calibration phase, level is always green regardless of readings."""
-        _, _, evaluate_alert, _ = self._get_fallback_functions()
+        _, _, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading(spo2=92.0, hr_mean=120.0)  # Clearly elevated
         baselines = [
             make_baseline("spo2", median=97.0, mad=1.0),
@@ -262,7 +256,7 @@ class TestPipelineFallbackFunctions:
 
     def test_unworn_device_produces_no_data(self):
         """Unworn device must produce no_data, not green."""
-        _, _, evaluate_alert, _ = self._get_fallback_functions()
+        _, _, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading(worn=False)
         baselines = [make_baseline("hr_mean")]
         result = evaluate_alert(reading, baselines, [], phase="full")
@@ -271,7 +265,7 @@ class TestPipelineFallbackFunctions:
 
     def test_normal_readings_produce_green(self):
         """Perfectly normal readings should produce green status."""
-        _, _, evaluate_alert, _ = self._get_fallback_functions()
+        _, _, evaluate_alert, _ = self._get_algorithm_functions()
         reading = make_reading()  # All defaults are within normal range
         baselines = [
             make_baseline("hr_mean", median=70.0, mad=5.0),
@@ -282,7 +276,7 @@ class TestPipelineFallbackFunctions:
 
     def test_compute_baselines_skips_unworn(self):
         """Baseline computation must skip readings with worn=False."""
-        compute_baselines, _, _, _ = self._get_fallback_functions()
+        compute_baselines, _, _, _ = self._get_algorithm_functions()
         worn_reading = make_reading(hr_mean=70.0, worn=True)
         unworn_reading = make_reading(hr_mean=200.0, worn=False)  # Should be excluded
         baselines = compute_baselines([worn_reading, unworn_reading])
@@ -293,7 +287,7 @@ class TestPipelineFallbackFunctions:
 
     def test_trend_improving_slope(self):
         """Negative slope below threshold should produce 'improving' direction."""
-        _, _, _, compute_trend = self._get_fallback_functions()
+        _, _, _, compute_trend = self._get_algorithm_functions()
         # Scores decreasing daily: day 0=5, day1=4, day2=3, day3=2, day4=1
         daily_scores = [(0, 5.0), (1, 4.0), (2, 3.0), (3, 2.0), (4, 1.0)]
         result = compute_trend(daily_scores)
@@ -302,7 +296,7 @@ class TestPipelineFallbackFunctions:
 
     def test_trend_worsening_slope(self):
         """Positive slope above threshold should produce 'worsening' direction."""
-        _, _, _, compute_trend = self._get_fallback_functions()
+        _, _, _, compute_trend = self._get_algorithm_functions()
         daily_scores = [(0, 1.0), (1, 2.0), (2, 3.5), (3, 5.0), (4, 7.0)]
         result = compute_trend(daily_scores)
         assert result.direction == "worsening"
@@ -310,14 +304,14 @@ class TestPipelineFallbackFunctions:
 
     def test_trend_stable(self):
         """Flat scores should produce 'stable' direction."""
-        _, _, _, compute_trend = self._get_fallback_functions()
+        _, _, _, compute_trend = self._get_algorithm_functions()
         daily_scores = [(0, 3.0), (1, 3.1), (2, 2.9), (3, 3.0), (4, 3.05)]
         result = compute_trend(daily_scores)
         assert result.direction == "stable"
 
     def test_trend_requires_three_days(self):
         """One or two days do not establish a meaningful health trend."""
-        _, _, _, compute_trend = self._get_fallback_functions()
+        _, _, _, compute_trend = self._get_algorithm_functions()
         result = compute_trend([(0, 3.0)])
         assert result.direction == "insufficient_data"
         assert result.slope == 0.0

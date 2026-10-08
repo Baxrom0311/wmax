@@ -34,24 +34,24 @@ const STATUS_STYLES: Record<VitalStatus, {
   value: string;
 }> = {
   good: {
-    card: "border-slate-100 bg-white hover:border-blue-200 hover:shadow-md",
-    badge: "bg-green-50 text-green-700 border border-green-200",
-    value: "text-slate-900",
+    card: "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md",
+    badge: "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
+    value: "text-slate-900 dark:text-slate-100",
   },
   attention: {
-    card: "border-amber-200 bg-amber-50/30 hover:shadow-md",
-    badge: "bg-amber-50 text-amber-700 border border-amber-200",
-    value: "text-amber-900",
+    card: "border-amber-200 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20 hover:shadow-md",
+    badge: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+    value: "text-amber-900 dark:text-amber-300",
   },
   risk: {
-    card: "border-red-200 bg-red-50/20 hover:shadow-md",
-    badge: "bg-red-50 text-red-700 border border-red-200",
-    value: "text-red-900",
+    card: "border-red-200 dark:border-red-900/60 bg-red-50/20 dark:bg-red-950/20 hover:shadow-md",
+    badge: "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800",
+    value: "text-red-900 dark:text-red-300",
   },
   nodata: {
-    card: "border-slate-100 bg-slate-50 hover:border-slate-200",
-    badge: "bg-slate-100 text-slate-500 border border-slate-200",
-    value: "text-slate-400",
+    card: "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700",
+    badge: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700",
+    value: "text-slate-400 dark:text-slate-500",
   },
 };
 
@@ -204,12 +204,12 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Activity size={16} className="text-blue-600" />
-          <h3 className="text-[14px] font-bold text-slate-800" style={{ fontFamily: "'Outfit',sans-serif" }}>
+          <Activity size={16} className="text-blue-600 dark:text-blue-400" />
+          <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-100" style={{ fontFamily: "'Outfit',sans-serif" }}>
             {t("vitals.title", lang)}
           </h3>
         </div>
-        <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-[10.5px] font-extrabold px-2.5 py-1 rounded-full">
+        <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-[10.5px] font-extrabold px-2.5 py-1 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 dot-live" />
           LIVE
         </div>
@@ -232,7 +232,7 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {c.icon}
-                  <span className="text-[12px] font-semibold text-slate-600 leading-tight">
+                  <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300 leading-tight">
                     {c.label}
                   </span>
                 </div>
@@ -247,13 +247,13 @@ export const Vitals: React.FC<VitalsProps> = ({ vitals, lang }) => {
                   style={{ fontFamily: "'Outfit',sans-serif" }}>
                   {c.value}
                 </span>
-                <span className="text-[12px] font-semibold text-slate-400">{c.unit}</span>
+                <span className="text-[12px] font-semibold text-slate-400 dark:text-slate-500">{c.unit}</span>
                 {c.trend === "up" && <ChevronUp size={16} className="text-amber-500 ml-auto" />}
                 {c.trend === "down" && <ChevronDown size={16} className="text-blue-400 ml-auto" />}
               </div>
 
               {/* Norm note */}
-              <div className="text-[10.5px] text-slate-400 border-t border-slate-100 pt-1.5 mt-0.5">
+              <div className="text-[10.5px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-0.5">
                 {c.norm}
               </div>
             </div>

@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WMAX — Masofaviy Bemor Monitoringi va Shifokor Nazorati</title>
+  <meta name="description" content="O'zbekistonda uzoqdagi farzandlar va keksalar uchun masofaviy monitoring platformasi. Aqlli telemetriya, individual baseline va tezkor shifokor nazorati.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            destructive: {
+              DEFAULT: "hsl(var(--destructive))",
+              foreground: "hsl(var(--destructive-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+          fontFamily: {
+            heading: ['Outfit', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Shadcn CSS Variables and Custom Design -->
+  <style>
+    :root {
+      --background: 210 40% 98%;
+      --foreground: 222.2 84% 4.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 222.2 84% 4.9%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 222.2 84% 4.9%;
+      --primary: 201 96% 32%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 210 40% 96.1%;
+      --secondary-foreground: 222.2 47.4% 11.2%;
+      --muted: 210 40% 96.1%;
+      --muted-foreground: 215.4 16.3% 46.9%;
+      --accent: 210 40% 96.1%;
+      --accent-foreground: 222.2 47.4% 11.2%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 214.3 31.8% 91.4%;
+      --input: 214.3 31.8% 91.4%;
+      --ring: 201 96% 32%;
+      --radius: 0.75rem;
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(226, 232, 240, 0.8);
+      --hero-glow: rgba(2, 132, 199, 0.12);
+    }
+
+    html.dark {
+      --background: 222 47% 6%;
+      --foreground: 210 40% 98%;
+      --card: 224 45% 9%;
+      --card-foreground: 210 40% 98%;
+      --popover: 224 45% 9%;
+      --popover-foreground: 210 40% 98%;
+      --primary: 199 89% 48%;
+      --primary-foreground: 222.2 47.4% 11.2%;
+      --secondary: 217.2 32.6% 14%;
+      --secondary-foreground: 210 40% 98%;
+      --muted: 217.2 32.6% 14%;
+      --muted-foreground: 215 20.2% 65.1%;
+      --accent: 217.2 32.6% 16%;
+      --accent-foreground: 210 40% 98%;
+      --destructive: 0 62.8% 50.6%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 217.2 32.6% 17.5%;
+      --input: 217.2 32.6% 17.5%;
+      --ring: 199 89% 48%;
+      --glass-bg: rgba(9, 13, 22, 0.82);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --hero-glow: rgba(2, 132, 199, 0.22);
+    }
+
+    body {
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .font-heading {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Ambient Glow spheres */
+    .glow-sphere {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    /* Glassmorphism nav & card */
+    .glass-nav {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .glass-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      transition: all 0.25s ease;
+    }
+
+    .glass-card:hover {
+      border-color: hsl(var(--primary) / 0.5);
+      box-shadow: 0 12px 32px -10px hsl(var(--primary) / 0.15);
+    }
+
+    /* Pulse animation */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-dot {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+
+    /* Simulator styles */
+    .sim-btn-active-green {
+      background-color: #10b981 !important;
+      color: #ffffff !important;
+      border-color: #059669 !important;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
+    }
+    .sim-btn-active-amber {
+      background-color: #f59e0b !important;
+      color: #ffffff !important;
+      border-color: #d97706 !important;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
+    }
+    .sim-btn-active-red {
+      background-color: #ef4444 !important;
+      color: #ffffff !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.5) !important;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: hsl(var(--background));
+    }
+    ::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground) / 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--muted-foreground) / 0.5);
+    }
+  </style>
+</head>
+<body class="min-h-screen relative selection:bg-sky-500 selection:text-white">
+
+  <!-- Ambient background glow elements -->
+  <div class="glow-sphere w-[500px] h-[500px] -top-32 -left-20 bg-sky-500/20 dark:bg-sky-600/20"></div>
+  <div class="glow-sphere w-[600px] h-[600px] top-[30%] -right-40 bg-teal-500/15 dark:bg-teal-600/20"></div>
+  <div class="glow-sphere w-[550px] h-[550px] top-[70%] left-[10%] bg-blue-600/15 dark:bg-blue-600/20"></div>
+
+  <!-- STICKY HEADER -->
+  <header class="glass-nav sticky top-0 z-50 transition-colors duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <a href="#hero" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/30 group-hover:scale-105 transition-transform">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-heading font-extrabold text-2xl tracking-tight text-foreground flex items-center gap-1">
+            WMAX<span class="text-sky-500">Care</span>
+          </span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-muted-foreground -mt-1" data-i18n="brand.tagline">
+            Masofaviy Monitoring
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="hidden lg:flex items-center gap-7 text-sm font-medium text-muted-foreground">
+        <a href="#hero" class="hover:text-foreground transition-colors" data-i18n="nav.hero">Bosh sahifa</a>
+        <a href="#qanday-ishlaydi" class="hover:text-foreground transition-colors" data-i18n="nav.how">Tizim qanday ishlaydi</a>
+        <a href="#imkoniyatlar" class="hover:text-foreground transition-colors" data-i18n="nav.features">Imkoniyatlar</a>
+        <a href="#simulyator" class="hover:text-foreground transition-colors" data-i18n="nav.sim">Jonli Tahlil</a>
+        <a href="#tariflar" class="hover:text-foreground transition-colors" data-i18n="nav.pricing">Tariflar</a>
+        <a href="#boglanish" class="hover:text-foreground transition-colors" data-i18n="nav.contact">Bog'lanish</a>
+      </nav>
+
+      <!-- Right Header Actions (Language, Theme Toggle, Portals Dropdown, CTA) -->
+      <div class="flex items-center gap-3">
+
+        <!-- Language Selector -->
+        <div class="relative">
+          <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-secondary text-secondary-foreground text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer appearance-none pr-7">
+            <option value="uz">🇺🇿 UZ</option>
+            <option value="ru">🇷🇺 RU</option>
+            <option value="en">🇬🇧 EN</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-muted-foreground">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+        </div>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button id="themeToggleBtn" onclick="toggleTheme()" type="button" aria-label="Toggle theme" class="p-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-muted border border-border transition-colors">
+          <!-- Sun icon (shown in dark mode) -->
+          <svg id="sunIcon" class="w-4 h-4 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <!-- Moon icon (shown in light mode) -->
+          <svg id="moonIcon" class="w-4 h-4 block dark:hidden text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+
+        <!-- Portals Direct Menu / Modal Trigger -->
+        <div class="relative group hidden sm:block">
+          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-secondary text-foreground hover:bg-muted border border-border transition-all">
+            <svg class="w-3.5 h-3.5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span data-i18n="nav.portals">Kirish</span>
+            <svg class="w-3 h-3 text-muted-foreground group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          
+          <!-- Dropdown menu -->
+          <div class="absolute right-0 mt-1 w-64 p-2 bg-card border border-border rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50">
+            <a href="/doctor" onclick="handlePortalClick(event, 'doctor')" class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-secondary transition-colors">
+              <div class="p-2 rounded-lg bg-sky-500/10 text-sky-500 mt-0.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-foreground" data-i18n="portal.doctor_title">Shifokorlar Kabineti</div>
+                <div class="text-[11px] text-muted-foreground" data-i18n="portal.doctor_desc">Klinik ish stoli & monitoring</div>
+              </div>
+            </a>
+            <a href="/relative" onclick="handlePortalClick(event, 'relative')" class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-secondary transition-colors mt-1">
+              <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 mt-0.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-foreground" data-i18n="portal.relative_title">Oila & Farzand Portali</div>
+                <div class="text-[11px] text-muted-foreground" data-i18n="portal.relative_desc">Ota-ona holati va xabarlar</div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Start / Contact CTA -->
+        <a href="#boglanish" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all" data-i18n="nav.get_started">
+          Bog'lanish
+        </a>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button type="button" onclick="toggleMobileMenu()" class="lg:hidden p-2 rounded-lg bg-secondary text-foreground border border-border" aria-label="Open mobile menu">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Navigation -->
+    <div id="mobileMenu" class="hidden lg:hidden px-4 pt-2 pb-6 border-t border-border bg-card/95 backdrop-blur-xl">
+      <div class="flex flex-col gap-3 text-sm font-medium pt-2">
+        <a href="#hero" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.hero">Bosh sahifa</a>
+        <a href="#qanday-ishlaydi" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.how">Tizim qanday ishlaydi</a>
+        <a href="#imkoniyatlar" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.features">Imkoniyatlar</a>
+        <a href="#simulyator" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.sim">Jonli Tahlil</a>
+        <a href="#tariflar" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.pricing">Tariflar</a>
+        <a href="#boglanish" onclick="toggleMobileMenu()" class="px-3 py-2 rounded-lg hover:bg-secondary text-foreground" data-i18n="nav.contact">Bog'lanish</a>
+        
+        <div class="h-px bg-border my-2"></div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase px-3" data-i18n="nav.portals">Portallar</div>
+        <a href="/doctor" onclick="handlePortalClick(event, 'doctor')" class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-secondary text-foreground text-xs font-semibold">
+          <span class="text-sky-500">🩺</span> <span data-i18n="portal.doctor_title">Shifokorlar Kabineti</span>
+        </a>
+        <a href="/relative" onclick="handlePortalClick(event, 'relative')" class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-secondary text-foreground text-xs font-semibold">
+          <span class="text-emerald-500">👨‍👩‍👧</span> <span data-i18n="portal.relative_title">Oila & Farzand Portali</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: HERO -->
+  <section id="hero" class="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        <!-- Left Hero Copy -->
+        <div class="lg:col-span-7 flex flex-col items-start">
+          
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+            <span data-i18n="hero.badge">O'zbekistonda Masofaviy Bemor Monitoringi</span>
+          </div>
+
+          <!-- Headline -->
+          <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.12] mb-6">
+            <span data-i18n="hero.title_p1">Siz uzoqdasiz.</span><br/>
+            <span class="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent" data-i18n="hero.title_p2">
+              Ota-onangiz esa yolg'iz emas.
+            </span>
+          </h1>
+
+          <!-- Subtitle / Motto -->
+          <p class="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mb-8" data-i18n="hero.subtitle">
+            Tizim o'lchaydi va xabar beradi. Tashxisni shifokor qo'yadi, javobgarlikni muassasa oladi. Aqlli soat telemetriyasi, shaxsiy fiziologik norma va tezkor eskalatsiya zanjiri.
+          </p>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+            <a href="#boglanish" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <span data-i18n="hero.cta_primary">Monitoringni boshlash</span>
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </a>
+            <a href="#simulyator" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-xl bg-secondary text-foreground hover:bg-muted border border-border transition-all">
+              <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span data-i18n="hero.cta_sim">Jonli simulyatsiyani ko'rish</span>
+            </a>
+          </div>
+
+          <!-- Trust & Value Metrics -->
+          <div class="grid grid-cols-3 gap-6 sm:gap-10 pt-10 mt-10 border-t border-border w-full">
+            <div>
+              <div class="font-heading font-extrabold text-2xl sm:text-3xl text-foreground">24/7</div>
+              <div class="text-xs text-muted-foreground mt-1" data-i18n="hero.stat1">Fiziologik telemetriya</div>
+            </div>
+            <div>
+              <div class="font-heading font-extrabold text-2xl sm:text-3xl text-foreground">7 <span class="text-xs font-normal text-muted-foreground">kun</span></div>
+              <div class="text-xs text-muted-foreground mt-1" data-i18n="hero.stat2">Individual baseline</div>
+            </div>
+            <div>
+              <div class="font-heading font-extrabold text-2xl sm:text-3xl text-emerald-500">0 so'm</div>
+              <div class="text-xs text-muted-foreground mt-1" data-i18n="hero.stat3">SOS & Qizil signal bepul</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Hero Visual Card -->
+        <div class="lg:col-span-5 relative">
+          <div class="relative rounded-3xl p-3 bg-gradient-to-b from-sky-500/20 via-border to-transparent border border-border shadow-2xl">
+            <div class="relative rounded-2xl overflow-hidden bg-card aspect-[4/5] sm:aspect-[4/4.8]">
+              <img src="images/hero_parent_smartwatch.png" alt="Ota-ona xotirjamligi va aqlli soat" class="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" onerror="this.src='https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'">
+              <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80"></div>
+            </div>
+
+            <!-- Floating Live Status Widget -->
+            <div class="absolute -bottom-6 -left-4 sm:left-4 right-4 sm:right-auto bg-card/95 backdrop-blur-md border border-border rounded-2xl p-4 shadow-xl flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0">
+                <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-foreground flex items-center gap-2">
+                  <span data-i18n="hero.widget_title">Yurak ritmi: 72 bpm</span>
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                </div>
+                <div class="text-[11px] text-muted-foreground mt-0.5" data-i18n="hero.widget_desc">
+                  SpO₂ 98% · Shaxsiy baseline koridorida
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: PROBLEM VS SOLUTION (CONTRAST) -->
+  <section class="py-20 border-t border-border bg-muted/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="contrast.tag">Haqiqat va Yechim</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="contrast.title">
+          Masofa ota-onangiz sog'lig'idan bexabar qolishga sabab bo'lmasin
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base" data-i18n="contrast.desc">
+          Toshkentda yoki chet elda ishlaydigan farzand doim xavotirda. WMAX ushbu xavotirni professional shaffoflik va tibbiy mas'uliyat bilan yopadi.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Problem Card -->
+        <div class="glass-card rounded-2xl p-8 border-destructive/20 relative overflow-hidden flex flex-col justify-between">
+          <div class="relative z-10">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive/15 text-destructive border border-destructive/30 mb-4">
+              ⚠️ <span data-i18n="contrast.problem_badge">Hozirgi achchiq haqiqat</span>
+            </span>
+            <h3 class="font-heading font-bold text-2xl text-foreground mb-3" data-i18n="contrast.problem_title">
+              "Bolam, xavotir olma, hammasi yaxshi..."
+            </h3>
+            <p class="text-sm text-muted-foreground leading-relaxed mb-6" data-i18n="contrast.problem_p">
+              Keksa ota-ona bolam qiynalmasin deb ahvoli yomonlashganini yashiradi. Gipertonik kriz yoki yurak yetishmovchiligi esa sezdirmasdan rivojlanadi. Kech bilib qolish — eng katta og'riq.
+            </p>
+            <ul class="space-y-3 text-sm text-foreground/80 mb-6">
+              <li class="flex items-start gap-2.5">
+                <span class="text-destructive font-bold">✕</span>
+                <span data-i18n="contrast.prob_item1">Alomatlar o'tkir bosqichga yetguncha sezilmaydi</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-destructive font-bold">✕</span>
+                <span data-i18n="contrast.prob_item2">Uzoqdagi farzand har qo'ng'iroqda ichki xavotirda</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-destructive font-bold">✕</span>
+                <span data-i18n="contrast.prob_item3">Vaqt yo'qotilishi oqibatida kechikkan tibbiy aralashuv</span>
+              </li>
+            </ul>
+          </div>
+          <div class="rounded-xl overflow-hidden aspect-[16/9] border border-border">
+            <img src="images/worry_distance_son.png" alt="Masofadagi xavotir" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1516726817505-f5ed825624d8?auto=format&fit=crop&w=800&q=80'">
+          </div>
+        </div>
+
+        <!-- Solution Card -->
+        <div class="glass-card rounded-2xl p-8 border-sky-500/30 bg-gradient-to-b from-sky-500/5 via-card to-card relative overflow-hidden flex flex-col justify-between">
+          <div class="relative z-10">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/15 text-sky-500 border border-sky-500/30 mb-4">
+              🛡️ <span data-i18n="contrast.solution_badge">WMAX bilan ishonchli yechim</span>
+            </span>
+            <h3 class="font-heading font-bold text-2xl text-foreground mb-3" data-i18n="contrast.solution_title">
+              O'lchov, barvaqt xabar va shifokor mas'uliyati
+            </h3>
+            <p class="text-sm text-muted-foreground leading-relaxed mb-6" data-i18n="contrast.solution_p">
+              Ota-onangiz o'rganishi shart bo'lmagan qulay aqlli soat. Tizim ularning 7 kunlik me'yorini (baseline) hisoblaydi. Salomatlik og'ishi yuz berganda, shifokor va oilaga darhol bildirishnoma boradi.
+            </p>
+            <ul class="space-y-3 text-sm text-foreground/90 mb-6">
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span data-i18n="contrast.sol_item1">Har 5 daqiqalik telemetriya: puls, SpO₂, uyqu va stress</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span data-i18n="contrast.sol_item2">Farzand telefonida real vaqt xotirjamlik nuri</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-500 font-bold">✓</span>
+                <span data-i18n="contrast.sol_item3">Qizil signalda shifokorga vazifa va ko'p kanalli favqulodda ogohlantirish</span>
+              </li>
+            </ul>
+          </div>
+          <div class="rounded-xl overflow-hidden aspect-[16/9] border border-border">
+            <img src="images/doctor_caring_telehealth.png" alt="Shifokor nazorati" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=800&q=80'">
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 3: HOW IT WORKS (3 STEPS) -->
+  <section id="qanday-ishlaydi" class="py-20 border-t border-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="steps.tag">Oddiy va Samarali</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="steps.title">
+          Tizim qanday ishlaydi? Atigi 3 qadam
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base" data-i18n="steps.desc">
+          Keksa ota-onaga hech qanday texnik qiyinchilik yo'q. Hamma qiyin matematikani tizim va shifokorlar o'z zimmasiga oladi.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Step 1 -->
+        <div class="glass-card rounded-2xl p-7 relative">
+          <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-500 font-heading font-extrabold text-xl mb-6">
+            01
+          </div>
+          <h3 class="font-heading font-bold text-xl text-foreground mb-3" data-i18n="steps.s1_title">
+            Soat bilakka taqiladi
+          </h3>
+          <p class="text-sm text-muted-foreground leading-relaxed" data-i18n="steps.s1_desc">
+            Yengil, sertifikatlangan aqlli soat. Ota-onangiz murakkab ilovalarni ochishi shart emas. Soat avtomatik tarzda teridagi sensorlar orqali ko'rsatkichlarni o'lchaydi.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-card rounded-2xl p-7 relative">
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-500 font-heading font-extrabold text-xl mb-6">
+            02
+          </div>
+          <h3 class="font-heading font-bold text-xl text-foreground mb-3" data-i18n="steps.s2_title">
+            Digital Twin va Shaxsiy Norma
+          </h3>
+          <p class="text-sm text-muted-foreground leading-relaxed" data-i18n="steps.s2_desc">
+            Har bir inson organizmi o'zgacha. WMAX dastlabki 7 kunda ota-onangizning individual bazaviy chizig'ini (baseline) o'rganadi va asossiz soxta xabarlarni bartaraf qiladi.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-card rounded-2xl p-7 relative">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-heading font-extrabold text-xl mb-6">
+            03
+          </div>
+          <h3 class="font-heading font-bold text-xl text-foreground mb-3" data-i18n="steps.s3_title">
+            Farzand xabardor, Shifokor nazoratda
+          </h3>
+          <p class="text-sm text-muted-foreground leading-relaxed" data-i18n="steps.s3_desc">
+            Siz mobil ilovada yoki veb-portalda ota-onangiz holatini ko'rib turasiz. Klinik muassasada esa hamshira va shifokor o'z ish stolida og'ishlarni nazorat qiladi.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: FEATURES (IMKONIYATLAR) -->
+  <section id="imkoniyatlar" class="py-20 border-t border-border bg-muted/20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="features.tag">Asosiy Imkoniyatlar</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="features.title">
+          Tibbiy aniqlik va xavfsizlikka asoslangan texnologiya
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base" data-i18n="features.desc">
+          Biz yolg'on va'dalar bermaymiz. Tizim aniq o'lchov, tibbiy dalillar va ko'p kanalli xabar berish protokoli ustiga qurilgan.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Feature 1 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f1_title">Doimiy Fiziologik O'lchov</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f1_desc">
+            Puls chastotasi, qon kislorodi (SpO₂), HRV yurak variabilligi va harorat dinamikasi uzluksiz telemetriya oqimi orqali uzatiladi.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f2_title">SOS va Qizil Signal Kafolati</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f2_desc">
+            Shoshilinch signallar hech qachon pul ortida qolmaydi. Bepul tarifda ham kritik holat haqida oilaga zudlik bilan signal yetkaziladi.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f3_title">Poliklinika & Hamshira Ish Stoli</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f3_desc">
+            O'zbekiston sog'liqni saqlash tizimi uchastka modeliga to'liq mos: hamshira o'z mahallasi bemorlarini ko'radi, vazifa va eskalatsiya boshqariladi.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f4_title">Ko'p Kanalli Zaxira Zanjiri</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f4_desc">
+            Kritik signallarda Push ochilmasa — Telegram, yetkazilmasa — SMS, javob bo'lmasa — avtomatlashtirilgan telefon qo'ng'irog'i yoqiladi.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f5_title">Oila & Farzand Ilovasi</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f5_desc">
+            Qayerda bo'lishingizdan qat'i nazar, ota-onangizning uyqu sifati, faolligi va dori eslatmalarini yagona xotirjamlik ekranida kuzatasiz.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h4 class="font-heading font-bold text-lg text-foreground mb-2" data-i18n="feat.f6_title">Tibbiy Audit va Rozilik</h4>
+          <p class="text-xs text-muted-foreground leading-relaxed" data-i18n="feat.f6_desc">
+            Bemor huquqlari va roziligi qat'iy himoyalangan. O'lchovlar yo'qotilmaydi, har bir harakat ekspertiza va tibbiy audit jurnalida qayd etiladi.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 5: INTERACTIVE SIMULATOR -->
+  <section id="simulyator" class="py-20 border-t border-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-14">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="sim.tag">Jonli Interaktiv Tahlil</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="sim.title">
+          Tizim real vaziyatlarda qanday ishlaydi?
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base" data-i18n="sim.desc">
+          Holatlarni tanlang va telemetriya hamda tibbiy protokollar qanday javob qaytarishini ko'ring:
+        </p>
+
+        <!-- Simulator State Toggles -->
+        <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
+          <button id="btnGreen" onclick="setSimState('green')" type="button" class="sim-btn-active-green px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer">
+            <span data-i18n="sim.btn_green">🟢 Yashil: Sokin va Barqaror</span>
+          </button>
+          <button id="btnAmber" onclick="setSimState('amber')" type="button" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border border-border bg-card text-foreground hover:bg-secondary transition-all cursor-pointer">
+            <span data-i18n="sim.btn_amber">🟡 Sariq: Og'ish / Diqqat</span>
+          </button>
+          <button id="btnRed" onclick="setSimState('red')" type="button" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border border-border bg-card text-foreground hover:bg-secondary transition-all cursor-pointer">
+            <span data-i18n="sim.btn_red">🔴 Qizil: Shoshilinch Xavf</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Simulator Dashboard Preview Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Smartwatch Preview Card -->
+        <div class="lg:col-span-5">
+          <div id="simWatchCard" class="glass-card rounded-3xl p-6 sm:p-8 border-2 border-emerald-500/50 shadow-2xl relative overflow-hidden transition-all duration-300">
+            
+            <div class="flex items-center justify-between pb-6 border-b border-border">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 pulse-dot" id="simWatchDot"></span>
+                <span class="text-xs font-bold tracking-wider uppercase text-emerald-500" id="simWatchStatusText">
+                  SOKIN / ME'YORDA
+                </span>
+              </div>
+              <span class="text-xs text-muted-foreground font-mono">14:28:05</span>
+            </div>
+
+            <!-- Pulse & Oxygen Metric Display -->
+            <div class="py-8 text-center">
+              <div class="text-xs font-semibold text-muted-foreground uppercase mb-1" data-i18n="sim.pulse_lbl">Yurak Urishi</div>
+              <div class="font-heading font-extrabold text-6xl text-foreground my-2" id="simWatchPulse">
+                72 <span class="text-xl font-medium text-muted-foreground">bpm</span>
+              </div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-foreground mt-2" id="simWatchOxygen">
+                Kislorod SpO₂: 98%
+              </div>
+            </div>
+
+            <!-- Telemetry Mini Grid -->
+            <div class="grid grid-cols-3 gap-3 pt-6 border-t border-border text-center">
+              <div class="p-2.5 rounded-xl bg-secondary/60">
+                <div class="text-[10px] text-muted-foreground uppercase" data-i18n="sim.temp_lbl">Harorat</div>
+                <div class="text-xs font-bold text-foreground mt-0.5" id="simWatchTemp">36.6 °C</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-secondary/60">
+                <div class="text-[10px] text-muted-foreground uppercase" data-i18n="sim.sleep_lbl">Uyqu</div>
+                <div class="text-xs font-bold text-foreground mt-0.5">7.5 s</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-secondary/60">
+                <div class="text-[10px] text-muted-foreground uppercase" data-i18n="sim.battery_lbl">Batareya</div>
+                <div class="text-xs font-bold text-emerald-500 mt-0.5">84%</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- System Response Workflow Steps -->
+        <div class="lg:col-span-7 space-y-4">
+          
+          <!-- Step 1 in response -->
+          <div class="glass-card rounded-2xl p-6 border-l-4 border-l-emerald-500" id="simStep1Box">
+            <div class="flex items-start gap-4">
+              <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 mt-0.5 shrink-0" id="simStep1Icon">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-heading font-bold text-base text-foreground" id="simStep1Title">Doimiy Fon Nazorati</h4>
+                <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed" id="simStep1Desc">
+                  Har 5 daqiqada yurak ritmi va nafas tekshirilmoqda. O'lchovlar individual baseline koridorida barqaror.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 in response -->
+          <div class="glass-card rounded-2xl p-6 border-l-4 border-l-sky-500" id="simStep2Box">
+            <div class="flex items-start gap-4">
+              <div class="p-2 rounded-xl bg-sky-500/10 text-sky-500 mt-0.5 shrink-0" id="simStep2Icon">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-heading font-bold text-base text-foreground" id="simStep2Title">Farzand Ilovasida Xotirjamlik</h4>
+                <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed" id="simStep2Desc">
+                  Ilovada yashil sokinlik nuri. Ota-onangiz o'zini yaxshi his qilayotgani va dam olayotgani ko'rinib turadi.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 in response -->
+          <div class="glass-card rounded-2xl p-6 border-l-4 border-l-indigo-500" id="simStep3Box">
+            <div class="flex items-start gap-4">
+              <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 mt-0.5 shrink-0" id="simStep3Icon">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-heading font-bold text-base text-foreground" id="simStep3Title">Klinik Shifokor Kuzatuvi</h4>
+                <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed" id="simStep3Desc">
+                  Fiziologik ko'rsatkichlar me'yorda. Ortiqcha asossiz tashxis yoki soxta chaqiruvlar yuzaga kelmaydi.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 6: PRICING (TARIFLAR) -->
+  <section id="tariflar" class="py-20 border-t border-border bg-muted/20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="pricing.tag">Shaffof Tariflar</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="pricing.title">
+          Har bir oila va klinika uchun mos reja
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base" data-i18n="pricing.desc">
+          Bizning asosiy qoidamiz: <strong class="text-foreground">SOS va Qizil signal hech qachon pullik qilinmaydi</strong>. Inson hayoti har narsadan ustun.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Plan 1: Free / Safety Base -->
+        <div class="glass-card rounded-2xl p-6 flex flex-col justify-between border-border">
+          <div>
+            <div class="text-xs font-bold uppercase text-emerald-500 mb-2" data-i18n="price.p1_badge">Asosiy Xavfsizlik</div>
+            <h3 class="font-heading font-bold text-xl text-foreground" data-i18n="price.p1_name">Bepul Himoya</h3>
+            <div class="mt-4 mb-6">
+              <span class="font-heading font-extrabold text-3xl text-foreground">0</span>
+              <span class="text-xs text-muted-foreground" data-i18n="price.per_month">so'm / doimiy</span>
+            </div>
+            <p class="text-xs text-muted-foreground mb-6" data-i18n="price.p1_desc">
+              Fundamental hayot xavfsizligi. Har qanday bemor uchun to'lovsiz mavjud.
+            </p>
+            <ul class="space-y-2.5 text-xs text-foreground/90 mb-6">
+              <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> <span data-i18n="price.p1_f1">SOS shoshilinch signal</span></li>
+              <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> <span data-i18n="price.p1_f2">Kritik qizil signallar bildirishnomasi</span></li>
+              <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> <span data-i18n="price.p1_f3">So'nggi 24 soatlik ko'rsatkichlar</span></li>
+              <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> <span data-i18n="price.p1_f4">Soat ulanishi va oilaviy taklif</span></li>
+            </ul>
+          </div>
+          <a href="#boglanish" onclick="selectPlan('Bepul Himoya')" class="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-secondary text-foreground hover:bg-muted border border-border transition-all" data-i18n="price.select_btn">
+            Tanlash
+          </a>
+        </div>
+
+        <!-- Plan 2: Family Peace of Mind (Popular) -->
+        <div class="glass-card rounded-2xl p-6 flex flex-col justify-between border-sky-500 relative shadow-lg shadow-sky-500/10 bg-gradient-to-b from-sky-500/10 via-card to-card">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-sky-500 text-white shadow-sm" data-i18n="price.popular">
+            Eng Ommabop
+          </div>
+          <div>
+            <div class="text-xs font-bold uppercase text-sky-500 mb-2" data-i18n="price.p2_badge">Oila Uchun</div>
+            <h3 class="font-heading font-bold text-xl text-foreground" data-i18n="price.p2_name">Xotirjam Farzand</h3>
+            <div class="mt-4 mb-6">
+              <span class="font-heading font-extrabold text-3xl text-foreground">79,000</span>
+              <span class="text-xs text-muted-foreground" data-i18n="price.per_month">so'm / oy</span>
+            </div>
+            <p class="text-xs text-muted-foreground mb-6" data-i18n="price.p2_desc">
+              Uzoqdagi farzandlar uchun ota-onasining to'liq salomatlik dinamikasi.
+            </p>
+            <ul class="space-y-2.5 text-xs text-foreground/90 mb-6">
+              <li class="flex items-center gap-2"><span class="text-sky-500 font-bold">✓</span> <span data-i18n="price.p2_f1">Barcha bepul imkoniyatlar</span></li>
+              <li class="flex items-center gap-2"><span class="text-sky-500 font-bold">✓</span> <span data-i18n="price.p2_f2">24/7 uzluksiz telemetriya oqimi</span></li>
+              <li class="flex items-center gap-2"><span class="text-sky-500 font-bold">✓</span> <span data-i18n="price.p2_f3">Individual 7 kunlik baseline tahlili</span></li>
+              <li class="flex items-center gap-2"><span class="text-sky-500 font-bold">✓</span> <span data-i18n="price.p2_f4">90 kunlik tarix va sog'liq trendlari</span></li>
+              <li class="flex items-center gap-2"><span class="text-sky-500 font-bold">✓</span> <span data-i18n="price.p2_f5">3 tagacha oila a'zosi kirishi</span></li>
+            </ul>
+          </div>
+          <a href="#boglanish" onclick="selectPlan('Xotirjam Farzand')" class="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 hover:shadow-sky-500/40 transition-all" data-i18n="price.select_btn">
+            Tanlash
+          </a>
+        </div>
+
+        <!-- Plan 3: Clinical Care -->
+        <div class="glass-card rounded-2xl p-6 flex flex-col justify-between border-border">
+          <div>
+            <div class="text-xs font-bold uppercase text-indigo-500 mb-2" data-i18n="price.p3_badge">Shifokor Bilan</div>
+            <h3 class="font-heading font-bold text-xl text-foreground" data-i18n="price.p3_name">Klinik Hamrohlik</h3>
+            <div class="mt-4 mb-6">
+              <span class="font-heading font-extrabold text-3xl text-foreground">199,000</span>
+              <span class="text-xs text-muted-foreground" data-i18n="price.per_month">so'm / oy</span>
+            </div>
+            <p class="text-xs text-muted-foreground mb-6" data-i18n="price.p3_desc">
+              Surunkali xastaligi bor keksalar uchun shifokor nazorati va patronaj.
+            </p>
+            <ul class="space-y-2.5 text-xs text-foreground/90 mb-6">
+              <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> <span data-i18n="price.p3_f1">Barcha "Xotirjam Farzand" funksiyalari</span></li>
+              <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> <span data-i18n="price.p3_f2">Kardiolog shifokor doimiy monitoringi</span></li>
+              <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> <span data-i18n="price.p3_f3">Haftalik tahliliy xulosa & tavsiyalar</span></li>
+              <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> <span data-i18n="price.p3_f4">Og'ishda tezkor patronaj qo'ng'irog'i</span></li>
+            </ul>
+          </div>
+          <a href="#boglanish" onclick="selectPlan('Klinik Hamrohlik')" class="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-secondary text-foreground hover:bg-muted border border-border transition-all" data-i18n="price.select_btn">
+            Tanlash
+          </a>
+        </div>
+
+        <!-- Plan 4: Institutional B2B -->
+        <div class="glass-card rounded-2xl p-6 flex flex-col justify-between border-border">
+          <div>
+            <div class="text-xs font-bold uppercase text-amber-500 mb-2" data-i18n="price.p4_badge">Muassasalar Uchun</div>
+            <h3 class="font-heading font-bold text-xl text-foreground" data-i18n="price.p4_name">Klinika & Poliklinika</h3>
+            <div class="mt-4 mb-6">
+              <span class="font-heading font-extrabold text-2xl text-foreground" data-i18n="price.b2b_price">Shartnoma</span>
+              <span class="text-xs text-muted-foreground" data-i18n="price.b2b_unit">bemor-kun modeli</span>
+            </div>
+            <p class="text-xs text-muted-foreground mb-6" data-i18n="price.p4_desc">
+              Tibbiyot muassasalari, xususiy klinikalar va dispanserlar uchun.
+            </p>
+            <ul class="space-y-2.5 text-xs text-foreground/90 mb-6">
+              <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> <span data-i18n="price.p4_f1">Yagona Worklist ish stoli (Shifokor/Hamshira)</span></li>
+              <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> <span data-i18n="price.p4_f2">Eskalatsiya va vazifalar taqsimoti</span></li>
+              <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> <span data-i18n="price.p4_f3">Galaxy Watch / sertifikatlangan datchiklar</span></li>
+              <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> <span data-i18n="price.p4_f4">Audit va ekspertiza jurnallari</span></li>
+            </ul>
+          </div>
+          <a href="#boglanish" onclick="selectPlan('Klinika B2B')" class="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-secondary text-foreground hover:bg-muted border border-border transition-all" data-i18n="price.p4_btn">
+            Muzokara boshlash
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 7: TESTIMONIAL / FAMILY STORY -->
+  <section class="py-20 border-t border-border">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="glass-card rounded-3xl p-8 sm:p-12 border-border grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <div class="lg:col-span-5 rounded-2xl overflow-hidden aspect-[4/3] border border-border">
+          <img src="images/family_peace_reunion.png" alt="Baxtli oila va xotirjamlik" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'">
+        </div>
+
+        <div class="lg:col-span-7 flex flex-col justify-center">
+          <div class="flex items-center gap-1 text-amber-400 mb-4">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          </div>
+          <blockquote class="font-heading font-medium text-lg sm:text-xl text-foreground leading-relaxed mb-6" data-i18n="story.quote">
+            "Men Moskvada ishlayman, onam esa Xorazmda. Ilgari kechalari telefon qilib, 'Dori ichdingizmi, bosimingiz qanday?' deb doim xavotirda edim. WMAX orqali onam soat taqqandan beri har kuni uyqusi va yurak urishini ko'rib, chindan xotirjam yashayapman. Ular yolg'iz emas."
+          </blockquote>
+          <div>
+            <div class="font-heading font-bold text-base text-foreground" data-i18n="story.author">Mansur Durdimatov</div>
+            <div class="text-xs text-muted-foreground" data-i18n="story.role">Chet elda ishlovchi tadbirkor farzand</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: CONTACT & LEAD FORM -->
+  <section id="boglanish" class="py-20 border-t border-border bg-gradient-to-b from-transparent to-sky-500/5">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center mb-12">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-500" data-i18n="form.tag">Bog'lanish va Maslahat</span>
+        <h2 class="font-heading font-extrabold text-3xl sm:text-4xl text-foreground mt-2 mb-4" data-i18n="form.title">
+          Ota-onangiz uchun eng mos monitoringni tanlang
+        </h2>
+        <p class="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto" data-i18n="form.desc">
+          Ma'lumotlaringizni qoldiring. Mutaxassisimiz siz bilan bog'lanib, soatni o'rnatish va shifokor biriktirish bo'yicha batafsil ma'lumot beradi.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-3xl p-8 sm:p-10 border-border shadow-2xl">
+        <form id="leadForm" onsubmit="handleLeadSubmit(event)" class="space-y-6">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Full Name -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" data-i18n="form.name_lbl">
+                Sizning ismingiz (Farzand yoki Murojaatchi)
+              </label>
+              <input type="text" id="leadName" required placeholder="Masalan: Sardor" class="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm transition-all" data-i18n-ph="form.name_ph">
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" data-i18n="form.phone_lbl">
+                Telefon raqamingiz
+              </label>
+              <input type="tel" id="leadPhone" required placeholder="+998 90 123 45 67" class="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-mono transition-all" data-i18n-ph="form.phone_ph">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- City / Region -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" data-i18n="form.city_lbl">
+                Ota-onangiz yashaydigan shahar / tuman
+              </label>
+              <input type="text" id="leadCity" required placeholder="Masalan: Urganch shahri" class="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm transition-all" data-i18n-ph="form.city_ph">
+            </div>
+
+            <!-- Plan Selector -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" data-i18n="form.plan_lbl">
+                Qiziqqan tarifingiz
+              </label>
+              <select id="leadPlan" class="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm transition-all">
+                <option value="Xotirjam Farzand">Xotirjam Farzand (79,000 so'm/oy)</option>
+                <option value="Klinik Hamrohlik">Klinik Hamrohlik (199,000 so'm/oy)</option>
+                <option value="Bepul Himoya">Bepul Himoya (Asosiy xavfsizlik)</option>
+                <option value="Klinika B2B">Klinika / Tibbiyot Muassasasi (B2B)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Notes / Message -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2" data-i18n="form.notes_lbl">
+              Qo'shimcha izoh yoki ota-onangizdagi surunkali holatlar (ixtiyoriy)
+            </label>
+            <textarea id="leadNotes" rows="3" placeholder="Masalan: Qon bosimi ko'tarilib turadi, kardiolog maslahati kerak..." class="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm transition-all" data-i18n-ph="form.notes_ph"></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="w-full py-4 rounded-xl text-sm font-bold bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer">
+            <span data-i18n="form.submit_btn">Murojaatni yuborish</span>
+          </button>
+
+          <!-- Privacy Note -->
+          <div class="flex items-center justify-between text-[11px] text-muted-foreground pt-2">
+            <span data-i18n="form.privacy">🔒 Ma'lumotlaringiz shifrlangan va maxfiy saqlanadi.</span>
+            <!-- Dev / Admin JSON viewer trigger -->
+            <button type="button" onclick="showLeadsModal()" class="text-sky-500 hover:underline cursor-pointer">
+              <span data-i18n="form.view_leads">Murojaatlar arxivi (JSON)</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-12 border-t border-border bg-card">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center pb-8 border-b border-border">
+        
+        <!-- Brand -->
+        <div class="md:col-span-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white font-extrabold text-sm">
+              W
+            </div>
+            <span class="font-heading font-extrabold text-xl text-foreground">WMAX<span class="text-sky-500">Care</span></span>
+          </div>
+          <p class="text-xs text-muted-foreground leading-relaxed italic" data-i18n="footer.motto">
+            "Tizim o'lchaydi va xabar beradi. Tashxisni shifokor qo'yadi, javobgarlikni muassasa oladi."
+          </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="md:col-span-5 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <a href="#hero" class="hover:text-foreground" data-i18n="nav.hero">Bosh sahifa</a>
+          <a href="#qanday-ishlaydi" class="hover:text-foreground" data-i18n="nav.how">Tizim qanday ishlaydi</a>
+          <a href="#imkoniyatlar" class="hover:text-foreground" data-i18n="nav.features">Imkoniyatlar</a>
+          <a href="#tariflar" class="hover:text-foreground" data-i18n="nav.pricing">Tariflar</a>
+          <a href="/doctor" onclick="handlePortalClick(event, 'doctor')" class="hover:text-sky-500" data-i18n="portal.doctor_title">Shifokorlar Kabineti</a>
+          <a href="/relative" onclick="handlePortalClick(event, 'relative')" class="hover:text-emerald-500" data-i18n="portal.relative_title">Oila Portali</a>
+        </div>
+
+        <!-- Portals Direct Buttons -->
+        <div class="md:col-span-3 flex items-center justify-start md:justify-end gap-3">
+          <a href="/doctor" onclick="handlePortalClick(event, 'doctor')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary text-foreground border border-border hover:bg-muted transition-colors">
+            🩺 Doctor
+          </a>
+          <a href="/relative" onclick="handlePortalClick(event, 'relative')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary text-foreground border border-border hover:bg-muted transition-colors">
+            👨‍👩‍👧 Relative
+          </a>
+        </div>
+
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 text-xs text-muted-foreground">
+        <div>© 2026 WMAX Care. Remote Patient Monitoring for Uzbekistan.</div>
+        <div class="flex items-center gap-4">
+          <span data-i18n="footer.compliance">Tibbiy ma'lumotlar xavfsizligi kafolatlangan</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- SUCCESS MODAL (SHADCN STYLE) -->
+  <div id="successModal" class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+      <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 class="font-heading font-bold text-xl text-foreground text-center mb-2" data-i18n="modal.title">
+        Murojaatingiz Qabul Qilindi!
+      </h3>
+      <p class="text-sm text-muted-foreground text-center mb-6 leading-relaxed" data-i18n="modal.desc">
+        Ma'lumotlaringiz xavfsiz saqlandi. Mutaxassisimiz tez orada ko'rsatilgan telefon raqami orqali siz bilan bog'lanadi.
+      </p>
+      <div class="p-3 rounded-xl bg-secondary/80 text-xs font-mono text-muted-foreground mb-6" id="modalLeadSummary"></div>
+      <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity" data-i18n="modal.btn">
+        Tushunarli
+      </button>
+    </div>
+  </div>
+
+  <!-- LEADS JSON VIEWER MODAL (ADMIN / AUDIT) -->
+  <div id="leadsModal" class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-card border border-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-4 border-b border-border mb-4">
+        <h3 class="font-heading font-bold text-lg text-foreground flex items-center gap-2">
+          <span>📦</span> <span data-i18n="leads.modal_title">Murojaatlar Ro'yxati (LocalStorage JSON)</span>
+        </h3>
+        <button type="button" onclick="closeLeadsModal()" class="text-muted-foreground hover:text-foreground text-sm font-bold">✕</button>
+      </div>
+      <pre id="leadsJsonOutput" class="bg-secondary p-4 rounded-xl text-xs font-mono overflow-auto max-h-80 text-foreground border border-border"></pre>
+      <div class="flex items-center justify-between pt-4 mt-2">
+        <button type="button" onclick="clearLeads()" class="text-xs text-destructive hover:underline" data-i18n="leads.clear_btn">
+          Murojaatlarni tozalash
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="downloadLeadsJson()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-secondary text-foreground border border-border hover:bg-muted" data-i18n="leads.download_btn">
+            JSON Yuklab Olish
+          </button>
+          <button type="button" onclick="closeLeadsModal()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground">
+            Yopish
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT: LOCALIZATION, THEME, SIMULATOR, FORMS -->
+  <script>
+    // 1. Trilingual Dictionary (UZ, RU, EN)
+    const I18N = {
+      uz: {
+        "brand.tagline": "Masofaviy Monitoring",
+        "nav.hero": "Bosh sahifa",
+        "nav.how": "Tizim qanday ishlaydi",
+        "nav.features": "Imkoniyatlar",
+        "nav.sim": "Jonli Tahlil",
+        "nav.pricing": "Tariflar",
+        "nav.contact": "Bog'lanish",
+        "nav.portals": "Kirish",
+        "nav.get_started": "Bog'lanish",
+        "portal.doctor_title": "Shifokorlar Kabineti",
+        "portal.doctor_desc": "Klinik ish stoli & monitoring",
+        "portal.relative_title": "Oila & Farzand Portali",
+        "portal.relative_desc": "Ota-ona holati va xabarlar",
+
+        "hero.badge": "O'zbekistonda Masofaviy Bemor Monitoringi",
+        "hero.title_p1": "Siz uzoqdasiz.",
+        "hero.title_p2": "Ota-onangiz esa yolg'iz emas.",
+        "hero.subtitle": "Tizim o'lchaydi va xabar beradi. Tashxisni shifokor qo'yadi, javobgarlikni muassasa oladi. Aqlli soat telemetriyasi, shaxsiy fiziologik norma va tezkor eskalatsiya zanjiri.",
+        "hero.cta_primary": "Monitoringni boshlash",
+        "hero.cta_sim": "Jonli simulyatsiyani ko'rish",
+        "hero.stat1": "Fiziologik telemetriya",
+        "hero.stat2": "Individual baseline",
+        "hero.stat3": "SOS & Qizil signal bepul",
+        "hero.widget_title": "Yurak ritmi: 72 bpm",
+        "hero.widget_desc": "SpO₂ 98% · Shaxsiy baseline koridorida",
+
+        "contrast.tag": "Haqiqat va Yechim",
+        "contrast.title": "Masofa ota-onangiz sog'lig'idan bexabar qolishga sabab bo'lmasin",
+        "contrast.desc": "Toshkentda yoki chet elda ishlaydigan farzand doim xavotirda. WMAX ushbu xavotirni professional shaffoflik va tibbiy mas'uliyat bilan yopadi.",
+        "contrast.problem_badge": "Hozirgi achchiq haqiqat",
+        "contrast.problem_title": "\"Bolam, xavotir olma, hammasi yaxshi...\"",
+        "contrast.problem_p": "Keksa ota-ona bolam qiynalmasin deb ahvoli yomonlashganini yashiradi. Gipertonik kriz yoki yurak yetishmovchiligi esa sezdirmasdan rivojlanadi. Kech bilib qolish — eng katta og'riq.",
+        "contrast.prob_item1": "Alomatlar o'tkir bosqichga yetguncha sezilmaydi",
+        "contrast.prob_item2": "Uzoqdagi farzand har qo'ng'iroqda ichki xavotirda",
+        "contrast.prob_item3": "Vaqt yo'qotilishi oqibatida kechikkan tibbiy aralashuv",
+        "contrast.solution_badge": "WMAX bilan ishonchli yechim",
+        "contrast.solution_title": "O'lchov, barvaqt xabar va shifokor mas'uliyati",
+        "contrast.solution_p": "Ota-onangiz o'rganishi shart bo'lmagan qulay aqlli soat. Tizim ularning 7 kunlik me'yorini (baseline) hisoblaydi. Salomatlik og'ishi yuz berganda, shifokor va oilaga darhol bildirishnoma boradi.",
+        "contrast.sol_item1": "Har 5 daqiqalik telemetriya: puls, SpO₂, uyqu va stress",
+        "contrast.sol_item2": "Farzand telefonida real vaqt xotirjamlik nuri",
+        "contrast.sol_item3": "Qizil signalda shifokorga vazifa va ko'p kanalli favqulodda ogohlantirish",
+
+        "steps.tag": "Oddiy va Samarali",
+        "steps.title": "Tizim qanday ishlaydi? Atigi 3 qadam",
+        "steps.desc": "Keksa ota-onaga hech qanday texnik qiyinchilik yo'q. Hamma qiyin matematikani tizim va shifokorlar o'z zimmasiga oladi.",
+        "steps.s1_title": "Soat bilakka taqiladi",
+        "steps.s1_desc": "Yengil, sertifikatlangan aqlli soat. Ota-onangiz murakkab ilovalarni ochishi shart emas. Soat avtomatik tarzda teridagi sensorlar orqali ko'rsatkichlarni o'lchaydi.",
+        "steps.s2_title": "Digital Twin va Shaxsiy Norma",
+        "steps.s2_desc": "Har bir inson organizmi o'zgacha. WMAX dastlabki 7 kunda ota-onangizning individual bazaviy chizig'ini (baseline) o'rganadi va asossiz soxta xabarlarni bartaraf qiladi.",
+        "steps.s3_title": "Farzand xabardor, Shifokor nazoratda",
+        "steps.s3_desc": "Siz mobil ilovada yoki veb-portalda ota-onangiz holatini ko'rib turasiz. Klinik muassasada esa hamshira va shifokor o'z ish stolida og'ishlarni nazorat qiladi.",
+
+        "features.tag": "Asosiy Imkoniyatlar",
+        "features.title": "Tibbiy aniqlik va xavfsizlikka asoslangan texnologiya",
+        "features.desc": "Biz yolg'on va'dalar bermaymiz. Tizim aniq o'lchov, tibbiy dalillar va ko'p kanalli xabar berish protokoli ustiga qurilgan.",
+        "feat.f1_title": "Doimiy Fiziologik O'lchov",
+        "feat.f1_desc": "Puls chastotasi, qon kislorodi (SpO₂), HRV yurak variabilligi va harorat dinamikasi uzluksiz telemetriya oqimi orqali uzatiladi.",
+        "feat.f2_title": "SOS va Qizil Signal Kafolati",
+        "feat.f2_desc": "Shoshilinch signallar hech qachon pul ortida qolmaydi. Bepul tarifda ham kritik holat haqida oilaga zudlik bilan signal yetkaziladi.",
+        "feat.f3_title": "Poliklinika & Hamshira Ish Stoli",
+        "feat.f3_desc": "O'zbekiston sog'liqni saqlash tizimi uchastka modeliga to'liq mos: hamshira o'z mahallasi bemorlarini ko'radi, vazifa va eskalatsiya boshqariladi.",
+        "feat.f4_title": "Ko'p Kanalli Zaxira Zanjiri",
+        "feat.f4_desc": "Kritik signallarda Push ochilmasa — Telegram, yetkazilmasa — SMS, javob bo'lmasa — avtomatlashtirilgan telefon qo'ng'irog'i yoqiladi.",
+        "feat.f5_title": "Oila & Farzand Ilovasi",
+        "feat.f5_desc": "Qayerda bo'lishingizdan qat'i nazar, ota-onangizning uyqu sifati, faolligi va dori eslatmalarini yagona xotirjamlik ekranida kuzatasiz.",
+        "feat.f6_title": "Tibbiy Audit va Rozilik",
+        "feat.f6_desc": "Bemor huquqlari va roziligi qat'iy himoyalangan. O'lchovlar yo'qotilmaydi, har bir harakat ekspertiza va tibbiy audit jurnalida qayd etiladi.",
+
+        "sim.tag": "Jonli Interaktiv Tahlil",
+        "sim.title": "Tizim real vaziyatlarda qanday ishlaydi?",
+        "sim.desc": "Holatlarni tanlang va telemetriya hamda tibbiy protokollar qanday javob qaytarishini ko'ring:",
+        "sim.btn_green": "🟢 Yashil: Sokin va Barqaror",
+        "sim.btn_amber": "🟡 Sariq: Og'ish / Diqqat",
+        "sim.btn_red": "🔴 Qizil: Shoshilinch Xavf",
+        "sim.pulse_lbl": "Yurak Urishi",
+        "sim.temp_lbl": "Harorat",
+        "sim.sleep_lbl": "Uyqu",
+        "sim.battery_lbl": "Batareya",
+
+        "pricing.tag": "Shaffof Tariflar",
+        "pricing.title": "Har bir oila va klinika uchun mos reja",
+        "pricing.desc": "Bizning asosiy qoidamiz: SOS va Qizil signal hech qachon pullik qilinmaydi. Inson hayoti har narsadan ustun.",
+        "price.p1_badge": "Asosiy Xavfsizlik",
+        "price.p1_name": "Bepul Himoya",
+        "price.per_month": "so'm / doimiy",
+        "price.p1_desc": "Fundamental hayot xavfsizligi. Har qanday bemor uchun to'lovsiz mavjud.",
+        "price.p1_f1": "SOS shoshilinch signal",
+        "price.p1_f2": "Kritik qizil signallar bildirishnomasi",
+        "price.p1_f3": "So'nggi 24 soatlik ko'rsatkichlar",
+        "price.p1_f4": "Soat ulanishi va oilaviy taklif",
+        "price.popular": "Eng Ommabop",
+        "price.p2_badge": "Oila Uchun",
+        "price.p2_name": "Xotirjam Farzand",
+        "price.p2_desc": "Uzoqdagi farzandlar uchun ota-onasining to'liq salomatlik dinamikasi.",
+        "price.p2_f1": "Barcha bepul imkoniyatlar",
+        "price.p2_f2": "24/7 uzluksiz telemetriya oqimi",
+        "price.p2_f3": "Individual 7 kunlik baseline tahlili",
+        "price.p2_f4": "90 kunlik tarix va sog'liq trendlari",
+        "price.p2_f5": "3 tagacha oila a'zosi kirishi",
+        "price.p3_badge": "Shifokor Bilan",
+        "price.p3_name": "Klinik Hamrohlik",
+        "price.p3_desc": "Surunkali xastaligi bor keksalar uchun shifokor nazorati va patronaj.",
+        "price.p3_f1": "Barcha 'Xotirjam Farzand' funksiyalari",
+        "price.p3_f2": "Kardiolog shifokor doimiy monitoringi",
+        "price.p3_f3": "Haftalik tahliliy xulosa & tavsiyalar",
+        "price.p3_f4": "Og'ishda tezkor patronaj qo'ng'irog'i",
+        "price.p4_badge": "Muassasalar Uchun",
+        "price.p4_name": "Klinika & Poliklinika",
+        "price.b2b_price": "Shartnoma",
+        "price.b2b_unit": "bemor-kun modeli",
+        "price.p4_desc": "Tibbiyot muassasalari, xususiy klinikalar va dispanserlar uchun.",
+        "price.p4_f1": "Yagona Worklist ish stoli (Shifokor/Hamshira)",
+        "price.p4_f2": "Eskalatsiya va vazifalar taqsimoti",
+        "price.p4_f3": "Galaxy Watch / sertifikatlangan datchiklar",
+        "price.p4_f4": "Audit va ekspertiza jurnallari",
+        "price.select_btn": "Tanlash",
+        "price.p4_btn": "Muzokara boshlash",
+
+        "story.quote": "\"Men Moskvada ishlayman, onam esa Xorazmda. Ilgari kechalari telefon qilib, 'Dori ichdingizmi, bosimingiz qanday?' deb doim xavotirda edim. WMAX orqali onam soat taqqandan beri har kuni uyqusi va yurak urishini ko'rib, chindan xotirjam yashayapman. Ular yolg'iz emas.\"",
+        "story.author": "Mansur Durdimatov",
+        "story.role": "Chet elda ishlovchi tadbirkor farzand",
+
+        "form.tag": "Bog'lanish va Maslahat",
+        "form.title": "Ota-onangiz uchun eng mos monitoringni tanlang",
+        "form.desc": "Ma'lumotlaringizni qoldiring. Mutaxassisimiz siz bilan bog'lanib, soatni o'rnatish va shifokor biriktirish bo'yicha batafsil ma'lumot beradi.",
+        "form.name_lbl": "Sizning ismingiz (Farzand yoki Murojaatchi)",
+        "form.name_ph": "Masalan: Sardor",
+        "form.phone_lbl": "Telefon raqamingiz",
+        "form.phone_ph": "+998 90 123 45 67",
+        "form.city_lbl": "Ota-onangiz yashaydigan shahar / tuman",
+        "form.city_ph": "Masalan: Urganch shahri",
+        "form.plan_lbl": "Qiziqqan tarifingiz",
+        "form.notes_lbl": "Qo'shimcha izoh yoki ota-onangizdagi surunkali holatlar (ixtiyoriy)",
+        "form.notes_ph": "Masalan: Qon bosimi ko'tarilib turadi, kardiolog maslahati kerak...",
+        "form.submit_btn": "Murojaatni yuborish",
+        "form.privacy": "🔒 Ma'lumotlaringiz shifrlangan va maxfiy saqlanadi.",
+        "form.view_leads": "Murojaatlar arxivi (JSON)",
+
+        "footer.motto": "\"Tizim o'lchaydi va xabar beradi. Tashxisni shifokor qo'yadi, javobgarlikni muassasa oladi.\"",
+        "footer.compliance": "Tibbiy ma'lumotlar xavfsizligi kafolatlangan",
+
+        "modal.title": "Murojaatingiz Qabul Qilindi!",
+        "modal.desc": "Ma'lumotlaringiz xavfsiz saqlandi. Mutaxassisimiz tez orada ko'rsatilgan telefon raqami orqali siz bilan bog'lanadi.",
+        "modal.btn": "Tushunarli",
+        "leads.modal_title": "Murojaatlar Ro'yxati (LocalStorage JSON)",
+        "leads.clear_btn": "Murojaatlarni tozalash",
+        "leads.download_btn": "JSON Yuklab Olish"
+      },
+      ru: {
+        "brand.tagline": "Удаленный Мониторинг",
+        "nav.hero": "Главная",
+        "nav.how": "Как это работает",
+        "nav.features": "Возможности",
+        "nav.sim": "Живой Анализ",
+        "nav.pricing": "Тарифы",
+        "nav.contact": "Контакты",
+        "nav.portals": "Вход",
+        "nav.get_started": "Оставить заявку",
+        "portal.doctor_title": "Кабинет Врача",
+        "portal.doctor_desc": "Клинический мониторинг & задачи",
+        "portal.relative_title": "Портал Семьи",
+        "portal.relative_desc": "Состояние родителей и сигналы",
+
+        "hero.badge": "Дистанционный Мониторинг Пациентов в Узбекистане",
+        "hero.title_p1": "Вы далеко.",
+        "hero.title_p2": "Но ваши родители не одни.",
+        "hero.subtitle": "Система измеряет и сообщает. Диагноз ставит врач, ответственность несет клиника. Непрерывная телеметрия с умных часов, индивидуальный baseline и протоколы эскалации.",
+        "hero.cta_primary": "Начать мониторинг",
+        "hero.cta_sim": "Смотреть симуляцию",
+        "hero.stat1": "Физиологическая телеметрия",
+        "hero.stat2": "Индивидуальный baseline",
+        "hero.stat3": "SOS и Красный сигнал бесплатно",
+        "hero.widget_title": "Пульс: 72 уд/мин",
+        "hero.widget_desc": "SpO₂ 98% · В пределах нормы",
+
+        "contrast.tag": "Реальность и Решение",
+        "contrast.title": "Расстояние не должно быть причиной неведения",
+        "contrast.desc": "Дети, работающие в Ташкенте или за границей, всегда тревожатся за родителей. WMAX дает медицинскую прозрачность и спокойствие.",
+        "contrast.problem_badge": "Горькая реальность",
+        "contrast.problem_title": "\"Сынок, не переживай, всё хорошо...\"",
+        "contrast.problem_p": "Пожилые родители скрывают ухудшение самочувствия, чтобы не обременять детей. Гипертонический криз или сердечная недостаточность развиваются незаметно.",
+        "contrast.prob_item1": "Симптомы остаются незамеченными до острой стадии",
+        "contrast.prob_item2": "Постоянная внутренняя тревога за близких на расстоянии",
+        "contrast.prob_item3": "Риск упущенного времени для своевременной помощи",
+        "contrast.solution_badge": "Надежное решение WMAX",
+        "contrast.solution_title": "Измерение, раннее оповещение и врачебный контроль",
+        "contrast.solution_p": "Элегантные часы, не требующие от родителей сложных действий. Платформа рассчитывает персональную норму (baseline) за 7 дней и немедленно реагирует на отклонения.",
+        "contrast.sol_item1": "Телеметрия каждые 5 минут: пульс, SpO₂, сон и стресс",
+        "contrast.sol_item2": "В приложении детей — статус полного спокойствия",
+        "contrast.sol_item3": "При критическом риске — задача врачу и многоканальное оповещение",
+
+        "steps.tag": "Простота и Эффективность",
+        "steps.title": "Как работает система? Всего 3 шага",
+        "steps.desc": "Пожилым родителям не нужны сложные инструкции. Алгоритмы и врачи берут всю работу на себя.",
+        "steps.s1_title": "Часы надеваются на руку",
+        "steps.s1_desc": "Легкие сертифицированные часы. Родителям не нужно открывать приложения — датчики считывают показатели автоматически.",
+        "steps.s2_title": "Digital Twin и Персональная Норма",
+        "steps.s2_desc": "Организм каждого человека индивидуален. WMAX изучает базовую линию за 7 дней, исключая ложные панические срабатывания.",
+        "steps.s3_title": "Дети в курсе, Врач контролирует",
+        "steps.s3_desc": "Вы видите показатели в мобильном приложении или портале. В клинике дежурная медсестра и врач видят состояние на своем рабочем столе.",
+
+        "features.tag": "Ключевые Возможности",
+        "features.title": "Технологии медицинской точности и безопасности",
+        "features.desc": "Мы не даем пустых обещаний. Платформа построена на объективных клинических данных и надежных каналах доставки.",
+        "feat.f1_title": "Непрерывная Телеметрия",
+        "feat.f1_desc": "Пульс, кислород в крови (SpO₂), вариабельность ритма (HRV) и температура передаются в защищенный контур.",
+        "feat.f2_title": "Гарантия SOS и Красного Сигнала",
+        "feat.f2_desc": "Экстренные оповещения никогда не блокируются тарифами. Даже на бесплатном плане семья получает тревожный сигнал мгновенно.",
+        "feat.f3_title": "Рабочий стол Поликлиники",
+        "feat.f3_desc": "Точно соответствует участковой системе здравоохранения Узбекистана: медсестра ведет своих пациентов, назначаются задачи и эскалация.",
+        "feat.f4_title": "Резервная Цепочка Уведомлений",
+        "feat.f4_desc": "Если push-уведомление не открыто — отправляется Telegram, затем SMS, при отсутствии ответа — голосовой вызов.",
+        "feat.f5_title": "Приложение для Семьи",
+        "feat.f5_desc": "В любой точке мира вы в реальном времени видите качество сна, активность и напоминания о приеме лекарств.",
+        "feat.f6_title": "Клинический Аудит и Согласие",
+        "feat.f6_desc": "Права пациентов строго защищены. Данные не удаляются, каждое действие протоколируется для экспертной оценки.",
+
+        "sim.tag": "Интерактивная Демонстрация",
+        "sim.title": "Как система действует в реальных ситуациях?",
+        "sim.desc": "Переключайте состояния и наблюдайте за автоматической реакцией медицины:",
+        "sim.btn_green": "🟢 Зеленый: Стабильно и Спокойно",
+        "sim.btn_amber": "🟡 Желтый: Отклонение / Внимание",
+        "sim.btn_red": "🔴 Красный: Экстренный Риск",
+        "sim.pulse_lbl": "Пульс",
+        "sim.temp_lbl": "Температура",
+        "sim.sleep_lbl": "Сон",
+        "sim.battery_lbl": "Батарея",
+
+        "pricing.tag": "Прозрачные Тарифы",
+        "pricing.title": "Планы для каждой семьи и клиники",
+        "pricing.desc": "Наше непреложное правило: SOS и критический сигнал тревоги никогда не прячутся за пейволом.",
+        "price.p1_badge": "Базовая Защита",
+        "price.p1_name": "Безопасный Старт",
+        "price.per_month": "сум / всегда",
+        "price.p1_desc": "Фундаментальная безопасность жизни. Доступна бесплатно любому пациенту.",
+        "price.p1_f1": "Экстренный сигнал SOS",
+        "price.p1_f2": "Оповещения о критических показателях",
+        "price.p1_f3": "Данные за последние 24 часа",
+        "price.p1_f4": "Подключение часов и приглашение семьи",
+        "price.popular": "Популярный выбор",
+        "price.p2_badge": "Для Семьи",
+        "price.p2_name": "Спокойный Ребенок",
+        "price.p2_desc": "Полная картина здоровья родителей для детей, живущих вдали.",
+        "price.p2_f1": "Все возможности бесплатного тарифа",
+        "price.p2_f2": "Непрерывная телеметрия 24/7",
+        "price.p2_f3": "Анализ 7-дневного индивидуального baseline",
+        "price.p2_f4": "История и тренды здоровья за 90 дней",
+        "price.p2_f5": "Доступ для 3 членов семьи",
+        "price.p3_badge": "С Врачом",
+        "price.p3_name": "Клиническое Ведение",
+        "price.p3_desc": "Врачебный мониторинг и патронаж для пожилых людей с хроническими недугами.",
+        "price.p3_f1": "Все функции тарифа 'Спокойный Ребенок'",
+        "price.p3_f2": "Постоянный мониторинг врачом-кардиологом",
+        "price.p3_f3": "Еженедельный отчет и врачебные рекомендации",
+        "price.p3_f4": "Быстрый звонок патронажа при отклонениях",
+        "price.p4_badge": "Для Учреждений",
+        "price.p4_name": "Клиника и Поликлиника",
+        "price.b2b_price": "По договору",
+        "price.b2b_unit": "модель пациент-день",
+        "price.p4_desc": "Для больниц, поликлиник и частных медицинских центров.",
+        "price.p4_f1": "Единый Worklist для врачей и медсестер",
+        "price.p4_f2": "Матрица эскалации и распределение задач",
+        "price.p4_f3": "Интеграция с Galaxy Watch и сенсорами",
+        "price.p4_f4": "Журналы медицинского аудита и контроля",
+        "price.select_btn": "Выбрать",
+        "price.p4_btn": "Начать переговоры",
+
+        "story.quote": "\"Я работаю в Москве, а мама в Хорезме. Раньше ночами не находил себе места от звонков, переживая о давлении. С WMAX я впервые обрел настоящий покой: в приложении вижу ее сон и пульс. Мама под присмотром.\"",
+        "story.author": "Мансур Дурдиматов",
+        "story.role": "Предприниматель, работающий за рубежом",
+
+        "form.tag": "Консультация",
+        "form.title": "Подберите подходящий мониторинг для родителей",
+        "form.desc": "Оставьте заявку. Наш специалист свяжется с вами и подробно проконсультирует по подключению и медицинскому сопровождению.",
+        "form.name_lbl": "Ваше имя (сын/дочь или заявитель)",
+        "form.name_ph": "Например: Сардор",
+        "form.phone_lbl": "Номер телефона",
+        "form.phone_ph": "+998 90 123 45 67",
+        "form.city_lbl": "Город / район проживания родителей",
+        "form.city_ph": "Например: г. Ургенч",
+        "form.plan_lbl": "Интересующий тариф",
+        "form.notes_lbl": "Хронические диагнозы родителей или комментарий (опционально)",
+        "form.notes_ph": "Например: Скачет давление, требуется консультация кардиолога...",
+        "form.submit_btn": "Отправить заявку",
+        "form.privacy": "🔒 Ваши данные надежно зашифрованы и конфиденциальны.",
+        "form.view_leads": "Архив заявок (JSON)",
+
+        "footer.motto": "\"Система измеряет и сообщает. Диагноз ставит врач, ответственность несет клиника.\"",
+        "footer.compliance": "Безопасность медицинских данных гарантирована",
+
+        "modal.title": "Ваша Заявка Принята!",
+        "modal.desc": "Данные успешно сохранены. Наш координатор свяжется с вами по указанному телефону в ближайшее время.",
+        "modal.btn": "Понятно",
+        "leads.modal_title": "Список Заявок (LocalStorage JSON)",
+        "leads.clear_btn": "Очистить заявки",
+        "leads.download_btn": "Скачать JSON"
+      },
+      en: {
+        "brand.tagline": "Remote Patient Monitoring",
+        "nav.hero": "Home",
+        "nav.how": "How it works",
+        "nav.features": "Features",
+        "nav.sim": "Live Triage",
+        "nav.pricing": "Pricing",
+        "nav.contact": "Contact",
+        "nav.portals": "Portals",
+        "nav.get_started": "Get Started",
+        "portal.doctor_title": "Clinician Workspace",
+        "portal.doctor_desc": "Clinical worklist & monitoring",
+        "portal.relative_title": "Family Portal",
+        "portal.relative_desc": "Parent status & peace of mind",
+
+        "hero.badge": "Remote Patient Monitoring in Uzbekistan",
+        "hero.title_p1": "You are far away.",
+        "hero.title_p2": "Your parents are not alone.",
+        "hero.subtitle": "The system measures and alerts. The clinician diagnoses, the institution holds responsibility. Smartwatch telemetry, individualized circadian baselines, and durable clinical escalation.",
+        "hero.cta_primary": "Start Monitoring",
+        "hero.cta_sim": "Explore Live Triage",
+        "hero.stat1": "Physiological telemetry",
+        "hero.stat2": "Individual baseline",
+        "hero.stat3": "Free SOS & Red Alerts",
+        "hero.widget_title": "Heart rate: 72 bpm",
+        "hero.widget_desc": "SpO₂ 98% · Within personal baseline",
+
+        "contrast.tag": "Reality & Solution",
+        "contrast.title": "Distance must never mean being in the dark",
+        "contrast.desc": "Children working abroad or in the capital carry daily worry. WMAX delivers clinical transparency and dignified care.",
+        "contrast.problem_badge": "The Harsh Reality",
+        "contrast.problem_title": "\"Don't worry son, everything is fine...\"",
+        "contrast.problem_p": "Elderly parents often minimize symptoms to avoid burdening children. Hypertensive crises and heart failure progress quietly. Learning too late is heartbreaking.",
+        "contrast.prob_item1": "Early deterioration remains unnoticed until acute crisis",
+        "contrast.prob_item2": "Constant underlying anxiety on every phone call",
+        "contrast.prob_item3": "Dangerous delays in timely medical intervention",
+        "contrast.solution_badge": "The WMAX Solution",
+        "contrast.solution_title": "Measurement, early warning, and clinical accountability",
+        "contrast.solution_p": "Elderly parents wear a lightweight smartwatch requiring no complex inputs. The system learns their personal 7-day baseline, dispatching timely alerts upon deviation.",
+        "contrast.sol_item1": "5-minute telemetry: HR, SpO₂, sleep architecture, stress",
+        "contrast.sol_item2": "Gentle green reassurance icon on the family app",
+        "contrast.sol_item3": "Critical red signals trigger nurse worklist tasks and multi-channel alerts",
+
+        "steps.tag": "Simple & Durable",
+        "steps.title": "How it works? In 3 simple steps",
+        "steps.desc": "Zero technological barriers for elderly parents. Complex physiological math is handled by our platform and clinicians.",
+        "steps.s1_title": "Wear the Smartwatch",
+        "steps.s1_desc": "Comfortable, medical-grade sensor watch. No app launches required by parents; passive background measurement.",
+        "steps.s2_title": "Digital Twin & Baseline",
+        "steps.s2_desc": "Every physiology is unique. WMAX learns individual circadian normals over 7 days, filtering out false panic alerts.",
+        "steps.s3_title": "Family Reassured, Clinic on Duty",
+        "steps.s3_desc": "Family members check daily vitals from anywhere in the world. Clinics manage tasks on a dedicated clinical worklist.",
+
+        "features.tag": "Core Capabilities",
+        "features.title": "Built on physiological rigor and verified delivery",
+        "features.desc": "No heuristic percentage gimmicks. Strictly deterministic alerts, provenance-attributed sensor readings, and robust fallback chains.",
+        "feat.f1_title": "Continuous Telemetry",
+        "feat.f1_desc": "High-fidelity pulse rate, blood oxygen (SpO₂), HRV, and sleep stages continuously buffered and streamed.",
+        "feat.f2_title": "SOS & Critical Alert Guarantee",
+        "feat.f2_desc": "Critical safety events are never locked behind paywalls. Free safety tier guarantees red alert dispatch to families.",
+        "feat.f3_title": "Clinical Worklist Desk",
+        "feat.f3_desc": "Tailored to Uzbekistan's primary care model: nurses oversee neighborhood cohorts with assigned responsibility.",
+        "feat.f4_title": "Multi-Channel Fallback Chain",
+        "feat.f4_desc": "Unopened push notifications escalate to Telegram, then SMS, and automated voice confirmation.",
+        "feat.f5_title": "Caregiver Family App",
+        "feat.f5_desc": "Monitor parental sleep quality, daytime activity, and medication adherence from any corner of the globe.",
+        "feat.f6_title": "Audit Logs & Consent",
+        "feat.f6_desc": "Full patient consent tracking, immutable audit trails, and strict cross-tenant isolation by design.",
+
+        "sim.tag": "Interactive Triage",
+        "sim.title": "How the system acts in real clinical scenarios",
+        "sim.desc": "Toggle triage states to observe physiological signals and workflow escalation:",
+        "sim.btn_green": "🟢 Green: Calm & Stable",
+        "sim.btn_amber": "🟡 Amber: Drift / Attention",
+        "sim.btn_red": "🔴 Red: Urgent Risk / SOS",
+        "sim.pulse_lbl": "Heart Rate",
+        "sim.temp_lbl": "Temperature",
+        "sim.sleep_lbl": "Sleep",
+        "sim.battery_lbl": "Battery",
+
+        "pricing.tag": "Transparent Pricing",
+        "pricing.title": "Plans for families and healthcare institutions",
+        "pricing.desc": "Our foundational invariant: SOS and Red alerts are never paywalled. Human safety is paramount.",
+        "price.p1_badge": "Safety Foundation",
+        "price.p1_name": "Free Safety",
+        "price.per_month": "UZS / lifetime",
+        "price.p1_desc": "Essential life safety coverage. Permanently free for all registered patients.",
+        "price.p1_f1": "Emergency SOS alert dispatch",
+        "price.p1_f2": "Critical red anomaly notifications",
+        "price.p1_f3": "Last 24-hour vitals display",
+        "price.p1_f4": "Device pairing and family invitations",
+        "price.popular": "Most Popular",
+        "price.p2_badge": "For Family",
+        "price.p2_name": "Peaceful Child",
+        "price.p2_desc": "Full physiological trends for sons and daughters living far from home.",
+        "price.p2_f1": "All free safety capabilities",
+        "price.p2_f2": "24/7 continuous telemetry streaming",
+        "price.p2_f3": "Personalized 7-day circadian baseline",
+        "price.p2_f4": "90-day history and health trends",
+        "price.p2_f5": "Access for up to 3 family members",
+        "price.p3_badge": "With Doctor",
+        "price.p3_name": "Clinical Accompaniment",
+        "price.p3_desc": "Clinician-backed monitoring and home nursing for chronic conditions.",
+        "price.p3_f1": "All Peaceful Child capabilities",
+        "price.p3_f2": "Dedicated cardiologist oversight",
+        "price.p3_f3": "Weekly clinical summary & guidance",
+        "price.p3_f4": "Prompt nurse check-in call on anomalies",
+        "price.p4_badge": "For Institutions",
+        "price.p4_name": "Clinic & Polyclinic",
+        "price.b2b_price": "Contract",
+        "price.b2b_unit": "patient-day model",
+        "price.p4_desc": "For hospitals, polyclinics, and private cardiology practices.",
+        "price.p4_f1": "Unified Worklist desk (Doctor/Nurse)",
+        "price.p4_f2": "Cohort triage and escalation matrix",
+        "price.p4_f3": "Galaxy Watch & certified sensors",
+        "price.p4_f4": "Clinical audit and forensic logs",
+        "price.select_btn": "Select Plan",
+        "price.p4_btn": "Contact Enterprise",
+
+        "story.quote": "\"I work in Moscow while my mother lives in Khorezm. I used to spend restless nights worrying about her blood pressure. Since she started wearing the WMAX watch, I can see her sleep and vitals every morning. True peace of mind.\"",
+        "story.author": "Mansur Durdimatov",
+        "story.role": "Entrepreneur based abroad",
+
+        "form.tag": "Consultation",
+        "form.title": "Choose the right care plan for your parents",
+        "form.desc": "Submit your contact information. Our care coordinator will call to assist with device setup and clinical onboarding.",
+        "form.name_lbl": "Your Name (Child or Applicant)",
+        "form.name_ph": "E.g.: Sardor",
+        "form.phone_lbl": "Phone Number",
+        "form.phone_ph": "+998 90 123 45 67",
+        "form.city_lbl": "Parents' City / District",
+        "form.city_ph": "E.g.: Urgench city",
+        "form.plan_lbl": "Interested Plan",
+        "form.notes_lbl": "Chronic conditions or notes (Optional)",
+        "form.notes_ph": "E.g.: Blood pressure fluctuations, needs cardiologist review...",
+        "form.submit_btn": "Submit Application",
+        "form.privacy": "🔒 Your data is encrypted and strictly protected.",
+        "form.view_leads": "Lead Archive (JSON)",
+
+        "footer.motto": "\"The system measures and alerts. The clinician diagnoses, the institution holds responsibility.\"",
+        "footer.compliance": "Health data security and privacy guaranteed",
+
+        "modal.title": "Application Received!",
+        "modal.desc": "Your inquiry has been safely registered. Our coordinator will contact you shortly at the provided phone number.",
+        "modal.btn": "Understood",
+        "leads.modal_title": "Stored Leads (LocalStorage JSON)",
+        "leads.clear_btn": "Clear leads",
+        "leads.download_btn": "Download JSON"
+      }
+    };
+
+    let currentLang = 'uz';
+    let currentSimState = 'green';
+
+    // 2. Language Switcher
+    function changeLanguage(lang) {
+      if (!I18N[lang]) return;
+      currentLang = lang;
+      localStorage.setItem('wmax_lang', lang);
+      document.documentElement.lang = lang;
+      document.getElementById('langSelect').value = lang;
+
+      // Update text nodes
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (I18N[lang][key]) {
+          el.innerText = I18N[lang][key];
+        }
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (I18N[lang][key]) {
+          el.setAttribute('placeholder', I18N[lang][key]);
+        }
+      });
+
+      // Refresh simulator text in current language
+      setSimState(currentSimState);
+    }
+
+    // 3. Theme Toggle (Dark / Light)
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        localStorage.setItem('wmax_theme', 'light');
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('wmax_theme', 'dark');
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('wmax_theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        // default dark for high-tech medical dashboard look
+        document.documentElement.classList.add('dark');
+      }
+    }
+
+    // 4. Mobile Menu Toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    // 5. Intelligent Portal Redirection
+    function handlePortalClick(e, portal) {
+      // In local dev without Nginx reverse proxy, port 5173/5174 might be used
+      const host = window.location.hostname;
+      const port = window.location.port;
+
+      if ((host === 'localhost' || host === '127.0.0.1') && port !== '80' && port !== '443' && port !== '') {
+        e.preventDefault();
+        if (portal === 'doctor') {
+          window.location.href = 'http://localhost:5173';
+        } else if (portal === 'relative') {
+          window.location.href = 'http://localhost:5174';
+        }
+      }
+      // Otherwise allow standard href (/doctor or /relative) handled by Nginx
+    }
+
+    // 6. Interactive Simulator Logic
+    function setSimState(state) {
+      currentSimState = state;
+      const btnG = document.getElementById('btnGreen');
+      const btnA = document.getElementById('btnAmber');
+      const btnR = document.getElementById('btnRed');
+
+      const neutralClasses = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border border-border bg-card text-foreground hover:bg-secondary transition-all cursor-pointer";
+      btnG.className = neutralClasses;
+      btnA.className = neutralClasses;
+      btnR.className = neutralClasses;
+
+      const card = document.getElementById('simWatchCard');
+      const dot = document.getElementById('simWatchDot');
+      const statusText = document.getElementById('simWatchStatusText');
+      const pulse = document.getElementById('simWatchPulse');
+      const oxygen = document.getElementById('simWatchOxygen');
+
+      const s1Box = document.getElementById('simStep1Box');
+      const s1Title = document.getElementById('simStep1Title');
+      const s1Desc = document.getElementById('simStep1Desc');
+
+      const s2Box = document.getElementById('simStep2Box');
+      const s2Title = document.getElementById('simStep2Title');
+      const s2Desc = document.getElementById('simStep2Desc');
+
+      const s3Box = document.getElementById('simStep3Box');
+      const s3Title = document.getElementById('simStep3Title');
+      const s3Desc = document.getElementById('simStep3Desc');
+
+      const bpmUnit = currentLang === 'ru' ? 'уд/мин' : 'bpm';
+
+      if (state === 'green') {
+        btnG.className = "sim-btn-active-green px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer";
+        card.style.borderColor = "#10b981";
+        dot.className = "w-3 h-3 rounded-full bg-emerald-500 pulse-dot";
+        statusText.className = "text-xs font-bold tracking-wider uppercase text-emerald-500";
+        statusText.innerText = currentLang === 'uz' ? "SOKIN / ME'YORDA" : currentLang === 'ru' ? "НОРМА / СТАБИЛЬНО" : "CALM / STABLE";
+        pulse.innerHTML = `72 <span class="text-xl font-medium text-muted-foreground">${bpmUnit}</span>`;
+        oxygen.innerText = currentLang === 'uz' ? "Kislorod SpO₂: 98%" : currentLang === 'ru' ? "Кислород SpO₂: 98%" : "Oxygen SpO₂: 98%";
+
+        s1Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-emerald-500";
+        s1Title.innerText = currentLang === 'uz' ? "Doimiy Fon Nazorati" : currentLang === 'ru' ? "Фоновый контроль" : "Continuous Background Check";
+        s1Desc.innerText = currentLang === 'uz' ? "Har 5 daqiqada yurak ritmi va nafas tekshirilmoqda. O'lchovlar individual baseline koridorida barqaror." : currentLang === 'ru' ? "Каждые 5 минут проверяются пульс и дыхание. Показатели стабильны в коридоре нормы." : "Pulse rate and respiration sampled every 5 minutes within individualized circadian baseline.";
+
+        s2Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-sky-500";
+        s2Title.innerText = currentLang === 'uz' ? "Farzand Ilovasida Xotirjamlik" : currentLang === 'ru' ? "Спокойствие в приложении детей" : "Family App Peace of Mind";
+        s2Desc.innerText = currentLang === 'uz' ? "Ilovada yashil sokinlik nuri. Ota-onangiz o'zini yaxshi his qilayotgani va dam olayotgani ko'rinib turadi." : currentLang === 'ru' ? "Мягкий зеленый статус. Родители чувствуют себя хорошо, сон и активность в норме." : "Gentle green reassurance indicator. Parents are resting comfortably.";
+
+        s3Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-indigo-500";
+        s3Title.innerText = currentLang === 'uz' ? "Klinik Shifokor Kuzatuvi" : currentLang === 'ru' ? "Врачебный мониторинг" : "Clinical Oversight";
+        s3Desc.innerText = currentLang === 'uz' ? "Fiziologik ko'rsatkichlar me'yorda. Ortiqcha asossiz tashxis yoki soxta chaqiruvlar yuzaga kelmaydi." : currentLang === 'ru' ? "Физиологические параметры стабильны. Ложные тревоги отфильтрованы." : "Physiological parameters nominal. No false alarms or redundant triage tasks created.";
+      }
+      else if (state === 'amber') {
+        btnA.className = "sim-btn-active-amber px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer";
+        card.style.borderColor = "#f59e0b";
+        dot.className = "w-3 h-3 rounded-full bg-amber-500 pulse-dot";
+        statusText.className = "text-xs font-bold tracking-wider uppercase text-amber-500";
+        statusText.innerText = currentLang === 'uz' ? "OG'ISH / DIQQAT" : currentLang === 'ru' ? "ОТКЛОНЕНИЕ / ВНИМАНИЕ" : "DRIFT / ATTENTION";
+        pulse.innerHTML = `96 <span class="text-xl font-medium text-amber-500">${bpmUnit}</span>`;
+        oxygen.innerText = currentLang === 'uz' ? "Kislorod SpO₂: 93% (Chegarada)" : currentLang === 'ru' ? "Кислород SpO₂: 93% (На границе)" : "Oxygen SpO₂: 93% (Borderline)";
+
+        s1Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-amber-500";
+        s1Title.innerText = currentLang === 'uz' ? "Profilaktik Ogohlantirish" : currentLang === 'ru' ? "Клинический сигнал отклонения" : "Physiological Drift Signal";
+        s1Desc.innerText = currentLang === 'uz' ? "Ko'rsatkichlar odatiy normadan chetga chiqdi. Tizim navbatchi hamshira ish stolida vazifa yaratdi." : currentLang === 'ru' ? "Пульс превысил индивидуальную норму. Система сформировала задачу дежурной медсестре." : "Vitals drifted outside baseline. System dispatches a task to the assigned neighborhood nurse.";
+
+        s2Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-amber-500";
+        s2Title.innerText = currentLang === 'uz' ? "Patronaj Tekshiruv Vazifasi (24 soat)" : currentLang === 'ru' ? "Задача патронажа (24ч)" : "Nurse Follow-up Task (24h)";
+        s2Desc.innerText = currentLang === 'uz' ? "Hamshira ota-onangizga qo'ng'iroq qilib, dori qabul qilinganligi va holatni aniqlaydi." : currentLang === 'ru' ? "Медсестра связывается с родителями, уточняя самочувствие и своевременный прием медикаментов." : "Assigned nurse calls parent to check medication adherence and current condition.";
+
+        s3Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-sky-500";
+        s3Title.innerText = currentLang === 'uz' ? "Farzandga Vazmin Xabar" : currentLang === 'ru' ? "Спокойное оповещение семье" : "Caregiver Non-Panic Alert";
+        s3Desc.innerText = currentLang === 'uz' ? "Vahimasiz ma'lumot: 'Og'ish kuzatildi, tibbiyot xodimi nazoratga oldi'." : currentLang === 'ru' ? "Информативное сообщение: 'Зафиксировано отклонение, ситуация на контроле медперсонала'." : "Calm advisory: 'Physiological drift observed, under nurse review.'";
+      }
+      else if (state === 'red') {
+        btnR.className = "sim-btn-active-red px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer";
+        card.style.borderColor = "#ef4444";
+        dot.className = "w-3 h-3 rounded-full bg-red-500 pulse-dot";
+        statusText.className = "text-xs font-bold tracking-wider uppercase text-red-500";
+        statusText.innerText = currentLang === 'uz' ? "SHOSHILINCH XAVF / KRITIK" : currentLang === 'ru' ? "КРИТИЧЕСКИЙ РИСК / SOS" : "URGENT RISK / SOS";
+        pulse.innerHTML = `122 <span class="text-xl font-medium text-red-500">${bpmUnit}</span>`;
+        oxygen.innerText = currentLang === 'uz' ? "Kislorod SpO₂: 87% (Gipoksemiya!)" : currentLang === 'ru' ? "Кислород SpO₂: 87% (Гипоксия!)" : "Oxygen SpO₂: 87% (Hypoxia!)";
+
+        s1Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-red-500";
+        s1Title.innerText = currentLang === 'uz' ? "🚨 Tezkor Shoshilinch Eskalatsiya" : currentLang === 'ru' ? "🚨 Экстренная клиническая эскалация" : "🚨 Rapid Clinical Escalation";
+        s1Desc.innerText = currentLang === 'uz' ? "Shifokorga birinchi darajali vazifa. Parvarish mas'uliyati bo'yicha klinik aralashuv protokoli yoqildi." : currentLang === 'ru' ? "Критическая задача дежурному врачу. Активирован протокол экстренного вмешательства." : "Highest priority task for responsible clinician. Institutional care response initiated.";
+
+        s2Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-red-500";
+        s2Title.innerText = currentLang === 'uz' ? "Ko'p Kanalli Xabar (Push, SMS, Telegram)" : currentLang === 'ru' ? "Многоканальное оповещение (Push, SMS, TG)" : "Multi-Channel Alert (Push, SMS, TG)";
+        s2Desc.innerText = currentLang === 'uz' ? "Farzandga favqulodda baland ovozli signal va bemorning oxirgi joylashuv koordinatalari uzatildi." : currentLang === 'ru' ? "Срочный громкий сигнал на телефон близких с геолокацией и прямым каналом связи." : "Loud emergency broadcast to caregivers with GPS coordinates and one-tap emergency call.";
+
+        s3Box.className = "glass-card rounded-2xl p-6 border-l-4 border-l-red-500";
+        s3Title.innerText = currentLang === 'uz' ? "Qizil Signal va SOS Bepul Kafolati" : currentLang === 'ru' ? "Гарантия бесплатного экстренного сигнала" : "Zero-Paywall Safety Guarantee";
+        s3Desc.innerText = currentLang === 'uz' ? "Inson hayoti pul ortida qolmaydi. Bemor yolg'iz qoldirilmaydi, barcha amallar tibbiy jurnalga yoziladi." : currentLang === 'ru' ? "Жизнь человека не прячется за платным тарифом. Полная запись событий в аудиторский лог." : "Critical alerts are never gated. Full chronological telemetry captured in clinical audit trail.";
+      }
+    }
+
+    // 7. Select plan helper from pricing cards
+    function selectPlan(planName) {
+      const select = document.getElementById('leadPlan');
+      if (select) {
+        select.value = planName;
+      }
+    }
+
+    // 8. Lead Capture Form Submission (LocalStorage JSON + API simulation)
+    function handleLeadSubmit(e) {
+      e.preventDefault();
+
+      const lead = {
+        id: 'lead_' + Date.now(),
+        name: document.getElementById('leadName').value.trim(),
+        phone: document.getElementById('leadPhone').value.trim(),
+        city: document.getElementById('leadCity').value.trim(),
+        plan: document.getElementById('leadPlan').value,
+        notes: document.getElementById('leadNotes').value.trim(),
+        submittedAt: new Date().toISOString(),
+        source: 'wmax_landing_page'
+      };
+
+      // 1) Save to LocalStorage
+      let leads = [];
+      try {
+        const stored = localStorage.getItem('wmax_leads');
+        if (stored) leads = JSON.parse(stored);
+      } catch (err) {
+        leads = [];
+      }
+      leads.push(lead);
+      localStorage.setItem('wmax_leads', JSON.stringify(leads, null, 2));
+
+      // 2) Optional send to backend API (graceful fallback)
+      try {
+        fetch('/api/v1/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lead)
+        }).catch(() => {
+          // Ignore network or missing endpoint in dev/demo mode
+        });
+      } catch (err) {
+        // Safe ignore
+      }
+
+      // 3) Show Confirmation Modal
+      const modal = document.getElementById('successModal');
+      const summary = document.getElementById('modalLeadSummary');
+      summary.innerText = `${lead.name} | ${lead.phone} | ${lead.city} (${lead.plan})`;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      // Reset form
+      document.getElementById('leadForm').reset();
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById('successModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // 9. Leads JSON Viewer (For Testing, Demo, and Admin)
+    function showLeadsModal() {
+      const modal = document.getElementById('leadsModal');
+      const output = document.getElementById('leadsJsonOutput');
+      let leads = [];
+      try {
+        const stored = localStorage.getItem('wmax_leads');
+        if (stored) leads = JSON.parse(stored);
+      } catch (err) {}
+
+      output.innerText = leads.length > 0 ? JSON.stringify(leads, null, 2) : "Hozircha saqlangan murojaatlar yo'q.";
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeLeadsModal() {
+      const modal = document.getElementById('leadsModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function clearLeads() {
+      if (confirm(currentLang === 'uz' ? "Murojaatlar tarixini tozalashni tasdiqlaysizmi?" : "Очистить историю заявок?")) {
+        localStorage.removeItem('wmax_leads');
+        document.getElementById('leadsJsonOutput').innerText = "Tozalandi.";
+      }
+    }
+
+    function downloadLeadsJson() {
+      const stored = localStorage.getItem('wmax_leads') || '[]';
+      const blob = new Blob([stored], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wmax_leads_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Initialize state on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      const savedLang = localStorage.getItem('wmax_lang') || 'uz';
+      changeLanguage(savedLang);
+      setSimState('green');
+    });
+  </script>
+</body>
+</html>

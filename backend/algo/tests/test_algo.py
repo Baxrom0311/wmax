@@ -133,6 +133,21 @@ def test_learning_phase_suppresses_amber_to_green():
     assert res.reason == "learning_phase_suppressed"
 
 
+def test_learning_phase_suppresses_transient_composite_red_to_green():
+    now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    window = timewin.window_of(now)
+    baselines = [
+        BaselineEntry(param="hr_mean", time_window=window, median=65.0, mad=1.0, n_samples=30),
+        BaselineEntry(param="skin_temp", time_window=window, median=36.4, mad=0.1, n_samples=30),
+    ]
+    reading = ReadingVec(ts=now, hr_mean=95.0, skin_temp=38.0, steps=0, worn=True)
+
+    result = evaluate_alert(reading, baselines, [], "learning")
+
+    assert result.level == "green"
+    assert result.reason == "learning_phase_suppressed"
+
+
 def test_trend_calculation():
     """Tests trend slope classification across 7 days."""
     # Worsening: increasing z-scores

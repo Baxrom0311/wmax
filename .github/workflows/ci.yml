@@ -2,9 +2,9 @@ name: WMAX CI Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ develop, master ]
 
 jobs:
   backend-lint-test:
@@ -91,7 +91,7 @@ jobs:
         # otherwise reach production as a table that silently does not exist.
         run: alembic check
 
-      - name: Verify migrations are reversible
+      - name: Exercise downgrade on disposable CI database
         env:
           DATABASE_URL: postgresql+asyncpg://wmax:ci@localhost:5432/wmax
           PYTHONPATH: .:./backend:./contracts

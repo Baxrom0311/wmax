@@ -226,7 +226,7 @@ export async function approveBaseline(patientId: string, forceDemo?: boolean): P
     return;
   }
 
-  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/approve-baseline`, {
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/baseline/approve`, {
     method: "POST",
   });
 

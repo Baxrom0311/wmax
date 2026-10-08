@@ -6,19 +6,50 @@ import android.Manifest
 import androidx.core.content.ContextCompat
 import androidx.health.services.client.HealthServices
 import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.ExerciseType
 import androidx.health.services.client.data.PassiveListenerConfig
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executor
 
 object WearHealthServices {
+    @JvmStatic
+    fun capabilitySnapshot(context: Context): Map<String, Any> {
+        val healthClient = HealthServices.getClient(context)
+        val passive = healthClient.passiveMonitoringClient
+            .getCapabilitiesAsync().get(25, TimeUnit.SECONDS)
+        val exercise = healthClient.exerciseClient
+            .getCapabilitiesAsync().get(25, TimeUnit.SECONDS)
+        val exerciseTypes = exercise.supportedExerciseTypes.map { type ->
+            val capabilities = exercise.getExerciseTypeCapabilities(type)
+            mapOf(
+                "type" to type.name,
+                "data_types" to capabilities.supportedDataTypes.map { it.toString() },
+                "supports_auto_pause" to capabilities.supportsAutoPauseAndResume,
+            )
+        }
+        return mapOf(
+            "wear_os" to true,
+            "passive_data_types" to passive.supportedDataTypesPassiveMonitoring
+                .map { it.toString() },
+            "exercise_types" to exerciseTypes,
+        )
+    }
+
     private fun listenerConfig(context: Context, supported: Set<DataType<*, *>>): PassiveListenerConfig {
         val requested: MutableSet<DataType<*, *>> = mutableSetOf(DataType.HEART_RATE_BPM)
         val canReadActivity = ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) ==
             PackageManager.PERMISSION_GRANTED
         if (canReadActivity) {
             requested.addAll(
-                setOf(DataType.STEPS, DataType.STEPS_DAILY, DataType.FLOORS, DataType.ELEVATION_GAIN)
-                    .filter { it in supported },
+                setOf(
+                    DataType.STEPS,
+                    DataType.STEPS_DAILY,
+                    DataType.FLOORS,
+                    DataType.ELEVATION_GAIN,
+                    DataType.CALORIES_DAILY,
+                    DataType.DISTANCE_DAILY,
+                    DataType.VO2_MAX,
+                ).filter { it in supported },
             )
         }
         return PassiveListenerConfig.builder()

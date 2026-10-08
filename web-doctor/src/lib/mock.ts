@@ -148,12 +148,12 @@ export function getMockPatientDetail(id: string): PatientDetail {
     baseline_approved: summary.phase === "full",
     prognosis: {
       risk_level: summary.level === "red" ? "high" : summary.level === "amber" ? "moderate" : "low",
-      risk_probability_pct: summary.level === "red" ? 86 : summary.level === "amber" ? 64 : 14,
-      early_warning_hours: 48,
+      risk_probability_pct: null,
+      early_warning_hours: null,
       summary:
         summary.level === "red"
-          ? "SpO2 pasayishi (-2.4σ) va tinch holatda yuqori yurak urishi (+3.1σ) kuzatilmoqda. 72 soat ichida gospitalizatsiya xavfi yuqori."
-          : "Fiziologik parametrlar shaxsiy me'yor koridorida barqaror.",
+          ? "O'lchovlarda og'ish qayd etildi. Buni klinik protokol bo'yicha ko'rib chiqing."
+          : "Mavjud o'lchovlar tanlangan bazaviy diapazonga yaqin.",
       recommendation:
         summary.level === "red"
           ? "Bugun zudlik bilan bemor xonadoniga patronaj tashrifini amalga oshirish va dori dozasini qayta sozlash zarur."
@@ -369,4 +369,3 @@ export function mockResolveSos(sosId: string, note: string): SosEventItem {
   item.resolution_note = note;
   return { ...item };
 }
-

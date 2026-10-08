@@ -3,45 +3,29 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Sequence
+from collections.abc import Sequence
+from itertools import pairwise
+from typing import Any
 
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
-from algo_interface import (
-    AMBER_THRESHOLD,
-    CRITICAL_HR_AT_REST,
-    CRITICAL_SPO2,
-    MIN_TRIGGERED_PARAMS,
-    PARAM_DIRECTION,
-    RED_THRESHOLD,
-    REST_STEPS_MAX,
-    WEIGHTS,
-    Z_DEADZONE,
-    AlertResult,
-    BaselineEntry,
-    ReadingVec,
-    TrendResult,
-)
-from app.core.exceptions import NotFoundException
+from algo.baseline import compute_baselines, compute_zscores
+from algo.signal import evaluate_alert
+from algo_interface import AlertResult, BaselineEntry
 from app.core.metrics import alerts_total, readings_ingested_total
-from app.models.patient import Patient
+from app.models.schema import PatientMembership, TenantMember
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reading_repo import ReadingRepository
-from app.schemas.reading import IngestAck, IngestBatch, IngestItem, IngestResult
-from app.services.clinical_math import compute_trend_pure
+from app.repositories.task_repo import TaskRepository
+from app.schemas.reading import IngestAck, IngestBatch, IngestResult
 from app.services.compat import to_reading_vec
 from app.services.live_event_service import LiveEventService
 
 logger = logging.getLogger(__name__)
-
-# Direct imports from algo package (A2 integration point)
-from algo.baseline import compute_baselines, compute_zscores
-from algo.signal import evaluate_alert
-from algo.trend import compute_trend
-
 
 def _previous_consecutive_windows(readings: Sequence[Any]) -> list[Any]:
     """Return the two prior windows only when all three windows are contiguous."""
@@ -49,7 +33,7 @@ def _previous_consecutive_windows(readings: Sequence[Any]) -> list[Any]:
         return []
 
     recent = readings[-3:]
-    for previous, current in zip(recent, recent[1:]):
+    for previous, current in pairwise(recent):
         previous_end = getattr(previous, "window_end", None)
         current_start = getattr(current, "window_start", getattr(current, "ts", None))
         if previous_end is not None and current_start is not None:
@@ -74,6 +58,7 @@ class PipelineService:
         self.reading_repo = ReadingRepository(session)
         self.baseline_repo = BaselineRepository(session)
         self.alert_repo = AlertRepository(session)
+        self.task_repo = TaskRepository(session)
 
     async def ingest_batch(
         self, batch: IngestBatch, device_id: uuid.UUID | None = None
@@ -89,6 +74,7 @@ class PipelineService:
             )
 
         accepted: list[datetime] = []
+        accepted_by_patient: dict[uuid.UUID, list[str]] = {}
         duplicate: list[datetime] = []
         orphaned: list[datetime] = []
         rejected: list[IngestAck] = []
@@ -107,11 +93,21 @@ class PipelineService:
             assignment = None
             patient_id = batch.patient_id
             if device_id is not None:
-                assignment = await self.reading_repo.get_assignment_at(device_id, window_start)
+                assignment = await self.reading_repo.get_assignment_covering(
+                    device_id, window_start, window_end
+                )
                 patient_id = assignment.patient_id if assignment else None
 
             if patient_id is None or device_id is None:
                 if device_id is not None:
+                    if await self.reading_repo.get_assignment_at(device_id, window_start):
+                        rejected.append(
+                            IngestAck(
+                                window_start=window_start,
+                                reason="assignment_boundary",
+                            )
+                        )
+                        continue
                     inserted = await self.reading_repo.insert_orphan_idempotent(
                         {
                             "device_id": device_id,
@@ -160,6 +156,9 @@ class PipelineService:
             )
             if inserted:
                 accepted.append(window_start)
+                accepted_by_patient.setdefault(patient_id, []).append(
+                    window_start.isoformat()
+                )
                 patient_ids.add(patient_id)
                 readings_ingested_total.inc(inserted)
             elif dupes:
@@ -168,12 +167,9 @@ class PipelineService:
         for patient_id in patient_ids:
             await self.evaluate_patient(patient_id)
 
-        await LiveEventService(self.session).publish_reading_batch(
-            accepted=[item.isoformat() for item in accepted],
-            duplicate=[item.isoformat() for item in duplicate],
-            orphaned=[item.isoformat() for item in orphaned],
-            rejected=[item.model_dump(mode="json") for item in rejected],
-        )
+        event_service = LiveEventService(self.session)
+        for patient_id, windows in accepted_by_patient.items():
+            await event_service.publish_patient_readings(patient_id, windows)
 
         return IngestResult(
             server_time=server_time,
@@ -195,12 +191,12 @@ class PipelineService:
     async def evaluate_patient(self, patient_id: uuid.UUID) -> AlertResult:
         """Evaluates clinical signal for the patient, persists baselines and alerts."""
         patient = await self.patient_repo.get_by_id(patient_id)
-        if not patient:
+        if not patient or getattr(patient, "deceased_at", None) is not None:
             return AlertResult(
                 level="no_data",
                 composite_score=0.0,
                 triggered_params={},
-                reason="patient_not_found",
+                reason="patient_deceased" if (patient and getattr(patient, "deceased_at", None) is not None) else "patient_not_found",
             )
 
         now = datetime.now(timezone.utc)
@@ -297,9 +293,95 @@ class PipelineService:
         )
         if alert:
             await LiveEventService(self.session).publish_alert(alert)
+            if alert_result.level in {"amber", "red"}:
+                await self._create_alert_task(patient=patient, alert=alert, result=alert_result)
         alerts_total.labels(level=alert_result.level).inc()
 
         return alert_result
+
+    async def _create_alert_task(
+        self, patient: Any, alert: Any, result: AlertResult
+    ) -> None:
+        try:
+            open_task = await self.task_repo.get_open_task(patient.id)
+            if open_task:
+                return
+
+            membership = (
+                await self.session.execute(
+                    select(PatientMembership).where(
+                        PatientMembership.patient_id == patient.id,
+                        PatientMembership.kind == "care",
+                        PatientMembership.revoked_at.is_(None),
+                    )
+                )
+            ).scalar_one_or_none()
+
+            tenant_id = membership.tenant_id if membership else getattr(patient, "tenant_id", None)
+            if not tenant_id:
+                return
+
+            # 1. First priority: patient's explicitly assigned doctor or care owner
+            assignee_id = getattr(patient, "doctor_id", None)
+            if assignee_id:
+                eligible = (
+                    await self.session.execute(
+                        select(TenantMember.id).where(
+                            TenantMember.account_id == assignee_id,
+                            TenantMember.tenant_id == tenant_id,
+                            TenantMember.left_at.is_(None),
+                            TenantMember.role.in_(["doctor", "head_doctor"]),
+                        ).limit(1)
+                    )
+                ).scalar_one_or_none()
+                if eligible is None:
+                    logger.warning(
+                        "Assigned doctor %s is not an active eligible member of tenant %s for patient %s",
+                        assignee_id,
+                        tenant_id,
+                        patient.id,
+                    )
+                    assignee_id = None
+
+            # 2. Second priority: active clinician (doctor, nurse, head_doctor) in the tenant
+            if not assignee_id:
+                clinician_member = (
+                    await self.session.execute(
+                        select(TenantMember).where(
+                            TenantMember.tenant_id == tenant_id,
+                            TenantMember.left_at.is_(None),
+                            TenantMember.role.in_(["doctor", "nurse", "head_doctor"]),
+                        ).order_by(
+                            case(
+                                (TenantMember.role == "doctor", 0),
+                                (TenantMember.role == "head_doctor", 1),
+                                (TenantMember.role == "nurse", 2),
+                                else_=3,
+                            ),
+                            TenantMember.joined_at.asc(),
+                        ).limit(1)
+                    )
+                ).scalar_one_or_none()
+                if clinician_member:
+                    assignee_id = clinician_member.account_id
+
+            if not assignee_id:
+                logger.warning("No eligible clinician found in tenant %s for alert on patient %s", tenant_id, patient.id)
+                return
+
+            now = datetime.now(timezone.utc)
+            due_at = now + (timedelta(hours=2) if result.level == "red" else timedelta(hours=24))
+            await self.task_repo.create_task(
+                patient_id=patient.id,
+                tenant_id=tenant_id,
+                assignee_account_id=assignee_id,
+                due_at=due_at,
+                kind="clinical",
+                alert_id=getattr(alert, "id", None),
+                note=f"Avtomatik klinik signal: {result.level.upper()}",
+            )
+        except Exception as e:
+            logger.warning(f"Could not create task for alert on patient {patient.id}: {e}")
 
 
 # Backward compatibility wrapper

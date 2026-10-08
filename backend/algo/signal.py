@@ -200,6 +200,9 @@ def evaluate_alert(
         if is_persistent:
             level = "red"
             reason = "composite_threshold_red"
+        elif phase == "learning":
+            level = "green"
+            reason = "learning_phase_suppressed"
         else:
             level = "amber"
             reason = "transient_high_deviation"

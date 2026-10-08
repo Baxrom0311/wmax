@@ -8,9 +8,8 @@ class WearHealthOutboxWorker(
     context: Context,
     params: WorkerParameters,
 ) : Worker(context, params) {
-    override fun doWork(): Result = if (WearHealthOutbox.flushBlocking(applicationContext)) {
-        Result.success()
-    } else {
-        Result.retry()
+    override fun doWork(): Result {
+        if (!WearExerciseService.enqueuePendingSession(applicationContext)) return Result.retry()
+        return if (WearHealthOutbox.flushBlocking(applicationContext)) Result.success() else Result.retry()
     }
 }

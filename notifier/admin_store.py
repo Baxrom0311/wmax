@@ -9,23 +9,25 @@ from typing import Any
 
 logger = logging.getLogger("wmax.notifier.admin_store")
 
-SUPER_ADMIN_ID: int = int(os.getenv("SUPER_ADMIN_ID", "6956456422"))
+_raw_super_admin = os.getenv("SUPER_ADMIN_ID")
+SUPER_ADMIN_ID: int = int(_raw_super_admin) if (_raw_super_admin and _raw_super_admin.isdigit()) else 0
 
 DATA_DIR = Path(__file__).resolve().parent
 ADMINS_FILE = DATA_DIR / "admins.json"
 
 
 def _default_data() -> dict[str, Any]:
+    admins: dict[str, Any] = {}
+    if SUPER_ADMIN_ID > 0:
+        admins[str(SUPER_ADMIN_ID)] = {
+            "id": SUPER_ADMIN_ID,
+            "name": "Super Admin",
+            "role": "super_admin",
+            "added_at": datetime.now(timezone.utc).isoformat(),
+        }
     return {
         "super_admin_id": SUPER_ADMIN_ID,
-        "admins": {
-            str(SUPER_ADMIN_ID): {
-                "id": SUPER_ADMIN_ID,
-                "name": "Super Admin",
-                "role": "super_admin",
-                "added_at": datetime.now(timezone.utc).isoformat(),
-            }
-        },
+        "admins": admins,
     }
 
 

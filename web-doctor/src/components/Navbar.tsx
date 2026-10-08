@@ -10,6 +10,8 @@ import {
   Menu,
   X,
   ExternalLink,
+  Sun,
+  Moon,
 } from "lucide-react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
@@ -27,6 +29,8 @@ interface NavbarProps {
   onTabChange: (tab: NavTab) => void;
   activeSosCount?: number;
   openHandoffsCount?: number;
+  theme?: "light" | "dark";
+  onToggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -39,6 +43,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   activeSosCount = 0,
   openHandoffsCount = 0,
+  theme = "light",
+  onToggleTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -106,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="brand-text-block">
             <div className="brand-primary-line">
               <span className="brand-name">WMAX</span>
-              <span className="brand-badge-official">Klinika</span>
+              <span className="brand-badge-official">{t("nav.clinic", lang)}</span>
             </div>
           </div>
         </div>
@@ -162,8 +168,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* 3. Right: lang + profile avatar + mobile toggle */}
+        {/* 3. Right: theme + lang + profile avatar + mobile toggle */}
         <div className="doc-header-controls">
+          {onToggleTheme && (
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={onToggleTheme}
+              title={theme === "dark" ? t("theme.light", lang) : t("theme.dark", lang)}
+              aria-label={t("theme.toggle", lang)}
+            >
+              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+          )}
+
           <div className="official-lang-toggle">
             <button
               type="button"
@@ -196,8 +214,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               className={`profile-avatar-btn ${profileOpen ? "active" : ""}`}
               onClick={() => setProfileOpen(!profileOpen)}
-              title="Profil va litsenziya"
-              aria-label="Doctor Profile"
+              title={t("nav.profile_and_license", lang)}
+              aria-label={t("nav.profile_and_license", lang)}
             >
               <div className="avatar-circle">{initials}</div>
               <ChevronDown
@@ -217,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="profile-text-wrap">
                     <div className="profile-name">{doctorName}</div>
                     <div className="profile-role">
-                      {role === "nurse" ? "Patronaj hamshirasi" : role === "admin" ? "Tizim administratori" : "Shifokor-kardiolog"}
+                      {role === "nurse" ? t("role.nurse", lang) : role === "admin" ? "Administrator" : t("role.doctor", lang)}
                     </div>
                     <div className="profile-org">
                       {role === "nurse" ? "Urganch shahar 1-son OP (OvaBMU)" : "Urganch Kardiologiya Dispanseri"}
@@ -228,21 +246,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* B2B License Section inside Profile */}
                 <div className="profile-license-card">
                   <div className="license-header-line">
-                    <span className="license-title">🏥 B2B Litsenziya</span>
-                    <span className="license-active-pill">FAOL</span>
+                    <span className="license-title">🏥 {t("nav.license_title", lang)}</span>
+                    <span className="license-active-pill">{t("nav.license_active", lang)}</span>
                   </div>
                   <div className="license-details">
                     <div className="license-item">
-                      <span className="lic-lbl">Klinika rejimi:</span>
+                      <span className="lic-lbl">{t("nav.clinic_mode", lang)}</span>
                       <span className="lic-val">{role === "nurse" ? "Birlamchi bo'g'in / OvaBMU" : "Ixtisoslashgan Statsionar"}</span>
                     </div>
                     <div className="license-item">
-                      <span className="lic-lbl">Faol bemorlar:</span>
-                      <span className="lic-val">100 ta kvota (85 000 so'm/oy)</span>
-                    </div>
-                    <div className="license-item">
-                      <span className="lic-lbl">Monitoringdagi bemorlar:</span>
-                      <span className="lic-val">4 nafar faol</span>
+                      <span className="lic-lbl">{t("nav.active_quota", lang)}</span>
+                      <span className="lic-val">100 ta kvota</span>
                     </div>
                   </div>
                 </div>
@@ -250,7 +264,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* Status / Env info */}
                 <div className="profile-system-info">
                   <span className="system-dot" />
-                  <span>Tizim: <b>Jonli (Production)</b> · Himoyalangan</span>
+                  <span>{t("nav.system_prod", lang)}</span>
                 </div>
 
                 <div className="profile-divider" />
@@ -265,7 +279,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                 >
                   <User size={15} />
-                  <span>Profilni ochish va tahrirlash</span>
+                  <span>{t("nav.open_profile", lang)}</span>
                   <ExternalLink size={13} style={{ marginLeft: "auto", opacity: 0.7 }} />
                 </button>
 
@@ -290,7 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             className={`mobile-menu-toggle ${mobileMenuOpen ? "open" : ""}`}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Menyuni yopish" : "Menyuni ochish"}
+            aria-label={mobileMenuOpen ? t("nav.menu_close", lang) : t("nav.menu_open", lang)}
           >
             {mobileMenuOpen ? (
               <X size={22} strokeWidth={2.5} />
@@ -314,7 +328,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="mobile-user-details">
                 <div className="mobile-user-name">{doctorName}</div>
                 <div className="mobile-user-role">
-                  {role === "nurse" ? "Hamshira" : role === "admin" ? "Administrator" : "Shifokor"}
+                  {role === "nurse" ? t("role.nurse", lang) : role === "admin" ? "Administrator" : t("role.doctor", lang)}
                 </div>
               </div>
             </div>
@@ -374,10 +388,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleTabClick("profile")}
               >
                 <span className="nav-icon"><User size={18} /></span>
-                <span className="nav-label">
-                  {lang === "ru" ? "Профиль и лицензия" : lang === "en" ? "Profile & License" : "Profil va litsenziya"}
-                </span>
+                <span className="nav-label">{t("nav.profile_and_license", lang)}</span>
               </button>
+
+              {onToggleTheme && (
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  onClick={() => {
+                    onToggleTheme();
+                  }}
+                >
+                  <span className="nav-icon">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</span>
+                  <span className="nav-label">{theme === "dark" ? t("theme.light", lang) : t("theme.dark", lang)}</span>
+                </button>
+              )}
             </div>
 
             <div className="mobile-nav-footer">
@@ -390,7 +415,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
               >
                 <LogOut size={16} />
-                <span>{lang === "ru" ? "Выйти из системы" : lang === "en" ? "Sign Out" : "Tizimdan chiqish"}</span>
+                <span>{t("logout", lang)}</span>
               </button>
             </div>
           </div>

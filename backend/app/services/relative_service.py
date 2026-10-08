@@ -10,7 +10,7 @@ import timewin
 from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES, TrendResult
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models import Account, PatientMembership, TenantMember
+from app.models import Account, PatientConsent, PatientMembership, TenantMember
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
@@ -88,17 +88,34 @@ class RelativeService:
         if not relative:
             raise NotFoundException(message="Yaqin kishi havolasi topilmadi", resource_name="Relative")
 
-        if caregiver_phone is not None and relative.phone != caregiver_phone:
-            raise ForbiddenException("Bu havola sizga tegishli emas")
-
-        if is_access_token_expired(relative.created_at):
+        if is_access_token_expired(relative.access_token_created_at):
             raise ForbiddenException(
                 "Havola muddati tugagan. Iltimos, qaytadan kiring."
             )
 
+        account = await self.session.get(Account, relative.account_id)
+        if not account or not account.is_active or caregiver_phone is None or account.phone != caregiver_phone:
+            raise ForbiddenException("Bu havola sizga tegishli emas")
+
+        if relative.accepted_at is None or relative.revoked_at is not None:
+            raise ForbiddenException("Bemor ruxsati faol emas yoki hali qabul qilinmagan")
+        consent = (await self.session.execute(
+            select(PatientConsent.id).where(
+                PatientConsent.patient_id == relative.patient_id,
+                PatientConsent.target_account_id == relative.account_id,
+                PatientConsent.scope == "family_access",
+                PatientConsent.granted.is_(True),
+                PatientConsent.revoked_at.is_(None),
+            ).limit(1)
+        )).scalar_one_or_none()
+        if consent is None:
+            raise ForbiddenException("Bemor oilaviy ruxsati bekor qilingan")
+
         patient = await self.patient_repo.get_by_id(relative.patient_id)
         if not patient:
             raise NotFoundException(message="Bemor topilmadi", resource_name="Patient")
+        if patient.deceased_at is not None:
+            raise ForbiddenException("Bemor profili yopilgan")
 
         now = datetime.now(timezone.utc)
         since = now - timedelta(days=7)
@@ -308,9 +325,9 @@ class RelativeService:
         now = datetime.now(timezone.utc)
         items: list[RelativePatientItem] = []
 
-        for rel in relatives:
-            p = await self.patient_repo.get_by_id(rel.patient_id)
-            if not p:
+        for rel, patient in relatives:
+            p = patient
+            if p.deceased_at is not None or rel.accepted_at is None or rel.revoked_at is not None:
                 continue
 
             latest_reading = await self.reading_repo.get_latest_reading(p.id)
@@ -326,12 +343,14 @@ class RelativeService:
 
             items.append(
                 RelativePatientItem(
-                    patient_id=p.id,
+                    id=p.id,
                     full_name=p.full_name,
                     relationship=rel.relationship,
                     level=level,
                     last_reading_at=last_ts,
-                    token=rel.access_token,
+                    access_token=rel.access_token,
+                    diagnosis=p.diagnosis or "",
+                    age=p.age or 0,
                 )
             )
 

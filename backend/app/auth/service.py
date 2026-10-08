@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -18,6 +19,7 @@ from app.core.security import (
 )
 from app.models.patient import Patient
 from app.models.relative import Relative
+from app.models import PatientAccess
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.refresh_token_repo import RefreshTokenRepository
@@ -75,6 +77,49 @@ SMS_CODE_TTL_SECONDS = 300
 _SMS_CODES: dict[str, tuple[str, datetime]] = {}
 
 
+async def _store_sms_code(phone: str, code: str, ttl: int = SMS_CODE_TTL_SECONDS) -> None:
+    if getattr(settings, "REDIS_URL", None):
+        try:
+            import redis.asyncio as aioredis
+            client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            async with client:
+                await client.setex(f"wmax:sms:{phone}", ttl, f"{code}:0")
+                return
+        except Exception:
+            pass
+    expires_at = now_utc() + timedelta(seconds=ttl)
+    _SMS_CODES[phone] = (code, expires_at)
+
+
+async def _verify_sms_code(phone: str, code: str) -> bool:
+    if getattr(settings, "REDIS_URL", None):
+        try:
+            import redis.asyncio as aioredis
+            client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            async with client:
+                val = await client.get(f"wmax:sms:{phone}")
+                if not val:
+                    return False
+                parts = val.split(":")
+                stored_code = parts[0]
+                attempts = int(parts[1]) if len(parts) > 1 else 0
+                if attempts >= 5:
+                    await client.delete(f"wmax:sms:{phone}")
+                    return False
+                if stored_code != code:
+                    await client.set(f"wmax:sms:{phone}", f"{stored_code}:{attempts + 1}", keepttl=True)
+                    return False
+                await client.delete(f"wmax:sms:{phone}")
+                return True
+        except Exception:
+            pass
+    stored = _SMS_CODES.get(phone)
+    if not stored or stored[0] != code or stored[1] < now_utc():
+        return False
+    _SMS_CODES.pop(phone, None)
+    return True
+
+
 class AuthService:
     """Production auth service: DB-backed login, refresh token rotation, revocation."""
 
@@ -89,23 +134,52 @@ class AuthService:
         normalized_phone = phone.strip()
         code = f"{secrets.randbelow(1_000_000):06d}"
         expires_at = now_utc() + timedelta(seconds=SMS_CODE_TTL_SECONDS)
-        _SMS_CODES[normalized_phone] = (code, expires_at)
+        await _store_sms_code(normalized_phone, code)
         await send_sms_code(phone=normalized_phone, code=code, expires_at=expires_at)
         return SMS_CODE_TTL_SECONDS, code if should_return_dev_code() else None
 
     async def verify_code(self, phone: str, code: str) -> TokenPair:
         normalized_phone = phone.strip()
-        stored = _SMS_CODES.get(normalized_phone)
-        if not stored or stored[0] != code or stored[1] < now_utc():
+        valid = await _verify_sms_code(normalized_phone, code)
+        if not valid:
             raise AuthenticationException("SMS kod noto'g'ri yoki muddati o'tgan")
-        _SMS_CODES.pop(normalized_phone, None)
 
         user = await self.user_repo.get_by_phone(normalized_phone)
         if user:
             tenant_roles = await self.user_repo.accounts.get_active_tenant_roles(user.id)
             role = tenant_roles[0].role if tenant_roles else getattr(user, "role", None)
             if role not in CLINICIAN_ROLES:
-                raise AuthenticationException("Klinika a'zoligi topilmadi")
+                assignments = await self.relative_repo.get_assigned_patients(normalized_phone)
+                if assignments:
+                    return await self._issue_token_pair(
+                        user_id=user.id,
+                        full_name=user.full_name,
+                        role="relative",
+                        district=None,
+                        phone=normalized_phone,
+                        patient_ids=[patient.id for _access, patient in assignments],
+                    )
+                pending = (
+                    await self.session.execute(
+                        select(PatientAccess.id).where(
+                            PatientAccess.account_id == user.id,
+                            PatientAccess.accepted_at.is_(None),
+                            PatientAccess.revoked_at.is_(None),
+                        ).limit(1)
+                    )
+                ).scalar_one_or_none()
+                if pending is None:
+                    raise AuthenticationException("Klinika yoki taklif qilingan caregiver ruxsati topilmadi")
+                # This token can only accept the invitation. It has no patient
+                # scope until patient consent and invitation acceptance exist.
+                return await self._issue_token_pair(
+                    user_id=user.id,
+                    full_name=user.full_name,
+                    role="relative",
+                    district=None,
+                    phone=normalized_phone,
+                    patient_ids=[],
+                )
             return await self._issue_token_pair(
                 user_id=user.id,
                 full_name=user.full_name,
@@ -216,22 +290,26 @@ class AuthService:
 
         matched = next(
             (
-                relative
-                for relative, _patient in assignments
-                if relative.pin_hash and verify_password(req.pin, relative.pin_hash)
+                rel
+                for rel, _patient in assignments
+                if getattr(rel, "pin_hash", None) and verify_password(req.pin, rel.pin_hash)
             ),
             None,
         )
         if matched is None:
             raise AuthenticationException(INVALID_PIN_MESSAGE)
 
+        account_obj = getattr(matched, "account", None)
+        user_id = account_obj.id if account_obj else getattr(matched, "account_id", matched.id)
+        full_name = getattr(matched, "full_name", "")
+
         token_pair = await self._issue_token_pair(
-            user_id=matched.id,
-            full_name=matched.full_name,
+            user_id=user_id,
+            full_name=full_name,
             role="relative",
             district=None,
             phone=normalized_phone,
-            patient_ids=[patient.id for _relative, patient in assignments],
+            patient_ids=[patient.id for _rel, patient in assignments],
         )
 
         return RelativeLoginResponse(
@@ -278,11 +356,11 @@ class AuthService:
                 RelativePatientItem(
                     id=patient.id,
                     full_name=patient.full_name,
-                    relationship=relative.relationship,
-                    access_token=relative.access_token,
+                    relationship=getattr(relative, "relationship", ""),
+                    access_token=getattr(relative, "access_token", "") or "",
                     level=latest_alert.level if latest_alert else "no_data",
-                    diagnosis=patient.diagnosis,
-                    age=patient.age,
+                    diagnosis=patient.diagnosis or "",
+                    age=patient.age or 0,
                     last_reading_at=latest_alert.ts if latest_alert else None,
                 )
             )
@@ -381,7 +459,6 @@ class AuthService:
         # staff -> user_id, caregiver -> relative_id, patient -> patient_id.
         token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
         owner: dict[str, uuid.UUID] = {  # noqa: E501
-            "relative": {"relative_id": user_id},
             "patient": {"patient_id": user_id},
         }.get(role, {"user_id": user_id})
         await self.token_repo.create(
