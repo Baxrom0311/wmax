@@ -4,7 +4,7 @@ WMAX is a remote patient monitoring prototype for Uzbekistan. Read
 `docs/IDEOLOGY.md`, `docs/ARCHITECTURE.md`, and `docs/SDLC.md` before changing
 clinical behavior, authorization, data contracts, or release procedures.
 The ideology is the intended product policy; inspect code to establish what
-actually works. See `docs/PROJECT_AUDIT_2026-10-07.md` for verified gaps.
+actually works.
 
 ## Repository map
 
@@ -20,8 +20,10 @@ actually works. See `docs/PROJECT_AUDIT_2026-10-07.md` for verified gaps.
 - `web-doctor/`, `web-relative/`: separate React/TypeScript/Vite applications.
 - `mobile_flutter/`: Flutter UI with Android phone/Wear OS and iOS native bridges.
 - `landing/`: static marketing page.
-- `docker/compose/docker-compose.yml`, `scripts/`: canonical release tooling.
-  Root Compose/deploy scripts are a separate legacy path; do not assume parity.
+- `docker/compose/docker-compose.yml`, `scripts/`: canonical release tooling
+  (CI deploys with `scripts/deploy.sh`; root `deploy.sh` is the manual
+  rsync deploy to the same compose stack).
+- Never commit `backups/`, database dumps or `.env` files (see `.gitignore`).
 
 ## Product invariants
 
