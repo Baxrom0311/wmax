@@ -95,8 +95,9 @@ class GeminiProvider(AIProvider):
             logger.warning("Gemini rate limit exceeded locally; backing off 1s")
             await asyncio.sleep(1.0)
 
-        url = f"{GEMINI_API_BASE}/{self.model}:{endpoint}?key={self.api_key}"
-        headers = {"Content-Type": "application/json"}
+        url = f"{GEMINI_API_BASE}/{self.model}:{endpoint}"
+        # Key in a header, not ?key=, so it never appears in logged URLs.
+        headers = {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
 
         delay = 1.0
         last_err: Exception | None = None
@@ -247,7 +248,7 @@ class GeminiProvider(AIProvider):
             prompt_tokens += self.count_tokens(system_instruction)
         ai_tokens_total.labels(provider=PROVIDER_NAME, direction="input").inc(prompt_tokens)
 
-        url = f"{GEMINI_API_BASE}/{self.model}:streamGenerateContent?key={self.api_key}"
+        url = f"{GEMINI_API_BASE}/{self.model}:streamGenerateContent"
         payload: dict[str, Any] = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": temperature},
@@ -259,7 +260,9 @@ class GeminiProvider(AIProvider):
 
         accumulated_chunks: list[str] = []
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            async with client.stream("POST", url, json=payload) as response:
+            async with client.stream(
+                "POST", url, json=payload, headers={"x-goog-api-key": self.api_key}
+            ) as response:
                 async for chunk in response.aiter_text():
                     if chunk:
                         accumulated_chunks.append(chunk)

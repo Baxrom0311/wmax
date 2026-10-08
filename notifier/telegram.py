@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import os
 from pathlib import Path
@@ -147,6 +148,11 @@ def _persistent_reply_keyboard(user_id: int | str | None = None) -> dict:
         "resize_keyboard": True,
         "is_persistent": True,
     }
+
+
+def _esc(value: Any) -> Any:
+    """Escapes text for Telegram HTML parse mode; None passes through."""
+    return html.escape(str(value), quote=False) if value is not None else None
 
 
 def format_admin_welcome(user_name: str, user_id: int | str) -> str:
@@ -475,6 +481,7 @@ def format_sysinfo() -> tuple[str, dict]:
 
 def format_relative_alert(patient_name: str, access_token: str, level: str) -> str:
     """Relative message template — clinical diagnosis is never disclosed."""
+    patient_name = _esc(patient_name)
     link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     if level == "red":
         prefix = "\U0001f6a8 <b>DIQQAT: ZUDLIK BILAN E'TIBOR TALAB ETILADI</b>"
@@ -500,6 +507,10 @@ def format_doctor_alert(
     patient_id: str,
 ) -> str:
     """Doctor alert template — rich structured format."""
+    patient_name = _esc(patient_name)
+    district = _esc(district)
+    diagnosis = _esc(diagnosis)
+    reason = _esc(reason)
     params_lines = []
     param_icons = {
         "spo2": "\u2b07 SpO\u2082",
@@ -528,6 +539,7 @@ def format_doctor_alert(
 
 
 def format_active_call_reminder(patient_name: str, due_in_hours: int) -> str:
+    patient_name = _esc(patient_name)
     return (
         f"\u26a0\ufe0f <b>ESLATMA: AKTIV CHAQIRUV</b>\n\n"
         f"Bemor <b>{patient_name}</b> bo'yicha belgilangan 24 soatlik patronaj muddati "
@@ -537,6 +549,9 @@ def format_active_call_reminder(patient_name: str, due_in_hours: int) -> str:
 
 
 def format_overdue_escalation(patient_name: str, doctor_name: str | None, district: str) -> str:
+    patient_name = _esc(patient_name)
+    doctor_name = _esc(doctor_name)
+    district = _esc(district)
     return (
         f"\u26d4 <b>ESKALATSIYA (MUDDATI O'TDI)</b>\n\n"
         f"Bemor <b>{patient_name}</b> ({district}) bo'yicha 24 soatlik aktiv chaqiruv "
@@ -546,6 +561,7 @@ def format_overdue_escalation(patient_name: str, doctor_name: str | None, distri
 
 
 def format_no_data_alert(patient_name: str, access_token: str) -> str:
+    patient_name = _esc(patient_name)
     link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     return (
         f"\u2139\ufe0f <b>Soat aloqasi yo'q</b>\n\n"
@@ -900,7 +916,7 @@ async def poll_telegram_messages() -> None:
                                 text_p, markup_p = format_thresholds_panel()
                                 await send_telegram_message(cb_chat_id, text_p, markup_p)
                         elif cb_data == "adm_addadmin_prompt":
-                            if not is_admin(cb_chat_id):
+                            if not is_super_admin(cb_chat_id):
                                 await send_telegram_message(cb_chat_id, "⛔️ Ruxsat berilmagan.")
                                 continue
                             admin_input_state[cb_chat_id] = "awaiting_admin_id"
@@ -937,7 +953,7 @@ async def poll_telegram_messages() -> None:
                         message_text=raw_text,
                     )
 
-                    logger.info("Received Telegram message from '%s' (chat_id=%s): %s", user_name, chat_id, text)
+                    logger.info("Received Telegram message (chat_id=%s, %d chars)", chat_id, len(text))
 
                     # Check for active stateful admin input
                     if is_admin(chat_id) and chat_id in admin_input_state:
@@ -1089,7 +1105,7 @@ async def poll_telegram_messages() -> None:
                                 "📍 Xorazm viloyati Kardiologiya Dispanseri\n\n"
                                 "Ish vaqti: 08:00 — 17:00 (Du-Ju)",
                             )
-                    elif text.startswith("/admin") or text in ("⚙️ admin panel", "admin"):
+                    elif text.split("@")[0].split()[0:1] == ["/admin"] or text in ("⚙️ admin panel", "admin"):
                         if not is_admin(chat_id):
                             await send_telegram_message(chat_id, "⛔️ Kechirasiz, ushbu bo'lim faqat tizim administratorlari uchun mo'ljallangan.")
                         else:
@@ -1227,7 +1243,7 @@ async def poll_telegram_messages() -> None:
                             text_p, markup_p = format_admins_panel(chat_id)
                             await send_telegram_message(chat_id, text_p, markup_p)
                     elif text.startswith("/addadmin"):
-                        if not is_admin(chat_id):
+                        if not is_super_admin(chat_id):
                             await send_telegram_message(chat_id, "⛔️ Ruxsat berilmagan.")
                         else:
                             parts = raw_text.split(maxsplit=2)

@@ -11,7 +11,7 @@ from .admin_store import SUPER_ADMIN_ID, is_admin
 
 logger = logging.getLogger("nazorat.notifier.user_tracker")
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.getenv("NOTIFIER_DATA_DIR") or Path(__file__).resolve().parent)
 USERS_FILE = DATA_DIR / "users.json"
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:5174").rstrip("/")
 

@@ -21,7 +21,10 @@ from typing import Any
 logger = logging.getLogger("wmax.notifier.state")
 
 STATE_FILE = Path(
-    os.getenv("NOTIFIER_STATE_FILE", str(Path(__file__).resolve().parent / "sent_state.json"))
+    os.getenv(
+        "NOTIFIER_STATE_FILE",
+        str(Path(os.getenv("NOTIFIER_DATA_DIR") or Path(__file__).resolve().parent) / "sent_state.json"),
+    )
 )
 # Keep the ledger from growing without bound; entries far older than any
 # cooldown window carry no information.

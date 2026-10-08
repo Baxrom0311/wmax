@@ -56,9 +56,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("wmax.notifier")
+# httpx logs full request URLs at INFO, and Telegram URLs embed the bot token.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 ALERT_COOLDOWN_HOURS = int(os.getenv("ALERT_COOLDOWN_HOURS", "6"))
 NO_DATA_MINUTES = int(os.getenv("NO_DATA_MINUTES", "45"))
+ALERT_MAX_AGE_HOURS = int(os.getenv("ALERT_MAX_AGE_HOURS", "2"))
 
 def _admin_chat_ids() -> list[int]:
     """Telegram chat ids of registered duty staff (super admin included)."""
@@ -192,6 +195,9 @@ async def check_alert_signals() -> None:
             .join(Patient, Alert.patient_id == Patient.id)
             .where(
                 Alert.level.in_(["amber", "red"]),
+                # Bounded window: never page anyone about days-old alerts
+                # (e.g. after a redeploy wipes the local sent ledger).
+                Alert.ts >= now - timedelta(hours=ALERT_MAX_AGE_HOURS),
                 Patient.deceased_at.is_(None),
                 ~exists().where(Notification.alert_id == Alert.id),
             )
