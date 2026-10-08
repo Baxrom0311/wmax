@@ -101,7 +101,8 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --fatal-infos
-          flutter test
+          # Keep CI hermetic; the live integration test can create a real SOS.
+          flutter test test/widget_test.dart test/wear_health_test.dart
           flutter build apk --debug --flavor phone
           flutter build apk --debug --flavor wear
 
@@ -169,7 +170,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Build FastAPI Backend Image
         uses: docker/build-push-action@v5
