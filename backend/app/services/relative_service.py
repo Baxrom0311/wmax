@@ -18,7 +18,6 @@ from app.repositories.reading_repo import ReadingRepository
 from app.repositories.relative_repo import RelativeRepository
 from app.repositories.task_repo import TaskRepository
 from app.schemas.alert import Alert as AlertSchema
-from app.schemas.problem import ProblemItem, PrognosisInfo
 from app.schemas.relative import (
     DoctorContact,
     RelativePatientItem,
@@ -29,7 +28,6 @@ from app.schemas.series import ParamSeries, SeriesPoint
 from app.schemas.task import Task as TaskSchema
 from app.schemas.trend import Trend
 from app.services.clinical_math import (
-    PARAM_NAMES_UZ,
     compute_daily_risk_scores,
     compute_prognosis_pure,
     compute_trend_pure,

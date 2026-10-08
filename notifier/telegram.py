@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import os
 from pathlib import Path
@@ -21,11 +22,9 @@ from .admin_store import (
     is_super_admin,
     remove_admin,
 )
-from .ai_assistant import handle_user_query
+from .ai_assistant import CLINIC_CONTACT_TEXT, handle_user_query
 from .api_manager import (
     SUPPORTED_MODELS,
-    add_api_key,
-    delete_api_key,
     delete_api_key_by_id,
     get_active_api_key,
     get_all_api_keys,
@@ -44,7 +43,6 @@ from .excel_exporter import generate_users_excel
 from .user_tracker import (
     format_stats_message,
     format_users_list_message,
-    get_all_users,
     get_user_stats,
     track_user,
 )
@@ -152,6 +150,11 @@ def _persistent_reply_keyboard(user_id: int | str | None = None) -> dict:
     }
 
 
+def _esc(value: Any) -> Any:
+    """Escapes text for Telegram HTML parse mode; None passes through."""
+    return html.escape(str(value), quote=False) if value is not None else None
+
+
 def format_admin_welcome(user_name: str, user_id: int | str) -> str:
     """Welcome greeting for system administrators."""
     is_super = is_super_admin(user_id)
@@ -190,7 +193,7 @@ def format_admin_panel(user_id: int | str) -> tuple[str, dict]:
         f"👤 Sizning rolingiz: {role_badge}\n"
         f"🆔 Telegram ID: <code>{user_id}</code>\n"
         f"🏥 Bemorlar: <b>{stats['total_patients']} nafar</b> (Yaqinlar: {stats['relatives_count']} ta)\n"
-        f"🔴 Og'ir holatda: <b>{stats['red_count']} nafar</b> (Otabek Ro'zmetov)\n"
+        f"🔴 Og'ir holatda: <b>{stats['red_count']} nafar</b>\n"
         f"🤖 AI Model: <code>{model}</code>\n"
         f"🔑 Gemini Kalit: <code>{mask_key(active_key)}</code>\n"
         f"⚡️ Tizim rejimi: <b>{mode.capitalize()}</b>\n"
@@ -478,6 +481,7 @@ def format_sysinfo() -> tuple[str, dict]:
 
 def format_relative_alert(patient_name: str, access_token: str, level: str) -> str:
     """Relative message template — clinical diagnosis is never disclosed."""
+    patient_name = _esc(patient_name)
     link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     if level == "red":
         prefix = "\U0001f6a8 <b>DIQQAT: ZUDLIK BILAN E'TIBOR TALAB ETILADI</b>"
@@ -503,6 +507,10 @@ def format_doctor_alert(
     patient_id: str,
 ) -> str:
     """Doctor alert template — rich structured format."""
+    patient_name = _esc(patient_name)
+    district = _esc(district)
+    diagnosis = _esc(diagnosis)
+    reason = _esc(reason)
     params_lines = []
     param_icons = {
         "spo2": "\u2b07 SpO\u2082",
@@ -531,6 +539,7 @@ def format_doctor_alert(
 
 
 def format_active_call_reminder(patient_name: str, due_in_hours: int) -> str:
+    patient_name = _esc(patient_name)
     return (
         f"\u26a0\ufe0f <b>ESLATMA: AKTIV CHAQIRUV</b>\n\n"
         f"Bemor <b>{patient_name}</b> bo'yicha belgilangan 24 soatlik patronaj muddati "
@@ -540,6 +549,9 @@ def format_active_call_reminder(patient_name: str, due_in_hours: int) -> str:
 
 
 def format_overdue_escalation(patient_name: str, doctor_name: str | None, district: str) -> str:
+    patient_name = _esc(patient_name)
+    doctor_name = _esc(doctor_name)
+    district = _esc(district)
     return (
         f"\u26d4 <b>ESKALATSIYA (MUDDATI O'TDI)</b>\n\n"
         f"Bemor <b>{patient_name}</b> ({district}) bo'yicha 24 soatlik aktiv chaqiruv "
@@ -549,6 +561,7 @@ def format_overdue_escalation(patient_name: str, doctor_name: str | None, distri
 
 
 def format_no_data_alert(patient_name: str, access_token: str) -> str:
+    patient_name = _esc(patient_name)
     link = f"{PUBLIC_BASE_URL}/relative" if not access_token else f"{PUBLIC_BASE_URL}/r/{access_token}"
     return (
         f"\u2139\ufe0f <b>Soat aloqasi yo'q</b>\n\n"
@@ -636,12 +649,92 @@ HELP_TEXT = (
 )
 
 
-# ---- DEMO VITALS (for status command when no DB is connected) ----
+NOT_LINKED_TEXT = (
+    "ℹ️ Bu Telegram hisobi hali hech bir bemorga bog'lanmagan.\n\n"
+    "Shifokoringizdan qarovchi taklifini so'rang va portal orqali uni tasdiqlang. "
+    "Shundan so'ng bu yerda bemorning haqiqiy holatini ko'rasiz."
+)
 
-DEMO_VITALS = {
-    "hr": 86, "spo2": 92, "skin_temp": 36.6, "rr": 19,
-    "sleep_hours": 5.4, "steps": 1840, "level": "amber",
-}
+
+async def linked_patient_status(chat_id: int | str) -> tuple[str, dict[str, Any]] | None:
+    """Latest real status of the patient this Telegram chat may see, or None.
+
+    Access follows the same rule as the caregiver portal: a verified Telegram
+    identity, an accepted invitation and the patient's active family consent.
+    """
+    from sqlalchemy import select
+
+    from app.core.db import get_db_context
+    from app.models.alert import Alert
+    from app.models.patient import Patient
+    from app.models.reading import Reading
+    from app.models.schema import AccountIdentity, PatientAccess, PatientConsent
+
+    async with get_db_context() as session:
+        patient = (
+            await session.execute(
+                select(Patient)
+                .join(PatientAccess, PatientAccess.patient_id == Patient.id)
+                .join(AccountIdentity, AccountIdentity.account_id == PatientAccess.account_id)
+                .join(PatientConsent, PatientConsent.patient_id == Patient.id)
+                .where(
+                    AccountIdentity.provider == "telegram",
+                    AccountIdentity.external_id == str(chat_id),
+                    AccountIdentity.verified_at.is_not(None),
+                    PatientAccess.accepted_at.is_not(None),
+                    PatientAccess.revoked_at.is_(None),
+                    PatientConsent.target_account_id == PatientAccess.account_id,
+                    PatientConsent.scope == "family_access",
+                    PatientConsent.granted.is_(True),
+                    PatientConsent.revoked_at.is_(None),
+                    Patient.deceased_at.is_(None),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if patient is None:
+            return None
+
+        reading = (
+            await session.execute(
+                select(Reading)
+                .where(Reading.patient_id == patient.id, Reading.worn.is_(True))
+                .order_by(Reading.window_start.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        alert = (
+            await session.execute(
+                select(Alert)
+                .where(Alert.patient_id == patient.id)
+                .order_by(Alert.ts.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+    vitals: dict[str, Any] = {"level": alert.level if alert else "no_data"}
+    if reading is not None:
+        for key, value in (
+            ("hr", reading.hr_mean),
+            ("spo2", reading.spo2),
+            ("skin_temp", reading.skin_temp),
+            ("rr", reading.rr_est),
+            ("steps", reading.steps),
+        ):
+            if value is not None:
+                vitals[key] = round(value) if key in ("hr", "spo2", "rr") else value
+    if getattr(patient, "age", None):
+        vitals["age"] = patient.age
+    return patient.full_name, vitals
+
+
+async def _send_linked_status(chat_id: int | str) -> None:
+    linked = await linked_patient_status(chat_id)
+    if linked is None:
+        await send_telegram_message(chat_id, NOT_LINKED_TEXT)
+        return
+    patient_name, vitals = linked
+    await send_telegram_message(chat_id, format_status_response(_esc(patient_name), vitals))
 
 
 async def answer_callback_query(callback_query_id: str, text: str = "") -> None:
@@ -688,18 +781,13 @@ async def poll_telegram_messages() -> None:
                         await answer_callback_query(callback["id"])
 
                         if cb_data == "cmd_status":
-                            status_text = format_status_response("Otabek Rahimov", DEMO_VITALS)
-                            await send_telegram_message(cb_chat_id, status_text)
+                            await _send_linked_status(cb_chat_id)
                         elif cb_data == "cmd_help":
                             await send_telegram_message(cb_chat_id, HELP_TEXT)
                         elif cb_data == "cmd_call_doctor":
                             await send_telegram_message(
                                 cb_chat_id,
-                                "\u260e\ufe0f <b>Shifokor bilan bog'lanish:</b>\n\n"
-                                "\U0001f468\u200d\u2695\ufe0f Dr. Bahrom Alimov\n"
-                                "\U0001f4de +998 90 123 45 67\n"
-                                "\U0001f4cd Xorazm viloyati Kardiologiya Dispanseri\n\n"
-                                "Ish vaqti: 08:00 \u2014 17:00 (Du-Ju)",
+                                CLINIC_CONTACT_TEXT,
                             )
                         elif cb_data == "cmd_main_menu":
                             welcome = WELCOME_TEXT.format(user_name=cb_user, chat_id=cb_chat_id)
@@ -903,7 +991,7 @@ async def poll_telegram_messages() -> None:
                                 text_p, markup_p = format_thresholds_panel()
                                 await send_telegram_message(cb_chat_id, text_p, markup_p)
                         elif cb_data == "adm_addadmin_prompt":
-                            if not is_admin(cb_chat_id):
+                            if not is_super_admin(cb_chat_id):
                                 await send_telegram_message(cb_chat_id, "⛔️ Ruxsat berilmagan.")
                                 continue
                             admin_input_state[cb_chat_id] = "awaiting_admin_id"
@@ -940,7 +1028,7 @@ async def poll_telegram_messages() -> None:
                         message_text=raw_text,
                     )
 
-                    logger.info("Received Telegram message from '%s' (chat_id=%s): %s", user_name, chat_id, text)
+                    logger.info("Received Telegram message (chat_id=%s, %d chars)", chat_id, len(text))
 
                     # Check for active stateful admin input
                     if is_admin(chat_id) and chat_id in admin_input_state:
@@ -1069,8 +1157,7 @@ async def poll_telegram_messages() -> None:
                                 markup_p,
                             )
                         else:
-                            status_text = format_status_response("Otabek Rahimov", DEMO_VITALS)
-                            await send_telegram_message(chat_id, status_text)
+                            await _send_linked_status(chat_id)
                     elif text in ("/help", "/help@wmax_uz_bot", "❓ yordam", "yordam"):
                         if is_admin(chat_id):
                             text_p, markup_p = format_admin_help()
@@ -1086,13 +1173,9 @@ async def poll_telegram_messages() -> None:
                         else:
                             await send_telegram_message(
                                 chat_id,
-                                "☎️ <b>Shifokor bilan bog'lanish:</b>\n\n"
-                                "👨‍⚕️ Dr. Bahrom Alimov\n"
-                                "📞 +998 90 123 45 67\n"
-                                "📍 Xorazm viloyati Kardiologiya Dispanseri\n\n"
-                                "Ish vaqti: 08:00 — 17:00 (Du-Ju)",
+                                CLINIC_CONTACT_TEXT,
                             )
-                    elif text.startswith("/admin") or text in ("⚙️ admin panel", "admin"):
+                    elif text.split("@")[0].split()[0:1] == ["/admin"] or text in ("⚙️ admin panel", "admin"):
                         if not is_admin(chat_id):
                             await send_telegram_message(chat_id, "⛔️ Kechirasiz, ushbu bo'lim faqat tizim administratorlari uchun mo'ljallangan.")
                         else:
@@ -1230,7 +1313,7 @@ async def poll_telegram_messages() -> None:
                             text_p, markup_p = format_admins_panel(chat_id)
                             await send_telegram_message(chat_id, text_p, markup_p)
                     elif text.startswith("/addadmin"):
-                        if not is_admin(chat_id):
+                        if not is_super_admin(chat_id):
                             await send_telegram_message(chat_id, "⛔️ Ruxsat berilmagan.")
                         else:
                             parts = raw_text.split(maxsplit=2)
@@ -1289,13 +1372,18 @@ async def poll_telegram_messages() -> None:
                                 await send_telegram_message(chat_id, f"✅ Xabar {sent_cnt} nafar administratorga yetkazildi.")
                     else:
                         # Process natural query via Hybrid AI (Gemini) + Algorithmic Triage
+                        linked = await linked_patient_status(chat_id)
+                        if linked is None:
+                            await send_telegram_message(chat_id, NOT_LINKED_TEXT)
+                            continue
+                        patient_name, vitals = linked
                         ai_reply = await handle_user_query(
                             text=raw_text,
-                            patient_name="Otabek Rahimov",
-                            vitals=DEMO_VITALS,
+                            patient_name=_esc(patient_name),
+                            vitals=vitals,
                         )
                         await send_telegram_message(chat_id, ai_reply)
 
             except Exception as err:
-                logger.debug("Telegram polling transient error: %s", err)
+                logger.warning("Telegram polling error: %s", err)
                 await asyncio.sleep(4)

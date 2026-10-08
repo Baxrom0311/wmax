@@ -39,20 +39,19 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo, l
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Stable across selection changes so the poll interval is not torn down on
+  // every click, and only the first load shows the spinner.
   const loadSos = useCallback(async () => {
     try {
-      setLoading(true);
       const data = await fetchActiveSos(isDemo);
       setEvents(data);
-      if (data.length > 0 && !selectedEventId) {
-        setSelectedEventId(data[0].id);
-      }
+      setSelectedEventId((current) => current ?? (data.length > 0 ? data[0].id : null));
     } catch (e: any) {
       setActionError(e?.message || "SOS ma'lumotlarini yuklashda xatolik");
     } finally {
       setLoading(false);
     }
-  }, [isDemo, selectedEventId]);
+  }, [isDemo]);
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- dispatcher hydrates from the SOS endpoint on mount

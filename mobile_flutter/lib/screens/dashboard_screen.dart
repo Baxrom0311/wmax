@@ -48,28 +48,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _patients = widget.initialPatients.isNotEmpty
-        ? widget.initialPatients
-        : [
-            PatientSummary(
-              id: "00000000-0000-0000-0000-000000000001",
-              fullName: "Otabek Ro'zmetov",
-              relationship: "Otangiz",
-              accessToken: "tok_otabek",
-              level: AlertLevel.amber,
-              diagnosis: "YIK, Stenokardiya FK III, SYuYe IIB",
-              age: 68,
-            ),
-            PatientSummary(
-              id: "00000000-0000-0000-0000-000000000002",
-              fullName: "Gulnora Matyoqubova",
-              relationship: "Onangiz",
-              accessToken: "tok_gulnora",
-              level: AlertLevel.green,
-              diagnosis: "Arterial gipertoniya II bosqich",
-              age: 65,
-            ),
-          ];
+    _patients = widget.initialPatients;
 
     _fetchCurrentPatientData();
     _loadWearDeviceCredential();
@@ -117,8 +96,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     super.dispose();
   }
 
+  // Only read when _patients is non-empty; build() shows an empty state first.
   PatientSummary get currentPatient =>
-      _patients.isNotEmpty ? _patients[_selectedPatientIndex] : _patients.first;
+      _patients[_selectedPatientIndex.clamp(0, _patients.length - 1)];
 
   Future<void> _fetchCurrentPatientData({bool silent = false}) async {
     if (_patients.isEmpty) return;
@@ -243,7 +223,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text(widget.isUzbek ? "⚠️ Aloqa xatosi!" : "⚠️ Ошибка связи!"),
+            title: Text(
+              widget.isUzbek ? "⚠️ Aloqa xatosi!" : "⚠️ Ошибка связи!",
+            ),
             content: Text(
               widget.isUzbek
                   ? "Server bilan aloqa uzildi! SOS signali yetib bormasligi mumkin. Iltimos, darhol 103 ga to'g'ridan-to'g'ri telefon qiling!"
@@ -264,7 +246,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                   makePhoneCall("103");
                 },
                 icon: const Icon(Icons.phone),
-                label: Text(widget.isUzbek ? "103 ga qo'ng'iroq" : "Позвонить в 103"),
+                label: Text(
+                  widget.isUzbek ? "103 ga qo'ng'iroq" : "Позвонить в 103",
+                ),
               ),
             ],
           ),
@@ -276,6 +260,24 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
   @override
   Widget build(BuildContext context) {
     final bool uz = widget.isUzbek;
+
+    if (_patients.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              uz
+                  ? "Sizga hali bemor biriktirilmagan. Shifokoringizdan qarovchi taklifini so'rang."
+                  : "К вам ещё не привязан пациент. Попросите врача отправить приглашение.",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: Color(0xFF475569)),
+            ),
+          ),
+        ),
+      );
+    }
 
     final pages = [
       _buildMonitoringView(uz),

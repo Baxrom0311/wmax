@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../api/api_service.dart';
@@ -22,12 +23,8 @@ class CaregiverLoginScreen extends StatefulWidget {
 }
 
 class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
-  final TextEditingController _phoneController = TextEditingController(
-    text: "+998 90 111 00 11",
-  );
-  final TextEditingController _pinController = TextEditingController(
-    text: "112233",
-  );
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _pinController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String _role = 'relative';
   bool _isLoading = false;
@@ -321,58 +318,60 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Quick Demo Buttons
-                  Text(
-                    uz ? "Tezkor sinov hisoblari:" : "Быстрый демо-вход:",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                  // Quick demo accounts exist only in debug builds.
+                  if (kDebugMode) ...[
+                    Text(
+                      uz ? "Tezkor sinov hisoblari:" : "Быстрый демо-вход:",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _phoneController.text = "+998 90 111 00 11";
-                            _pinController.text = "112233";
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _phoneController.text = "+998 90 111 00 11";
+                              _pinController.text = "112233";
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              uz ? "👵 Dilnoza (Otabek)" : "👵 Дильноза",
+                              style: const TextStyle(fontSize: 11),
                             ),
                           ),
-                          child: Text(
-                            uz ? "👵 Dilnoza (Otabek)" : "👵 Дильноза",
-                            style: const TextStyle(fontSize: 11),
-                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _phoneController.text = "+998 90 111 00 22";
-                            _pinController.text = "112233";
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _phoneController.text = "+998 90 111 00 22";
+                              _pinController.text = "112233";
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              uz ? "👴 Sardor (Gulnora)" : "👴 Сардор",
+                              style: const TextStyle(fontSize: 11),
                             ),
                           ),
-                          child: Text(
-                            uz ? "👴 Sardor (Gulnora)" : "👴 Сардор",
-                            style: const TextStyle(fontSize: 11),
-                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

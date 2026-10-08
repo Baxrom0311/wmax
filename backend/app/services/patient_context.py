@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from algo_interface import AlertLevel, BaselineEntry, Phase, ReadingVec
+from algo_interface import AlertLevel, Phase
 from app.models.address import PatientAddress
 from app.models.admission import PatientAdmission
 from app.models.alert import Alert
 from app.models.allergy import PatientAllergy
-from app.models.baseline import Baseline
 from app.models.condition import PatientCondition
 from app.models.measurement import PatientMeasurement
 from app.models.medication import PatientMedication

@@ -4,7 +4,6 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -304,7 +303,7 @@ def generate_users_excel(custom_path: Path | None = None) -> Path:
     kpi_data = [
         ("Parametr / Ko'rsatkich", "Qiymat"),
         ("Jami Nazoratdagi Bemorlar Soni", f"{stats['total_patients']} nafar"),
-        ("🔴 O'tkir Xavf Holatidagi Bemorlar (Qizil)", f"{stats['red_count']} nafar (Otabek Ro'zmetov)"),
+        ("🔴 O'tkir Xavf Holatidagi Bemorlar (Qizil)", f"{stats['red_count']} nafar"),
         ("🟡 Diqqat Talab Holatidagi Bemorlar (Sariq)", f"{stats['amber_count']} nafar (Gulnora Matyoqubova)"),
         ("🟢 Barqaror Kompensatsiya Holatidagi Bemorlar (Yashil)", f"{stats['green_count']} nafar (Rustam Qurbonov)"),
         ("⚪️ Aloqa Uzilgan Bemorlar (No Data)", f"{stats['nodata_count']} nafar (Jumaniyoz Otajonov)"),

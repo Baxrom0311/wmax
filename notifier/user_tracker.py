@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .admin_store import SUPER_ADMIN_ID, is_admin, is_super_admin
+from .admin_store import SUPER_ADMIN_ID, is_admin
 
 logger = logging.getLogger("nazorat.notifier.user_tracker")
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.getenv("NOTIFIER_DATA_DIR") or Path(__file__).resolve().parent)
 USERS_FILE = DATA_DIR / "users.json"
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:5174").rstrip("/")
 
@@ -295,7 +295,7 @@ def format_stats_message() -> str:
     return (
         "📊 <b>NAZORAT (WMAX) — Tizim va Bemorlar Jonli Statistikasi</b>\n\n"
         f"🏥 <b>Monitoringdagi bemorlar:</b> <b>{stats['total_patients']} nafar</b>\n"
-        f"  • 🔴 O'tkir xavf (Qizil): <b>{stats['red_count']} nafar</b> (Otabek Ro'zmetov)\n"
+        f"  • 🔴 O'tkir xavf (Qizil): <b>{stats['red_count']} nafar</b>\n"
         f"  • 🟡 Diqqat talab (Sariq): <b>{stats['amber_count']} nafar</b> (Gulnora Matyoqubova)\n"
         f"  • 🟢 Barqaror holat (Yashil): <b>{stats['green_count']} nafar</b> (Rustam Qurbonov)\n"
         f"  • ⚪️ Aloqa yo'q (No Data): <b>{stats['nodata_count']} nafar</b> (Jumaniyoz Otajonov)\n\n"

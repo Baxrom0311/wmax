@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Sequence
 
 from sqlalchemy import desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PatientMembership
-from app.models.patient import Patient
 from app.models.sos import SosEvent, SosNotification
 
 

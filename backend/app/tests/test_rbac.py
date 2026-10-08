@@ -4,7 +4,6 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.auth.deps import (
-    get_current_principal,
     get_current_relative,
     get_current_user,
     require_doctor,

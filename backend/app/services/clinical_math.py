@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import statistics
-from datetime import date, datetime
-from typing import Any, Literal, Sequence
+from datetime import date
+from typing import Literal, Sequence
 
 import timewin
 from algo_interface import (

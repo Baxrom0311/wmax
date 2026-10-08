@@ -8,11 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
 COPY backend/requirements.txt       /tmp/req-core.txt
 COPY backend/algo/requirements.txt  /tmp/req-algo.txt
-COPY backend/auth/requirements.txt  /tmp/req-auth.txt
 COPY notifier/requirements.txt      /tmp/req-notif.txt
 RUN pip install --no-cache-dir --prefix=/install \
       -r /tmp/req-core.txt -r /tmp/req-algo.txt \
-      -r /tmp/req-auth.txt -r /tmp/req-notif.txt
+      -r /tmp/req-notif.txt
 
 FROM python:3.12-slim
 WORKDIR /srv

@@ -14,7 +14,7 @@ load_dotenv()
 
 logger = logging.getLogger("nazorat.notifier.api_manager")
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.getenv("NOTIFIER_DATA_DIR") or Path(__file__).resolve().parent)
 SETTINGS_FILE = DATA_DIR / "settings.json"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -318,9 +318,9 @@ async def test_gemini_api(api_key: str | None = None, model: str | None = None) 
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
                 url,
-                params={"key": key},
                 json=payload,
-                headers={"Content-Type": "application/json"},
+                # Header, not ?key=, so the secret never lands in URL logs.
+                headers={"Content-Type": "application/json", "x-goog-api-key": key},
             )
             latency = round(time.perf_counter() - t0, 2)
             if resp.status_code == 200:

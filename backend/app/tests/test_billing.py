@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -15,7 +14,6 @@ from app.billing.entitlements import (
 )
 from app.billing.service import BillingService
 from app.models.subscription import Subscription
-from app.models.tenant import Tenant
 
 
 def test_safety_features_never_blocked():

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.ai.cache import AICache, ai_cache
+from app.ai.cache import AICache
 from app.ai.clinical_ai import ClinicalAIService
 from app.ai.guardrails import (
     detect_prompt_injection,
@@ -14,10 +14,8 @@ from app.ai.guardrails import (
     validate_prognosis_factuality,
 )
 from app.schemas.problem import (
-    NurseChecklistItem,
     NurseHandoverSBAR,
     PrognosisInfo,
-    TwinPrognosisInfo,
 )
 from notifier.ai_assistant import handle_user_query
 

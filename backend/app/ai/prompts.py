@@ -164,6 +164,9 @@ ALLERGIYALAR:
 
 VAZN DINAMIKASI (14 kun):
 {weight_trend}
+
+GOSPITALIZATSIYALAR TARIXI:
+{admissions_table}
 </patient_context>
 
 <telemetry_state>

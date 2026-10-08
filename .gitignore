@@ -18,3 +18,14 @@ wear/**/build/
 cloudflared.exe
 notifier/settings.json
 notifier/exports/
+
+# Never commit database dumps, server backups or runtime bot state
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.tar.gz
+notifier/admins.json
+notifier/users.json
+notifier/sent_state.json
+notifier/data/

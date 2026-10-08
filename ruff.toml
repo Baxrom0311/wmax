@@ -1,0 +1,6 @@
+# CI gate: real errors only (syntax, undefined names, unused code).
+# Style rules can be tightened later without blocking every push.
+target-version = "py312"
+
+[lint]
+select = ["E9", "F"]

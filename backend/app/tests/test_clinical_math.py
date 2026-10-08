@@ -6,8 +6,6 @@ app.services.clinical_math functions and algo_interface constants.
 """
 from __future__ import annotations
 
-import math
-import uuid
 from datetime import datetime, timezone
 
 import pytest
@@ -16,13 +14,13 @@ import timewin
 # Allow import without installed packages by checking if they exist
 try:
     from app.services.clinical_math import (
-        compute_prognosis_pure,
+        compute_prognosis_pure,  # noqa: F401  (availability probe)
         compute_trend_pure,
         compute_daily_risk_scores,
         detect_problems_pure,
         compute_zscores_pure,
     )
-    from app.services.clinical_math import _compute_directional_zscore  # internal helper
+    from app.services.clinical_math import _compute_directional_zscore  # noqa: F401  (internal helper)
     HAS_CLINICAL_MATH = True
 except (ImportError, Exception):
     HAS_CLINICAL_MATH = False
@@ -37,10 +35,10 @@ try:
         RED_THRESHOLD,
         REST_STEPS_MAX,
         Z_DEADZONE,
-        AlertResult,
+        AlertResult,  # noqa: F401
         BaselineEntry,
         ReadingVec,
-        TrendResult,
+        TrendResult,  # noqa: F401
     )
     HAS_CONTRACTS = True
 except ImportError:
@@ -405,7 +403,6 @@ class TestTimewin:
     def test_window_of_returns_0_for_midnight(self):
         try:
             import timewin
-            import zoneinfo
             midnight = datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc)
             # 00:00 UTC = 05:00 Tashkent — window 0 (00–06)
             result = timewin.window_of(midnight)

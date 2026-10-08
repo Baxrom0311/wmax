@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -68,6 +69,20 @@ def _get_url() -> str:
 
 
 # ---------------------------------------------------------------------------
+# readings is range-partitioned by month. The partitions (readings_YYYY_MM,
+# readings_default) are created by migrations and the partition worker, not
+# declared as ORM models, so autogenerate/`alembic check` must ignore them.
+# ---------------------------------------------------------------------------
+_READINGS_PARTITION = re.compile(r"^readings_(\d{4}_\d{2}|default)$")
+
+
+def include_object(obj, name, type_, reflected, compare_to):  # noqa: ANN001
+    if type_ == "table" and reflected and name and _READINGS_PARTITION.match(name):
+        return False
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Offline migrations (no live DB connection required — emits SQL to stdout)
 # ---------------------------------------------------------------------------
 def run_migrations_offline() -> None:
@@ -83,6 +98,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -97,6 +113,7 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

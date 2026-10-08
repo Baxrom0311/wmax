@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_session
 from app.core.rls import set_rls_context
 from app.core.security import decode_token
-from app.models import PatientAccess, PatientConsent, PatientMembership, TenantMember
+from app.models import PatientAccess, PatientConsent, TenantMember
 from app.schemas.auth import CurrentUser
 from app.schemas.common import CLINICIAN_ROLES
 

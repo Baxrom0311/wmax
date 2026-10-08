@@ -56,7 +56,20 @@ export function clearTokens(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
-async function attemptRefresh(): Promise<string | null> {
+// Several pollers can hit 401 at once; the backend rotates refresh tokens, so
+// only one refresh may be in flight or the later ones present a revoked token.
+let refreshInFlight: Promise<string | null> | null = null;
+
+function attemptRefresh(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<string | null> {
   const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refresh || refresh.startsWith("demo_")) return null;
   try {
@@ -255,6 +268,8 @@ export async function dischargePatient(patientId: string, forceDemo?: boolean): 
 
 /**
  * Fetch active SOS emergency events.
+ * Errors are thrown, never replaced by sample events: a dispatcher must be
+ * able to tell "no emergencies" from "cannot reach the server".
  */
 export async function fetchActiveSos(forceDemo?: boolean): Promise<SosEventItem[]> {
   const activeDemo = forceDemo ?? isDemoSession();
@@ -263,32 +278,12 @@ export async function fetchActiveSos(forceDemo?: boolean): Promise<SosEventItem[
     return getMockActiveSos();
   }
 
-  const token = getStoredToken();
-  try {
-    const res = await fetch("/api/v1/sos/active", {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (res.status === 401) {
-      clearTokens();
-      throw new Error("UNAUTHORIZED");
-    }
-
-    if (!res.ok) {
-      const { getMockActiveSos } = await loadDoctorMocks();
-      return getMockActiveSos();
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) return data;
-    const { getMockActiveSos } = await loadDoctorMocks();
-    return getMockActiveSos();
-  } catch {
-    const { getMockActiveSos } = await loadDoctorMocks();
-    return getMockActiveSos();
+  const res = await apiFetch("/api/v1/sos/active");
+  if (!res.ok) {
+    throw new Error(`SOS ro'yxatini yuklashda xatolik: ${res.status}`);
   }
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -296,17 +291,13 @@ export async function fetchActiveSos(forceDemo?: boolean): Promise<SosEventItem[
  */
 export async function acknowledgeSos(sosId: string, forceDemo?: boolean): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo || sosId.startsWith("sos-")) {
+  if (activeDemo) {
     const { mockAcknowledgeSos } = await loadDoctorMocks();
     return mockAcknowledgeSos(sosId);
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/sos/${encodeURIComponent(sosId)}/acknowledge`, {
+  const res = await apiFetch(`/api/v1/sos/${encodeURIComponent(sosId)}/acknowledge`, {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
   });
 
   if (!res.ok) {
@@ -325,18 +316,14 @@ export async function dispatchSos103(
   forceDemo?: boolean,
 ): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo || sosId.startsWith("sos-")) {
+  if (activeDemo) {
     const { mockDispatchSos103 } = await loadDoctorMocks();
     return mockDispatchSos103(sosId, payload?.dispatch_ref || undefined);
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/sos/${encodeURIComponent(sosId)}/dispatch`, {
+  const res = await apiFetch(`/api/v1/sos/${encodeURIComponent(sosId)}/dispatch`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload || { dispatch_method: "manual_call_103" }),
   });
 
@@ -352,18 +339,14 @@ export async function dispatchSos103(
  */
 export async function resolveSos(sosId: string, note: string, forceDemo?: boolean): Promise<SosEventItem> {
   const activeDemo = forceDemo ?? isDemoSession();
-  if (activeDemo || sosId.startsWith("sos-")) {
+  if (activeDemo) {
     const { mockResolveSos } = await loadDoctorMocks();
     return mockResolveSos(sosId, note);
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/sos/${encodeURIComponent(sosId)}/resolve`, {
+  const res = await apiFetch(`/api/v1/sos/${encodeURIComponent(sosId)}/resolve`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resolution_note: note }),
   });
 
@@ -467,17 +450,7 @@ export async function fetchPatientFullProfile(patientId: string, forceDemo?: boo
     };
   }
 
-  const token = getStoredToken();
-  const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/profile`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (res.status === 401) {
-    clearTokens();
-    throw new Error("UNAUTHORIZED");
-  }
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/profile`);
 
   if (!res.ok) {
     throw new Error(`Profil ma'lumotlarini yuklashda xatolik: ${res.status}`);
@@ -520,21 +493,8 @@ export async function fetchNurseHandover(
     };
   }
 
-  const token = getStoredToken();
-  try {
-    const res = await fetch(`/api/v1/patients/${encodeURIComponent(patientId)}/nurse-handover`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (res.status === 401) {
-      clearTokens();
-      throw new Error("UNAUTHORIZED");
-    }
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  const res = await apiFetch(`/api/v1/patients/${encodeURIComponent(patientId)}/nurse-handover`);
+  // A missing AI note is not fatal for the panel; auth failures still throw.
+  if (!res.ok) return null;
+  return await res.json();
 }

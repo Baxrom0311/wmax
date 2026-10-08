@@ -12,7 +12,7 @@ logger = logging.getLogger("wmax.notifier.admin_store")
 _raw_super_admin = os.getenv("SUPER_ADMIN_ID")
 SUPER_ADMIN_ID: int = int(_raw_super_admin) if (_raw_super_admin and _raw_super_admin.isdigit()) else 0
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.getenv("NOTIFIER_DATA_DIR") or Path(__file__).resolve().parent)
 ADMINS_FILE = DATA_DIR / "admins.json"
 
 

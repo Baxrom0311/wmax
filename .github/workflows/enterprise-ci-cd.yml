@@ -30,10 +30,10 @@ jobs:
       - name: Install Linting Tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
+          pip install ruff==0.16.10
 
       - name: Ruff Fast Lint
-        run: ruff check backend/ contracts/timewin.py
+        run: ruff check backend/ notifier/ contracts/timewin.py
 
       - name: Validate deployment shell scripts
         run: bash -n scripts/*.sh
@@ -59,7 +59,6 @@ jobs:
         run: |
           pip install -r backend/requirements.txt
           pip install -r backend/algo/requirements.txt
-          pip install -r backend/auth/requirements.txt
           pip install -r notifier/requirements.txt
           pip install pytest pytest-asyncio aiosqlite httpx redis
 
@@ -89,6 +88,10 @@ jobs:
       - name: Build and lint web-relative
         working-directory: web-relative
         run: npm ci && npm run lint && npm run build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -141,7 +144,7 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - name: Install migration dependencies
-        run: pip install -r backend/requirements.txt -r backend/auth/requirements.txt
+        run: pip install -r backend/requirements.txt
       - name: Upgrade, check model drift, and exercise downgrade
         working-directory: backend
         env:

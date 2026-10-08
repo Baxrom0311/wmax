@@ -186,7 +186,6 @@ async def test_generate_structured_raises_on_malformed_json(provider):
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_retries_then_succeeds_on_transient_error(provider):
-    from app.ai.deepseek_provider import DeepSeekProvider
 
     failing = MagicMock(status_code=503, text="overloaded")
     failing.json.return_value = {}

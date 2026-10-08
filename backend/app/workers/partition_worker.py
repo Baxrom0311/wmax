@@ -23,10 +23,12 @@ async def ensure_readings_partitions() -> None:
 
     async with get_db_context() as session:
         try:
-            # Ensure default partition exists
+            # Safety net for rows outside every monthly range.
             await session.execute(text("CREATE TABLE IF NOT EXISTS readings_default PARTITION OF readings DEFAULT;"))
-        except Exception as e:
-            logger.debug(f"Default partition check: {e}")
+            await session.commit()
+        except Exception as err:
+            await session.rollback()
+            logger.error("Could not ensure readings_default partition: %s", err)
 
         for dt in months_to_check:
             start_date = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -46,10 +48,13 @@ async def ensure_readings_partitions() -> None:
                 """
                 await session.execute(text(sql))
                 await session.commit()
-                logger.debug(f"Ensured partition: {part_name}")
+                logger.info("Created readings partition %s", part_name)
             except Exception as err:
                 await session.rollback()
-                logger.debug(f"Partition {part_name} creation skipped: {err}")
+                # Usually means rows for this month already sit in
+                # readings_default, which blocks the attach. Readings are
+                # still stored, but someone must move them and retry.
+                logger.error("Could not create readings partition %s: %s", part_name, err)
 
 
 async def run_partition_worker(interval_seconds: int = 86400) -> None:
