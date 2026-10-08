@@ -127,10 +127,7 @@ class ApiService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final authRes = RelativeAuthResponse.fromJson(data);
 
-        // If backend returned empty patients list (e.g. initial demo setup), provide mock relatives
-        final patients = authRes.patients.isNotEmpty
-            ? authRes.patients
-            : _getFallbackPatients();
+        final patients = authRes.patients;
 
         await SessionService.saveSession(
           accessToken: authRes.accessToken,
@@ -297,9 +294,8 @@ class ApiService {
     final baseUrl = await SessionService.getBaseUrl();
     final authToken = await SessionService.getAccessToken();
 
-    // If patientAccessToken is empty or fallback mock token
-    if (patientAccessToken.isEmpty || patientAccessToken.startsWith('mock_')) {
-      return _generateFallbackPatientView(patientId, patientName);
+    if (patientAccessToken.isEmpty) {
+      return _generateOfflineNoDataView(patientId, patientName);
     }
 
     try {
@@ -404,32 +400,6 @@ class ApiService {
     return _generateOfflineNoDataView(id, name);
   }
 
-  /// Fallback demo patients list when starting in offline/demo mode
-  static List<PatientSummary> _getFallbackPatients() {
-    return [
-      PatientSummary(
-        id: 'p-001-otabek',
-        fullName: 'Otabek Rahimov',
-        relationship: 'Otangiz',
-        accessToken: 'mock_token_otabek_123',
-        level: AlertLevel.red,
-        diagnosis: 'Yurak yetishmovchiligi (NYHA III), Qandli diabet',
-        age: 68,
-        lastReadingAt: DateTime.now().subtract(const Duration(minutes: 4)),
-      ),
-      PatientSummary(
-        id: 'p-002-sayyora',
-        fullName: 'Sayyora Rahimova',
-        relationship: 'Onangiz',
-        accessToken: 'mock_token_sayyora_456',
-        level: AlertLevel.amber,
-        diagnosis: 'Arterial gipertoniya II bosqich, Stenokardiya',
-        age: 65,
-        lastReadingAt: DateTime.now().subtract(const Duration(minutes: 12)),
-      ),
-    ];
-  }
-
   /// Offline view representing disconnected state honestly without inventing vitals
   static RelativePatientView _generateOfflineNoDataView(
     String id,
@@ -457,10 +427,7 @@ class ApiService {
         sleepHours: 0.0,
         battery: 0,
       ),
-      doctorContact: DoctorContact(
-        name: 'Navbatchi shifokor',
-        phone: '+998901234567',
-      ),
+      doctorContact: DoctorContact(name: 'Navbatchi shifokor', phone: '103'),
       problems: [
         ClinicalProblem(
           key: 'conn_lost',
@@ -470,61 +437,6 @@ class ApiService {
         ),
       ],
       sparkline: const [],
-    );
-  }
-
-  /// Fallback simulated view for offline / demo mode
-  static RelativePatientView _generateFallbackPatientView(
-    String id,
-    String name,
-  ) {
-    final isFather = name.contains('Otabek');
-    return RelativePatientView(
-      patientId: id,
-      patientName: name,
-      relationship: isFather ? 'Otangiz' : 'Onangiz',
-      level: isFather ? AlertLevel.red : AlertLevel.amber,
-      levelWordKey: isFather ? 'state.risk' : 'state.attention',
-      compositeScore: isFather ? 4.2 : 2.1,
-      lastReadingAt: DateTime.now().subtract(const Duration(minutes: 5)),
-      prognosis: PrognosisData(
-        riskLevel: isFather ? 'high' : 'moderate',
-        riskProbabilityPct: null,
-        summary: isFather
-            ? 'SpO2 89% gacha pasaygan, puls 108 bpm. Shifokor bilan bog\'lanish tavsiya etiladi.'
-            : 'Ko\'rsatkichlar me\'yorda, biroq qon bosimi va puls o\'rtacha ko\'tarilgan.',
-      ),
-      vitals: VitalsData(
-        hr: isFather ? 108.0 : 78.0,
-        spo2: isFather ? 89.0 : 96.0,
-        temp: 36.6,
-        rr: isFather ? 22.0 : 17.0,
-        steps: 1840,
-        sleepHours: 6.5,
-        battery: 92,
-      ),
-      doctorContact: DoctorContact(
-        name: 'Dr. Bahrom Alimov',
-        phone: '+998901234567',
-      ),
-      problems: [
-        if (isFather)
-          ClinicalProblem(
-            key: 'spo2_crit',
-            title: 'Gipoksemiya (SpO2 pasaygan)',
-            detail: 'Kislorod miqdori me\'yordan past (89%)',
-            severity: 'critical',
-          ),
-        ClinicalProblem(
-          key: 'hr_elev',
-          title: 'Taxikardiya epizodi',
-          detail: 'Yurak urishi daqiqasiga 100 dan yuqori',
-          severity: 'warning',
-        ),
-      ],
-      sparkline: isFather
-          ? [1.8, 2.1, 2.4, 2.9, 3.5, 3.9, 4.2]
-          : [1.5, 1.6, 1.8, 2.0, 2.2, 2.1, 2.1],
     );
   }
 }
