@@ -5,16 +5,10 @@ import 'package:mobile_flutter/api/api_service.dart';
 import 'package:mobile_flutter/services/session_service.dart';
 
 void main() {
-  setUpAll(() {
-    HttpOverrides.global = null;
-  });
+  final enableLive = Platform.environment['ENABLE_LIVE_SOS_TEST'] == 'true';
 
   test('Live backend integration test with https://wmax.boos.uz', () async {
-    final enableLive = Platform.environment['ENABLE_LIVE_SOS_TEST'] == 'true';
-    if (!enableLive) {
-      // Skipped by default to prevent firing live emergency alerts to production/staging servers
-      return;
-    }
+    HttpOverrides.global = null;
     SharedPreferences.setMockInitialValues({});
     await SessionService.setBaseUrl('https://wmax.boos.uz');
 
@@ -56,5 +50,5 @@ void main() {
       reason: 'Flutter test SOS verification',
     );
     expect(sosOk, isTrue);
-  });
+  }, skip: enableLive ? false : 'Requires an explicitly disposable server and synthetic account.');
 }
