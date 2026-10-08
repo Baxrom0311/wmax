@@ -2,411 +2,302 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>WMAX — Siz uzoqdasiz. Ular yolg'iz emas.</title>
-  <meta name="description" content="Aqlli soat ota-onangiz pulsi va SpO₂ ni o'lchaydi, shifokor kuzatadi, siz telefoningizda ko'rasiz. SOS hamma tarifda bepul.">
-  <meta name="theme-color" content="#050816">
+  <meta name="description" content="Aqlli soat ota-onangiz puls va SpO₂ ko'rsatkichlarini o'lchaydi, shifokor kuzatadi, siz telefoningizda ko'rasiz.">
+  <meta name="theme-color" content="#f4f7f8">
   <meta property="og:title" content="WMAX — Siz uzoqdasiz. Ular yolg'iz emas.">
   <meta property="og:description" content="Soat o'lchaydi. Shifokor kuzatadi. Siz xotirjamsiz.">
   <meta property="og:image" content="images/3d/watch-hero.png">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%23050816'/><path d='M5 17h6l2-6 4 12 3-9 2 3h5' fill='none' stroke='%2322d3ee' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%23163f8f'/><path d='M5 17h6l2-6 4 12 3-9 2 3h5' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="images/3d/watch-hero.webp" type="image/webp">
   <style>
+    /* Layout: left-aligned editorial columns; one bold moment = the watch on a Khiva-tile disc.
+       Palette: Khorezm majolica (lapis + turquoise) on a cool paper white. */
     :root {
-      --bg: #050816;
-      --bg2: #0a1024;
-      --card: rgba(255, 255, 255, 0.045);
-      --card-2: rgba(255, 255, 255, 0.07);
-      --line: rgba(255, 255, 255, 0.09);
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --dim: #64748b;
-      --cyan: #22d3ee;
-      --sky: #38bdf8;
-      --violet: #a78bfa;
-      --pink: #f472b6;
-      --green: #22c55e;
-      --amber: #f59e0b;
-      --red: #ef4444;
-      --radius: 28px;
-      --display: 'Unbounded', system-ui, sans-serif;
-      --body: 'Manrope', system-ui, sans-serif;
+      --paper: #f4f7f8;
+      --paper-2: #e9eff2;
+      --surface: #ffffff;
+      --ink: #0f2236;
+      --ink-2: #47596c;
+      --ink-3: #7a8a9a;
+      --line: #d9e2e8;
+      --lapis: #163f8f;
+      --lapis-2: #0f2f6e;
+      --turq: #0f9c9c;
+      --turq-soft: #d5efee;
+      --ok: #16a34a;
+      --warn: #d97706;
+      --crit: #dc2626;
+      --display: 'Onest', 'Segoe UI', system-ui, sans-serif;
+      --body: 'Onest', 'Segoe UI', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+      --r: 22px;
+      color-scheme: light;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--body);
-      line-height: 1.5;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
+    body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
     button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-    .wrap { width: min(1200px, 100% - 32px); margin-inline: auto; }
-    .grad {
-      background: linear-gradient(100deg, var(--cyan), var(--violet) 55%, var(--pink));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid var(--turq); outline-offset: 3px; border-radius: 8px; }
+    .wrap { width: min(1180px, 100% - 40px); margin-inline: auto; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    h1, h2, h3 { text-wrap: balance; letter-spacing: -0.025em; }
+    .eyebrow { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--turq); }
+
+    /* tile pattern (8-point Khiva star) */
+    .tile-bg {
+      background-color: var(--lapis);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.13' stroke-width='1.4'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='5'/%3E%3Cpath d='M0 0l8 8M56 0l-8 8M0 56l8-8M56 56l-8-8'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 56px 56px;
     }
 
-    /* ---------- nav ---------- */
-    nav.top {
-      position: fixed; inset: 16px 0 auto; z-index: 50;
-    }
-    nav.top .bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 10px 10px 10px 20px;
-      background: rgba(5, 8, 22, 0.6);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    }
-    .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; letter-spacing: 0.02em; }
-    .logo svg { width: 30px; height: 30px; }
-    .links { display: flex; gap: 28px; font-size: 14px; font-weight: 600; color: var(--muted); }
-    .links a:hover { color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 8px; }
-    .lang { display: flex; padding: 3px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
-    .lang button { padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; color: var(--muted); }
-    .lang button.on { background: var(--text); color: var(--bg); }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 22px; border-radius: 999px; font-weight: 800; font-size: 15px;
-      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
-      white-space: nowrap;
-    }
-    .btn:hover { transform: translateY(-2px); }
-    .btn svg { width: 18px; height: 18px; flex: none; }
-    .btn-main { background: linear-gradient(100deg, var(--cyan), var(--violet)); color: #050816; box-shadow: 0 10px 40px -10px rgba(34, 211, 238, .7); }
-    .btn-ghost { background: var(--card); border: 1px solid var(--line); }
-    .btn-ghost:hover { background: var(--card-2); }
-    .btn-sm { padding: 9px 16px; font-size: 13px; }
+    /* nav */
+    nav.top { position: sticky; top: 0; z-index: 40; background: rgba(244, 247, 248, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+    nav.top.scrolled { border-bottom-color: var(--line); }
+    nav.top .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 72px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+    .logo svg { width: 34px; height: 34px; }
+    .links { display: flex; gap: 30px; font-size: 15px; font-weight: 600; color: var(--ink-2); }
+    .links a:hover { color: var(--lapis); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .lang { display: flex; gap: 2px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .lang button { padding: 8px 9px; border-radius: 8px; color: var(--ink-3); }
+    .lang button.on { color: var(--ink); background: var(--paper-2); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 24px; border-radius: 14px; font-weight: 700; font-size: 16px; white-space: nowrap; transition: background .2s, transform .2s, box-shadow .2s; }
+    .btn svg { width: 19px; height: 19px; flex: none; }
+    .btn-main { background: var(--lapis); color: #fff; box-shadow: 0 10px 24px -12px rgba(22, 63, 143, .7); }
+    .btn-main:hover { background: var(--lapis-2); transform: translateY(-1px); }
+    .btn-line { border: 1.5px solid var(--line); background: var(--surface); }
+    .btn-line:hover { border-color: var(--ink-3); }
+    .btn-sm { padding: 10px 16px; font-size: 14px; border-radius: 11px; }
     .portal { position: relative; }
-    .portal-menu {
-      position: absolute; right: 0; top: calc(100% + 10px); min-width: 230px;
-      padding: 8px; border-radius: 20px; background: #0d1430; border: 1px solid var(--line);
-      box-shadow: 0 30px 60px -20px #000; display: none;
-    }
-    .portal.open .portal-menu { display: block; }
-    .portal-menu a { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; font-weight: 700; font-size: 14px; }
-    .portal-menu a:hover { background: var(--card-2); }
-    .portal-menu .ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; }
+    .portal-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 240px; padding: 6px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 24px 50px -24px rgba(15, 34, 54, .35); }
+    .portal-menu a { display: block; padding: 12px 14px; border-radius: 11px; font-weight: 600; font-size: 15px; }
+    .portal-menu a small { display: block; color: var(--ink-3); font-weight: 500; font-size: 13px; }
+    .portal-menu a:hover { background: var(--paper); }
 
-    /* ---------- hero ---------- */
-    .hero { position: relative; min-height: 100vh; padding: 140px 0 80px; display: flex; align-items: center; overflow: hidden; }
-    .aurora { position: absolute; inset: 0; pointer-events: none; }
-    .aurora i {
-      position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55;
-      animation: drift 18s ease-in-out infinite alternate;
-    }
-    .aurora i:nth-child(1) { width: 560px; height: 560px; background: #0e7490; left: 48%; top: -10%; }
-    .aurora i:nth-child(2) { width: 480px; height: 480px; background: #6d28d9; left: 70%; top: 35%; animation-delay: -6s; }
-    .aurora i:nth-child(3) { width: 380px; height: 380px; background: #be185d; left: 5%; top: 60%; opacity: .25; animation-delay: -12s; }
-    @keyframes drift { to { transform: translate(-60px, 40px) scale(1.15); } }
-    .gridbg {
-      position: absolute; inset: 0; pointer-events: none;
-      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
-      background-size: 64px 64px;
-      mask-image: radial-gradient(ellipse 70% 60% at 60% 40%, #000 20%, transparent 75%);
-      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 60% 40%, #000 20%, transparent 75%);
-      opacity: .5;
-    }
-    .ecg { position: absolute; left: 0; right: 0; bottom: 4%; height: 120px; pointer-events: none; opacity: .35; }
-    .ecg path { stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: ecg 4.5s linear infinite; }
-    @keyframes ecg { to { stroke-dashoffset: 0; } }
-    .hero-grid { position: relative; display: grid; grid-template-columns: 1.15fr .85fr; align-items: center; gap: 30px; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px;
-      border-radius: 999px; background: var(--card); border: 1px solid var(--line);
-      font-size: 13px; font-weight: 700; color: var(--muted);
-    }
-    .pill b { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(34, 197, 94, .15); color: #4ade80; font-size: 12px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: ping 1.8s infinite; }
-    @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, .6); } 100% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); } }
-    h1 {
-      font-family: var(--display); font-weight: 800;
-      font-size: clamp(36px, 4.9vw, 68px); line-height: 1.04; letter-spacing: -0.03em;
-      margin: 26px 0 22px;
-    }
-    h1 span { display: block; }
-    .lead { font-size: clamp(17px, 1.6vw, 21px); color: var(--muted); font-weight: 500; max-width: 30ch; }
-    .lead b { color: var(--text); font-weight: 700; }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
-    .trust { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 44px; color: var(--dim); font-size: 13px; font-weight: 700; }
-    .trust span { display: inline-flex; align-items: center; gap: 8px; }
-    .trust svg { width: 18px; height: 18px; color: var(--cyan); }
+    /* hero */
+    .hero { padding: 56px 0 40px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
+    .hero-copy { min-width: 0; }
+    h1 { font-weight: 800; font-size: clamp(42px, 6vw, 76px); line-height: 1.02; margin: 18px 0 22px; }
+    h1 em { font-style: normal; color: var(--lapis); }
+    .lead { font-size: clamp(18px, 1.7vw, 21px); color: var(--ink-2); max-width: 30ch; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+    .facts { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 46px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .facts div { min-width: 0; }
+    .facts b { display: block; font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--ink); }
+    .facts span { font-size: 14px; color: var(--ink-3); font-weight: 500; }
+    .facts b span { font-size: 14px; color: var(--ink-3); }
 
-    .stage { position: relative; height: min(680px, 80vh); display: grid; place-items: center; perspective: 1200px; }
-    .halo {
-      position: absolute; width: 78%; aspect-ratio: 1; border-radius: 50%;
-      background: radial-gradient(circle, rgba(34, 211, 238, .35), rgba(167, 139, 250, .18) 45%, transparent 70%);
-      filter: blur(10px);
+    .stage { position: relative; display: grid; place-items: center; min-height: 600px; }
+    .disc { position: absolute; width: min(500px, 92%); aspect-ratio: 1; max-width: 100%; border-radius: 50%; box-shadow: inset 0 0 0 10px rgba(255, 255, 255, .08), 0 40px 80px -40px rgba(22, 63, 143, .6); }
+    .disc::after { content: ""; position: absolute; inset: -18px; border-radius: 50%; border: 2px solid var(--turq); opacity: .5; }
+    .watch-wrap { position: relative; z-index: 2; height: 600px; animation: bob 7s ease-in-out infinite; }
+    .watch-wrap picture, .watch-wrap img { display: block; height: 100%; width: auto; }
+    .watch-wrap img { filter: drop-shadow(0 40px 34px rgba(15, 34, 54, .35)); }
+    @keyframes bob { 50% { transform: translateY(-12px); } }
+    .notif {
+      position: absolute; z-index: 3; left: -4%; bottom: 13%; width: 300px; max-width: 86%;
+      display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 18px;
+      background: var(--surface); box-shadow: 0 24px 50px -20px rgba(15, 34, 54, .4); border: 1px solid var(--line);
     }
-    .orbit { position: absolute; width: 92%; aspect-ratio: 1; border-radius: 50%; border: 1px dashed rgba(255, 255, 255, .12); animation: spin 60s linear infinite; }
-    .orbit.o2 { width: 66%; border-style: solid; border-color: rgba(34, 211, 238, .12); animation-duration: 40s; animation-direction: reverse; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .watch-tilt picture { display: block; height: 100%; }
-    .watch-tilt img { height: 100%; width: auto; }
-    .watch {
-      position: relative; height: 100%; width: auto; max-width: none;
-      filter: drop-shadow(0 50px 60px rgba(0, 0, 0, .6)) drop-shadow(0 0 60px rgba(34, 211, 238, .18));
-      animation: float 6s ease-in-out infinite;
-      transform-style: preserve-3d; will-change: transform;
+    .notif > div { min-width: 0; }
+    .notif .app { width: 38px; height: 38px; border-radius: 11px; flex: none; display: grid; place-items: center; }
+    .notif .app svg { width: 22px; height: 22px; }
+    .notif b { display: block; font-size: 14px; }
+    .notif span { display: block; font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+    .notif time { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+    .reading {
+      position: absolute; z-index: 3; right: 0; top: 16%; padding: 12px 16px; border-radius: 16px;
+      background: var(--surface); border: 1px solid var(--line); box-shadow: 0 20px 40px -22px rgba(15, 34, 54, .4);
     }
-    .watch-tilt { position: relative; z-index: 2; height: min(600px, 70vh); display: flex; justify-content: center; transition: transform .25s ease-out; transform-style: preserve-3d; }
-    @keyframes float { 50% { translate: 0 -18px; } }
-    .chip {
-      position: absolute; z-index: 3; display: flex; align-items: center; gap: 12px;
-      padding: 12px 16px 12px 12px; border-radius: 20px;
-      background: rgba(13, 20, 48, .72); border: 1px solid rgba(255, 255, 255, .12);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 20px 40px -18px rgba(0, 0, 0, .8);
-      animation: float 7s ease-in-out infinite;
-    }
-    .chip .ic { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; }
-    .chip .ic svg { width: 22px; height: 22px; }
-    .chip small { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-    .chip strong { font-family: var(--display); font-size: 20px; font-weight: 700; }
-    .chip strong em { font-style: normal; font-size: 12px; color: var(--muted); font-family: var(--body); margin-left: 3px; }
-    .c1 { left: 2%; top: 14%; animation-delay: -1s; }
-    .c2 { right: 0; top: 40%; animation-delay: -3s; }
-    .c3 { left: 0; bottom: 22%; animation-delay: -5s; }
-    .c4 { right: 6%; bottom: 6%; animation-delay: -2s; }
-    .beat { animation: beat 1s ease-in-out infinite; transform-origin: center; }
-    @keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(1); } 45% { transform: scale(1.12); } }
+    .reading small { display: block; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+    .reading b { font-family: var(--mono); font-size: 26px; }
+    .reading b i { font-style: normal; font-size: 13px; color: var(--ink-3); margin-left: 4px; }
 
-    /* ---------- ticker ---------- */
-    .ticker { border-block: 1px solid var(--line); background: var(--bg2); overflow: hidden; padding: 22px 0; }
-    .ticker .track { display: flex; gap: 56px; width: max-content; animation: marquee 32s linear infinite; }
-    .ticker span { display: inline-flex; align-items: center; gap: 14px; font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--muted); white-space: nowrap; }
-    .ticker span::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(var(--cyan), var(--violet)); margin-left: 42px; }
-    @keyframes marquee { to { transform: translateX(-50%); } }
+    /* vitals strip */
+    .strip { margin-top: 24px; border-radius: var(--r); background: var(--ink); color: #e6eef5; overflow: hidden; display: grid; grid-template-columns: 1fr auto; }
+    .strip canvas { width: 100%; height: 96px; display: block; }
+    .strip .vals { display: flex; border-left: 1px solid rgba(255, 255, 255, .1); }
+    .strip .vals div { padding: 18px 26px; border-right: 1px solid rgba(255, 255, 255, .1); min-width: 0; white-space: nowrap; }
+    .strip .vals div:last-child { border-right: 0; }
+    .strip small { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #8aa0b4; }
+    .strip b { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+    .strip b i { font-style: normal; font-size: 12px; color: #8aa0b4; margin-left: 3px; }
+    .strip .live { color: #4ade80; }
 
-    /* ---------- sections ---------- */
-    section { position: relative; padding: 120px 0; }
-    .kicker { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan); margin-bottom: 18px; }
-    h2 { font-family: var(--display); font-weight: 800; font-size: clamp(32px, 4.4vw, 58px); line-height: 1.05; letter-spacing: -0.025em; }
-    .head { text-align: center; max-width: 760px; margin: 0 auto 70px; }
-    .head p { color: var(--muted); font-size: 18px; margin-top: 18px; }
+    /* sections */
+    section { padding: 110px 0; }
+    .sec-head { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: end; margin-bottom: 56px; }
+    .sec-head > * { min-width: 0; }
+    h2 { font-weight: 800; font-size: clamp(32px, 4.2vw, 54px); line-height: 1.05; margin-top: 14px; }
+    .sec-head p { color: var(--ink-2); font-size: 19px; max-width: 36ch; }
 
-    /* how it works */
-    .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; position: relative; }
-    .flow::before {
-      content: ""; position: absolute; left: 16%; right: 16%; top: 168px; height: 2px;
-      background: repeating-linear-gradient(90deg, rgba(34, 211, 238, .55) 0 10px, transparent 10px 20px);
-      background-size: 40px 2px; animation: dash 1.2s linear infinite;
-    }
-    @keyframes dash { to { background-position: 40px 0; } }
-    .step {
-      position: relative; border-radius: var(--radius); background: linear-gradient(180deg, var(--card-2), var(--card));
-      border: 1px solid var(--line); padding: 26px; overflow: hidden;
-      transition: transform .3s ease, border-color .3s ease;
-    }
-    .step:hover { transform: translateY(-6px); border-color: rgba(34, 211, 238, .35); }
-    .step .num {
-      position: absolute; top: 18px; right: 22px; font-family: var(--display); font-weight: 800; font-size: 64px; line-height: 1;
-      color: transparent; -webkit-text-stroke: 1px rgba(255, 255, 255, .14);
-    }
-    .visual { height: 290px; display: grid; place-items: center; position: relative; margin-bottom: 18px; }
-    .step h3 { font-family: var(--display); font-size: 24px; font-weight: 700; }
-    .step p { color: var(--muted); margin-top: 6px; font-weight: 500; }
+    /* how: a real sequence */
+    .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .how article { min-width: 0; }
+    .how .pic { position: relative; height: 300px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+    .how .step { display: flex; align-items: center; gap: 12px; margin: 22px 0 8px; }
+    .how .step i { font-style: normal; font-family: var(--mono); font-weight: 700; font-size: 13px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--turq-soft); color: var(--turq); flex: none; }
+    .how .step::after { content: ""; flex: 1; height: 1.5px; background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 12px); }
+    .how article:last-child .step::after { display: none; }
+    .how h3 { font-size: 24px; font-weight: 700; }
+    .how p { color: var(--ink-2); margin-top: 4px; }
 
-    /* doctor mini dashboard */
-    .dash { width: 100%; max-width: 300px; border-radius: 18px; background: #0b1230; border: 1px solid var(--line); padding: 14px; box-shadow: 0 30px 50px -25px #000; }
-    .dash .row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+    .dash { width: 82%; border-radius: 16px; background: var(--paper); border: 1px solid var(--line); padding: 12px; font-size: 14px; }
+    .dash .t { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; padding: 4px 6px 10px; }
+    .dash .row { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 10px; border-radius: 10px; font-weight: 600; background: var(--surface); }
     .dash .row + .row { margin-top: 6px; }
-    .dash .row.hot { background: rgba(245, 158, 11, .12); outline: 1px solid rgba(245, 158, 11, .4); }
-    .dash .av { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #050816; }
-    .dash .row span:last-child { margin-left: auto; font-family: var(--display); font-size: 13px; }
-    .dash .bar { height: 6px; border-radius: 9px; background: rgba(255, 255, 255, .08); margin: 4px 0 10px; overflow: hidden; }
-    .dash .bar i { display: block; height: 100%; width: 62%; border-radius: 9px; background: linear-gradient(90deg, var(--cyan), var(--violet)); }
-    .dash .title { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 0 4px 8px; }
-    .sdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    .dash .row.hot { box-shadow: inset 0 0 0 1.5px var(--warn); }
+    .dash .row b { font-family: var(--mono); }
+    .dash .task { margin-top: 8px; padding: 9px 10px; border-radius: 10px; background: #fff7ed; color: #9a3412; font-size: 12.5px; font-weight: 700; }
+    .sdot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 
-    /* phone */
-    .phone {
-      width: 190px; height: 280px; border-radius: 34px 34px 0 0; padding: 10px 10px 0;
-      background: linear-gradient(160deg, #334155, #0f172a); border: 1px solid rgba(255, 255, 255, .15); border-bottom: 0;
-      box-shadow: 0 30px 60px -25px #000, inset 0 0 0 2px rgba(255, 255, 255, .04);
-      align-self: end;
-    }
-    .phone .scr { height: 100%; border-radius: 26px 26px 0 0; background: #f8fafc; color: #0f172a; padding: 26px 14px 0; position: relative; overflow: hidden; }
-    .phone .notch { position: absolute; top: 8px; left: 50%; translate: -50%; width: 60px; height: 16px; border-radius: 99px; background: #0f172a; }
-    .phone .who { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; }
-    .phone .who i { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #fda4af, #f472b6); display: grid; place-items: center; font-style: normal; font-size: 14px; }
-    .phone .ok { margin: 12px 0; padding: 12px; border-radius: 16px; background: linear-gradient(135deg, #dcfce7, #bbf7d0); display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 13px; color: #166534; }
-    .phone .ok b { width: 26px; height: 26px; border-radius: 50%; background: #22c55e; display: grid; place-items: center; color: #fff; font-size: 14px; }
+    .phone { width: 196px; height: 268px; align-self: end; border-radius: 32px 32px 0 0; padding: 9px 9px 0; background: var(--ink); }
+    .phone .scr { height: 100%; border-radius: 24px 24px 0 0; background: var(--paper); padding: 24px 12px 0; position: relative; }
+    .phone .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 56px; height: 14px; border-radius: 99px; background: var(--ink); }
+    .phone .who { font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; }
+    .phone .who span + span { color: var(--ink-3); font-weight: 500; }
+    .phone .ok { margin: 10px 0; padding: 11px; border-radius: 14px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+    .phone .ok::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
     .phone .vit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .phone .vit div { padding: 10px; border-radius: 14px; background: #fff; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); font-size: 10px; font-weight: 700; color: #64748b; }
-    .phone .vit strong { display: block; font-family: var(--display); font-size: 18px; color: #0f172a; }
-    .phone .spark { margin-top: 10px; height: 40px; }
-    .toast {
-      position: absolute; bottom: 64px; left: 0; padding: 10px 12px; border-radius: 14px; background: #0d1430; border: 1px solid var(--line);
-      font-size: 12px; font-weight: 700; display: flex; gap: 8px; align-items: center; box-shadow: 0 20px 40px -15px #000;
-      animation: float 5s ease-in-out infinite;
-    }
+    .phone .vit div { background: var(--surface); border-radius: 12px; padding: 9px; font-size: 11px; color: var(--ink-3); font-weight: 600; }
+    .phone .vit b { display: block; font-family: var(--mono); font-size: 18px; color: var(--ink); }
+    .phone svg { margin-top: 8px; width: 100%; height: 40px; }
 
-    /* signals */
-    .sig { display: grid; grid-template-columns: 1fr 1.1fr; gap: 50px; align-items: center; }
-    .sig-stage { position: relative; height: 560px; display: grid; place-items: center; border-radius: 40px; background: var(--card); border: 1px solid var(--line); overflow: hidden; }
-    .sig-glow { position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%; filter: blur(70px); opacity: .5; transition: background .6s ease; background: var(--green); }
-    .sig-stage img { position: absolute; height: 88%; width: auto; transition: opacity .5s ease, transform .5s ease; opacity: 0; transform: scale(.94) rotate(-4deg); filter: drop-shadow(0 40px 40px rgba(0, 0, 0, .55)); }
+    /* signal demo */
+    .sig-sec { background: var(--surface); border-block: 1px solid var(--line); }
+    .sig { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; }
+    .sig > * { min-width: 0; }
+    .sig-stage { position: relative; height: 540px; border-radius: 28px; overflow: hidden; display: grid; place-items: center; background: var(--paper); transition: background .5s; }
+    .sig-stage[data-s=green] { background: #e8f6ee; }
+    .sig-stage[data-s=amber] { background: #fdf3e2; }
+    .sig-stage[data-s=red] { background: #fdeaea; }
+    .sig-stage img { position: absolute; height: 86%; width: auto; max-width: none; opacity: 0; transform: scale(.96); transition: opacity .45s, transform .45s; filter: drop-shadow(0 30px 30px rgba(15, 34, 54, .3)); }
     .sig-stage img.on { opacity: 1; transform: none; }
-    .ring-pulse { position: absolute; width: 48%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--green); opacity: 0; animation: ring 2.4s ease-out infinite; transition: border-color .6s; }
-    .ring-pulse.r2 { animation-delay: 1.2s; }
-    @keyframes ring { 0% { transform: scale(.7); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
-    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 30px 0 26px; }
-    .tab { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-weight: 800; font-size: 14px; color: var(--muted); transition: all .25s; }
-    .tab .sdot { width: 12px; height: 12px; }
-    .tab.on { color: var(--text); background: var(--card-2); border-color: currentColor; }
-    .tab[data-s=green].on { color: #4ade80; }
-    .tab[data-s=amber].on { color: #fbbf24; }
-    .tab[data-s=red].on { color: #f87171; }
-    .chain { display: grid; gap: 12px; }
-    .link {
-      display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 22px;
-      background: var(--card); border: 1px solid var(--line);
-      opacity: 0; transform: translateX(16px); transition: opacity .4s ease, transform .4s ease;
-    }
-    .link.show { opacity: 1; transform: none; }
-    .link .ic { width: 50px; height: 50px; border-radius: 16px; display: grid; place-items: center; font-size: 24px; flex: none; background: var(--card-2); }
-    .link b { display: block; font-size: 17px; }
-    .link small { color: var(--muted); font-size: 14px; font-weight: 600; }
-    .link .t { margin-left: auto; font-family: var(--display); font-size: 13px; color: var(--dim); white-space: nowrap; }
+    .tabs { display: inline-flex; gap: 4px; padding: 5px; border-radius: 14px; background: var(--paper); border: 1px solid var(--line); margin: 30px 0 24px; }
+    .tab { display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 15px; color: var(--ink-2); }
+    .tab.on { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(15, 34, 54, .1); }
+    .chain { list-style: none; display: grid; }
+    .chain li { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: start; padding: 14px 0; animation: in .4s both; }
+    .chain li > div { min-width: 0; }
+    .chain li + li { border-top: 1px solid var(--line); }
+    .chain li:nth-child(2) { animation-delay: .08s; } .chain li:nth-child(3) { animation-delay: .16s; } .chain li:nth-child(4) { animation-delay: .24s; }
+    @keyframes in { from { opacity: .2; transform: translateX(10px); } }
+    .chain .t { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--ink-3); padding-top: 3px; }
+    .chain b { display: block; font-size: 18px; }
+    .chain small { color: var(--ink-2); font-size: 15px; }
+    .chain .who { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 5px 9px; border-radius: 8px; background: var(--paper); color: var(--ink-2); white-space: nowrap; }
 
-    /* bento */
-    .bento { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 230px; gap: 18px; }
-    .tile {
-      position: relative; overflow: hidden; border-radius: var(--radius); padding: 26px;
-      background: linear-gradient(180deg, var(--card-2), var(--card)); border: 1px solid var(--line);
-      display: flex; flex-direction: column; justify-content: flex-end;
-      transition: transform .3s ease;
-    }
-    .tile:hover { transform: translateY(-4px); }
-    .tile h3 { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1.15; position: relative; }
-    .tile p { color: var(--muted); font-weight: 600; margin-top: 6px; position: relative; }
-    .tile .big-ic { position: absolute; top: 24px; left: 24px; width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; }
-    .tile .big-ic svg { width: 28px; height: 28px; }
-    .t-sos { grid-column: span 2; grid-row: span 2; background: radial-gradient(circle at 70% 30%, rgba(239, 68, 68, .45), transparent 60%), linear-gradient(180deg, #1a0b16, #0d0a1c); border-color: rgba(239, 68, 68, .3); }
-    .t-sos h3 { font-size: clamp(30px, 3.4vw, 46px); }
-    .sos-btn {
-      position: absolute; top: 46%; left: 50%; translate: -50% -50%; width: 170px; height: 170px; border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #fca5a5, #ef4444 45%, #991b1b);
-      display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 40px; letter-spacing: .04em;
-      box-shadow: 0 0 0 18px rgba(239, 68, 68, .14), 0 0 0 38px rgba(239, 68, 68, .07), 0 30px 60px -10px rgba(239, 68, 68, .7);
-      animation: sos 2.2s ease-in-out infinite;
-    }
-    @keyframes sos { 50% { box-shadow: 0 0 0 26px rgba(239, 68, 68, .1), 0 0 0 54px rgba(239, 68, 68, .04), 0 30px 60px -10px rgba(239, 68, 68, .8); } }
-    .free-tag { position: absolute; top: 24px; right: 24px; padding: 8px 14px; border-radius: 999px; background: rgba(34, 197, 94, .16); color: #4ade80; font-weight: 800; font-size: 13px; }
-    .t-base { grid-column: span 2; }
-    .t-base svg.band { position: absolute; top: 20px; left: 20px; right: 20px; width: calc(100% - 40px); height: 120px; }
-    .t-photo { grid-column: span 2; grid-row: span 1; padding: 0; }
-    .t-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .t-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5, 8, 22, .92), rgba(5, 8, 22, .1) 65%); }
-    .t-photo .txt { position: relative; z-index: 1; padding: 26px; }
+    /* features */
+    .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: stretch; }
+    .feat > * { min-width: 0; }
+    .photo { position: relative; border-radius: 28px; overflow: hidden; min-height: 460px; }
+    .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .photo figcaption { position: absolute; left: 20px; right: 20px; bottom: 20px; padding: 18px 20px; border-radius: 18px; background: rgba(255, 255, 255, .93); color: var(--ink); }
+    .photo figcaption b { display: block; font-size: 19px; }
+    .photo figcaption span { color: var(--ink-2); font-size: 15px; }
+    .flist { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 34px 30px; align-content: center; }
+    .flist li { min-width: 0; }
+    .flist .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--turq-soft); color: var(--turq); margin-bottom: 14px; }
+    .flist .ic svg { width: 24px; height: 24px; }
+    .flist b { display: block; font-size: 19px; }
+    .flist span { color: var(--ink-2); font-size: 15.5px; }
 
     /* pricing */
-    .plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-    .plan { position: relative; border-radius: var(--radius); padding: 28px 24px; background: var(--card); border: 1px solid var(--line); display: flex; flex-direction: column; }
-    .plan.hot { background: linear-gradient(180deg, rgba(34, 211, 238, .14), rgba(167, 139, 250, .08)); border-color: rgba(34, 211, 238, .45); transform: translateY(-10px); box-shadow: 0 40px 80px -40px rgba(34, 211, 238, .6); }
-    .plan .badge { position: absolute; top: -13px; left: 24px; padding: 5px 12px; border-radius: 999px; background: linear-gradient(100deg, var(--cyan), var(--violet)); color: #050816; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-    .plan .emoji { font-size: 34px; }
-    .plan h3 { font-family: var(--display); font-size: 19px; font-weight: 700; margin-top: 14px; }
-    .plan .price { margin: 14px 0 20px; font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.02em; }
-    .plan .price small { display: block; margin-top: 4px; font-family: var(--body); font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: 0; }
-    .plan ul { list-style: none; display: grid; align-content: start; gap: 10px; margin-bottom: 26px; flex: 1; }
-    .plan li { display: flex; gap: 10px; font-weight: 600; font-size: 14px; color: #cbd5e1; }
-    .plan li::before { content: ""; width: 18px; height: 18px; flex: none; margin-top: 1px; border-radius: 50%; background: rgba(34, 211, 238, .16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322d3ee' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 11px no-repeat; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .plan { position: relative; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); padding: 30px 28px; display: flex; flex-direction: column; }
+    .plan.hot { border: 2px solid var(--lapis); }
+    .plan .tag { position: absolute; top: -13px; left: 26px; padding: 4px 11px; border-radius: 8px; background: var(--lapis); color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .plan h3 { font-size: 20px; font-weight: 700; }
+    .plan .price { margin: 14px 0 22px; font-family: var(--mono); font-weight: 700; font-size: 34px; letter-spacing: -0.03em; }
+    .plan .price small { font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; margin-left: 6px; }
+    .plan ul { list-style: none; display: grid; gap: 11px; margin-bottom: 28px; flex: 1; align-content: start; }
+    .plan li { display: flex; gap: 10px; font-size: 15.5px; color: var(--ink-2); }
+    .plan li::before { content: ""; flex: none; width: 18px; height: 18px; margin-top: 2px; border-radius: 6px; background: var(--turq-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f9c9c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 11px no-repeat; }
     .plan .btn { width: 100%; }
-    .note { text-align: center; margin-top: 34px; color: var(--muted); font-weight: 700; }
-    .note b { color: #4ade80; }
+    .clinic { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 24px 28px; border-radius: var(--r); background: var(--paper-2); }
+    .clinic > div { min-width: 0; flex: 1 1 320px; }
+    .clinic b { font-size: 19px; }
+    .clinic span { color: var(--ink-2); display: block; font-size: 15.5px; }
 
-    /* final cta */
-    .final {
-      position: relative; overflow: hidden; border-radius: 44px; padding: 70px 60px;
-      background: radial-gradient(circle at 85% 20%, rgba(167, 139, 250, .45), transparent 50%), radial-gradient(circle at 10% 90%, rgba(34, 211, 238, .35), transparent 50%), #0b1130;
-      border: 1px solid rgba(255, 255, 255, .12);
-      display: grid; grid-template-columns: 1.3fr .7fr; align-items: center; gap: 30px;
-    }
-    .final h2 { font-size: clamp(32px, 4vw, 54px); }
-    .final p { color: #cbd5e1; font-size: 18px; margin-top: 14px; font-weight: 500; }
-    .final .cta-row { margin-top: 30px; }
-    .final img { height: 380px; width: auto; justify-self: center; margin: -40px 0 -110px; transform: rotate(14deg); filter: drop-shadow(0 40px 40px rgba(0, 0, 0, .5)); }
+    /* final */
+    .final { position: relative; overflow: hidden; border-radius: 32px; color: #fff; display: grid; grid-template-columns: 1.2fr .8fr; align-items: center; min-height: 380px; }
+    .final .txt { padding: 60px 56px; position: relative; z-index: 1; min-width: 0; }
+    .final h2 { color: #fff; margin: 0; }
+    .final p { color: rgba(255, 255, 255, .82); font-size: 19px; margin-top: 14px; max-width: 34ch; }
+    .final .btn-main { background: #fff; color: var(--lapis); box-shadow: none; }
+    .final .btn-main:hover { background: var(--turq-soft); }
+    .final .btn-line { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .35); }
+    .final img { height: 440px; width: auto; justify-self: center; margin: 30px 0 -90px; transform: rotate(10deg); filter: drop-shadow(0 30px 30px rgba(0, 0, 0, .35)); }
 
-    footer { padding: 50px 0 40px; color: var(--dim); font-size: 14px; font-weight: 600; }
-    footer .row { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 30px; }
-    footer .fl { display: flex; flex-wrap: wrap; gap: 22px; }
-    footer a:hover { color: var(--text); }
+    footer { padding: 60px 0 44px; color: var(--ink-3); font-size: 14px; }
+    footer .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; border-top: 1px solid var(--line); padding-top: 28px; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 22px; }
+    footer a:hover { color: var(--ink); }
 
-    /* reveal */
-    .rv { opacity: 0; transform: translateY(30px); transition: opacity .8s ease, transform .8s cubic-bezier(.2, .7, .2, 1); }
-    .rv.in { opacity: 1; transform: none; }
-
-    /* ---------- responsive ---------- */
-    @media (max-width: 1020px) {
+    @media (max-width: 1000px) {
       .links { display: none; }
-      .hero-grid, .sig, .final { grid-template-columns: 1fr; }
-      .hero { padding-top: 120px; }
-      .hero-copy { text-align: center; }
-      .lead { margin-inline: auto; }
-      .cta-row, .trust { justify-content: center; }
-      .stage { height: 560px; }
-      .watch-tilt { height: 480px; }
-      .flow { grid-template-columns: 1fr; max-width: 460px; margin-inline: auto; }
-      .flow::before { display: none; }
-      .bento { grid-template-columns: repeat(2, 1fr); }
-      .plans { grid-template-columns: repeat(2, 1fr); }
-      .plan.hot { transform: none; }
-      .final { padding: 50px 30px 0; text-align: center; }
-      .final img { height: 300px; margin: 0 auto -60px; }
-      .sig-stage { height: 460px; }
+      .hero-grid, .sig, .feat, .final, .sec-head { grid-template-columns: 1fr; }
+      .stage { min-height: 520px; }
+      .watch-wrap { height: 500px; }
+      .strip { grid-template-columns: 1fr; }
+      .strip .vals { border-left: 0; border-top: 1px solid rgba(255, 255, 255, .1); }
+      .strip .vals div { flex: 1; padding: 14px 16px; }
+      .how { grid-template-columns: 1fr; max-width: 480px; }
+      .how .step::after { display: none; }
+      .plans { grid-template-columns: 1fr; max-width: 480px; }
+      .photo { min-height: 340px; }
+      .final .txt { padding: 44px 28px 0; }
+      .final img { height: 320px; margin: 10px auto -70px; }
+      .sig-stage { height: 440px; }
     }
-    @media (max-width: 640px) {
-      nav.top { inset: 10px 0 auto; }
-      nav.top .bar { padding-left: 14px; }
+    @media (max-width: 560px) {
+      body { font-size: 16px; }
+      .wrap { width: calc(100% - 32px); }
+      nav.top .bar { height: 62px; }
       .logo span { display: none; }
-      .lang button { padding: 6px 8px; }
       .portal > .btn span { display: none; }
-      section { padding: 80px 0; }
-      .stage { height: 460px; }
-      .watch-tilt { height: 400px; }
-      .chip { padding: 9px 12px 9px 9px; border-radius: 16px; }
-      .chip .ic { width: 32px; height: 32px; border-radius: 11px; }
-      .chip strong { font-size: 16px; }
-      .c1 { left: -4px; top: 8%; } .c2 { right: -4px; top: 28%; } .c3 { left: -4px; bottom: 12%; } .c4 { display: none; }
-      .bento { grid-template-columns: 1fr 1fr; grid-auto-rows: 180px; gap: 12px; }
-      .tile { padding: 18px; }
-      .tile h3 { font-size: 17px; }
-      .tile .big-ic { top: 16px; left: 16px; width: 46px; height: 46px; }
-      .t-photo .txt { padding: 18px; }
-      .t-base svg.band { height: 80px; }
-      .t-sos { grid-row: span 2; }
-      .plans { grid-template-columns: 1fr; }
-      .head { margin-bottom: 48px; }
-      .link { padding: 14px; gap: 12px; }
-      .link .t { display: none; }
-      .final { border-radius: 32px; padding: 40px 20px 0; }
-      .ticker span { font-size: 17px; }
+      .hero { padding-top: 28px; }
+      .stage { min-height: 440px; }
+      .watch-wrap { height: 420px; }
+      .notif { left: 0; bottom: 4%; }
+      .reading { top: 6%; }
+      .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .facts b { font-size: 19px; }
+      .facts span { font-size: 13px; }
+      .strip b { font-size: 20px; }
+      .strip .vals div { padding: 12px; }
+      section { padding: 76px 0; }
+      .sec-head { margin-bottom: 36px; }
+      .flist { gap: 24px 16px; }
+      .flist b { font-size: 17px; }
+      .flist span { font-size: 14px; }
+      .chain li { grid-template-columns: 48px 1fr; }
+      .chain .who { display: none; }
+      .tabs { display: flex; }
+      .tab { flex: 1; justify-content: center; padding: 10px 8px; }
+      .final { border-radius: 24px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
-      .rv { opacity: 1; transform: none; }
-      .link { opacity: 1; transform: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- ============ NAV ============ -->
-<nav class="top">
+<nav class="top" id="nav">
   <div class="wrap bar">
     <a href="#" class="logo" aria-label="WMAX">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs><rect width="32" height="32" rx="10" fill="url(#lg)"/><path d="M5 17h6l2-6 4 12 3-9 2 3h5" fill="none" stroke="#050816" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#163f8f"/><path d="M5 17h6l2-6 4 12 3-9 2 3h5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>WMAX</span>
     </a>
     <div class="links">
@@ -421,243 +312,192 @@
         <button data-lang="ru">RU</button>
         <button data-lang="en">EN</button>
       </div>
-      <div class="portal" id="portal">
-        <button class="btn btn-ghost btn-sm" id="portalBtn" aria-haspopup="true" aria-expanded="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      <div class="portal">
+        <button class="btn btn-line btn-sm" id="portalBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
           <span data-i18n="nav.login">Kirish</span>
         </button>
-        <div class="portal-menu">
-          <a href="/doctor" data-portal="doctor"><span class="ic" style="background:rgba(56,189,248,.15)">🩺</span><span data-i18n="nav.doctor">Shifokor kabineti</span></a>
-          <a href="/relative" data-portal="relative"><span class="ic" style="background:rgba(244,114,182,.15)">👨‍👩‍👧</span><span data-i18n="nav.family">Oila portali</span></a>
+        <div class="portal-menu" id="portalMenu" hidden>
+          <a href="/doctor" data-portal="doctor"><span data-i18n="nav.doctor">Shifokor kabineti</span><small data-i18n="nav.doctor_s">Hamshira va shifokorlar uchun</small></a>
+          <a href="/relative" data-portal="relative"><span data-i18n="nav.family">Oila portali</span><small data-i18n="nav.family_s">Farzandlar va qarindoshlar uchun</small></a>
         </div>
       </div>
     </div>
   </div>
 </nav>
 
-<!-- ============ HERO ============ -->
 <header class="hero">
-  <div class="aurora"><i></i><i></i><i></i></div>
-  <div class="gridbg"></div>
-  <svg class="ecg" viewBox="0 0 1600 160" preserveAspectRatio="none" aria-hidden="true">
-    <defs><linearGradient id="ecgG" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee" stop-opacity="0"/><stop offset=".5" stop-color="#22d3ee"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>
-    <path d="M0 80 H260 l20 -10 l20 10 H420 l14 -60 l18 120 l16 -80 l12 20 H700 l20 -10 l20 10 H860 l14 -60 l18 120 l16 -80 l12 20 H1140 l20 -10 l20 10 H1300 l14 -60 l18 120 l16 -80 l12 20 H1600" fill="none" stroke="url(#ecgG)" stroke-width="2.5"/>
-  </svg>
-
-  <div class="wrap hero-grid">
-    <div class="hero-copy">
-      <span class="pill"><b><i class="dot"></i><span data-i18n="hero.live">Jonli</span></b><span data-i18n="hero.badge">Masofaviy monitoring · O'zbekiston</span></span>
-      <h1>
-        <span data-i18n="hero.t1">Siz uzoqdasiz.</span>
-        <span class="grad" data-i18n="hero.t2">Ular yolg'iz emas.</span>
-      </h1>
-      <p class="lead" data-i18n-html="hero.lead"><b>Soat</b> o'lchaydi. <b>Shifokor</b> kuzatadi. <b>Siz</b> xotirjamsiz.</p>
-      <div class="cta-row">
-        <a class="btn btn-main" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg>
-          <span data-i18n="cta.telegram">Telegram'da boshlash</span>
-        </a>
-        <a class="btn btn-ghost" href="#qanday">
-          <span data-i18n="cta.how">Qanday ishlaydi</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-        </a>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow" data-i18n="hero.eyebrow">Masofaviy monitoring · O'zbekiston</span>
+        <h1 data-i18n-html="hero.title">Siz uzoqdasiz.<br><em>Ular yolg'iz emas.</em></h1>
+        <p class="lead" data-i18n="hero.lead">Soat o'lchaydi. Shifokor kuzatadi. Siz xotirjamsiz.</p>
+        <div class="cta-row">
+          <a class="btn btn-main" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg>
+            <span data-i18n="cta.telegram">Telegram'da boshlash</span>
+          </a>
+          <a class="btn btn-line" href="#qanday" data-i18n="cta.how">Qanday ishlaydi</a>
+        </div>
+        <div class="facts">
+          <div><b>5 <span data-i18n="u.min">daq</span></b><span data-i18n="facts.f1">o'lchov oralig'i</span></div>
+          <div><b>7 <span data-i18n="u.days">kun</span></b><span data-i18n="facts.f2">shaxsiy normani o'rganadi</span></div>
+          <div><b>24/7</b><span data-i18n="facts.f3">shifokor nazorati</span></div>
+        </div>
       </div>
-      <div class="trust">
-        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span data-i18n="trust.sos">SOS doim bepul</span></span>
-        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg><span data-i18n="trust.doctor">Shifokor nazorati</span></span>
-        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span data-i18n="trust.consent">Rozilik bilan</span></span>
+
+      <div class="stage">
+        <div class="disc tile-bg"></div>
+        <div class="watch-wrap">
+          <picture>
+            <source srcset="images/3d/watch-hero.webp" type="image/webp">
+            <img src="images/3d/watch-hero.png" alt="WMAX aqlli soat: puls 72, normada" width="822" height="1405" fetchpriority="high">
+          </picture>
+        </div>
+        <div class="reading"><small>SpO₂</small><b>98<i>%</i></b></div>
+        <div class="notif">
+          <span class="app" style="background:#dcfce7;color:#16a34a"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4 7 4c2.2 0 3.6 1.2 5 3 1.4-1.8 2.8-3 5-3 4 0 6.1 4.2 4.6 7.7C19.5 16.4 12 21 12 21z"/></svg></span>
+          <div><b data-i18n="notif.title">Onam · hammasi joyida</b><span data-i18n="notif.body">Puls 72, uyqu 7 soat 20 daqiqa</span></div>
+          <time>09:41</time>
+        </div>
       </div>
     </div>
 
-    <div class="stage" id="stage">
-      <div class="halo"></div>
-      <div class="orbit"></div>
-      <div class="orbit o2"></div>
-      <div class="watch-tilt" id="tilt">
-        <picture>
-          <source srcset="images/3d/watch-hero.webp" type="image/webp">
-          <img class="watch" src="images/3d/watch-hero.png" alt="WMAX aqlli soat: yurak urishi 72" width="822" height="1405" fetchpriority="high">
-        </picture>
-      </div>
-
-      <div class="chip c1">
-        <span class="ic" style="background:rgba(239,68,68,.16);color:#f87171"><svg class="beat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4 7 4c2.2 0 3.6 1.2 5 3 1.4-1.8 2.8-3 5-3 4 0 6.1 4.2 4.6 7.7C19.5 16.4 12 21 12 21z"/></svg></span>
-        <div><small data-i18n="chip.pulse">Puls</small><strong><span id="hr">72</span><em>bpm</em></strong></div>
-      </div>
-      <div class="chip c2">
-        <span class="ic" style="background:rgba(56,189,248,.16);color:#38bdf8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7C8 7.4 5 10.8 5 14.5a7 7 0 0014 0c0-3.7-3-7.1-7-11.8z"/></svg></span>
-        <div><small>SpO₂</small><strong>98<em>%</em></strong></div>
-      </div>
-      <div class="chip c3">
-        <span class="ic" style="background:rgba(167,139,250,.16);color:#a78bfa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></span>
-        <div><small data-i18n="chip.sleep">Uyqu</small><strong>7<em data-i18n="u.h">s</em> 20<em data-i18n="u.m">d</em></strong></div>
-      </div>
-      <div class="chip c4">
-        <span class="ic" style="background:rgba(34,197,94,.16);color:#4ade80"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
-        <div><small data-i18n="chip.mom">Onam</small><strong style="font-size:15px" data-i18n="chip.ok">Hammasi joyida</strong></div>
+    <div class="strip">
+      <canvas id="ecg" aria-hidden="true"></canvas>
+      <div class="vals">
+        <div><small data-i18n="chip.pulse">Puls</small><b class="live" id="hr">72</b><b><i>bpm</i></b></div>
+        <div><small>SpO₂</small><b>98<i>%</i></b></div>
+        <div><small>HRV</small><b>41<i>ms</i></b></div>
       </div>
     </div>
   </div>
 </header>
 
-<!-- ============ TICKER ============ -->
-<div class="ticker" aria-hidden="true">
-  <div class="track" id="ticker"></div>
-</div>
-
-<!-- ============ HOW ============ -->
 <section id="qanday">
   <div class="wrap">
-    <div class="head rv">
-      <span class="kicker" data-i18n="how.kicker">3 qadam</span>
-      <h2 data-i18n="how.title">Oddiy. Ota-onangiz uchun ham.</h2>
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow" data-i18n="how.kicker">Qanday ishlaydi</span>
+        <h2 data-i18n="how.title">Ota-onangiz faqat soat taqadi.</h2>
+      </div>
+      <p data-i18n="how.p">Qolganini tizim, hamshira va shifokor bajaradi.</p>
     </div>
-    <div class="flow">
-      <article class="step rv">
-        <span class="num">01</span>
-        <div class="visual">
-          <img src="images/3d/watch-green.webp" alt="" style="height:280px;width:auto;filter:drop-shadow(0 30px 30px rgba(0,0,0,.5));transform:rotate(-10deg)" loading="lazy">
-        </div>
-        <h3 data-i18n="how.s1">Taqing</h3>
-        <p data-i18n="how.s1p">Soat o'zi o'lchaydi. Tugma bosish shart emas.</p>
+    <div class="how">
+      <article>
+        <div class="pic"><img src="images/3d/watch-green.webp" alt="" style="height:270px;width:auto;transform:rotate(-8deg);filter:drop-shadow(0 24px 22px rgba(15,34,54,.3))" loading="lazy"></div>
+        <div class="step"><i>1</i></div>
+        <h3 data-i18n="how.s1">Soat o'lchaydi</h3>
+        <p data-i18n="how.s1p">Puls, SpO₂, uyqu. Tugma bosish shart emas.</p>
       </article>
-      <article class="step rv" style="transition-delay:.1s">
-        <span class="num">02</span>
-        <div class="visual">
+      <article>
+        <div class="pic">
           <div class="dash">
-            <div class="title"><span data-i18n="how.dash">Hamshira ekrani</span><span>●</span></div>
-            <div class="row"><span class="av" style="background:#86efac">KA</span><span class="sdot" style="background:var(--green)"></span><span>Karimova A.</span><span>71</span></div>
-            <div class="row hot"><span class="av" style="background:#fcd34d">TR</span><span class="sdot" style="background:var(--amber)"></span><span>To'rayev R.</span><span>104</span></div>
-            <div class="bar"><i></i></div>
-            <div class="row"><span class="av" style="background:#93c5fd">SM</span><span class="sdot" style="background:var(--green)"></span><span>Saidova M.</span><span>68</span></div>
-            <div class="row"><span class="av" style="background:#c4b5fd">YO</span><span class="sdot" style="background:var(--green)"></span><span>Yusupov O.</span><span>76</span></div>
+            <div class="t"><span data-i18n="how.dash">Hamshira ekrani</span><span>3/42</span></div>
+            <div class="row"><span class="sdot" style="background:var(--ok)"></span><span>Karimova A.</span><b>71</b></div>
+            <div class="row hot"><span class="sdot" style="background:var(--warn)"></span><span>To'rayev R.</span><b>104</b></div>
+            <div class="row"><span class="sdot" style="background:var(--ok)"></span><span>Saidova M.</span><b>68</b></div>
+            <div class="task" data-i18n="how.task">Vazifa: To'rayev R. bilan bog'lanish</div>
           </div>
         </div>
+        <div class="step"><i>2</i></div>
         <h3 data-i18n="how.s2">Shifokor kuzatadi</h3>
-        <p data-i18n="how.s2p">Shaxsiy normadan og'ish bo'lsa, hamshiraga vazifa tushadi.</p>
+        <p data-i18n="how.s2p">Normadan og'ish bo'lsa, mas'ul hamshiraga vazifa tushadi.</p>
       </article>
-      <article class="step rv" style="transition-delay:.2s">
-        <span class="num">03</span>
-        <div class="visual" style="align-items:end">
+      <article>
+        <div class="pic" style="align-items:end">
           <div class="phone">
             <div class="scr">
               <span class="notch"></span>
-              <div class="who"><i>👵</i><span data-i18n="phone.mom">Onam · Xorazm</span></div>
-              <div class="ok"><b>✓</b><span data-i18n="chip.ok">Hammasi joyida</span></div>
+              <div class="who"><span data-i18n="phone.mom">Onam</span><span data-i18n="phone.city">Xorazm</span></div>
+              <div class="ok" data-i18n="chip.ok">Hammasi joyida</div>
               <div class="vit">
-                <div><span data-i18n="chip.pulse">Puls</span><strong>72</strong></div>
-                <div>SpO₂<strong>98%</strong></div>
+                <div><span data-i18n="chip.pulse">Puls</span><b>72</b></div>
+                <div>SpO₂<b>98%</b></div>
               </div>
-              <svg class="spark" viewBox="0 0 160 40" preserveAspectRatio="none"><path d="M0 28 L20 24 L40 26 L60 18 L80 22 L100 14 L120 20 L140 12 L160 16" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 28 L20 24 L40 26 L60 18 L80 22 L100 14 L120 20 L140 12 L160 16" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
           </div>
-          <div class="toast"><span>🔔</span><span data-i18n="phone.toast">Onam uxladi · 7s 20d</span></div>
         </div>
-        <h3 data-i18n="how.s3">Siz bilasiz</h3>
-        <p data-i18n="how.s3p">Telefoningizda va Telegram'da. Qayerda bo'lmang.</p>
+        <div class="step"><i>3</i></div>
+        <h3 data-i18n="how.s3">Siz ko'rasiz</h3>
+        <p data-i18n="how.s3p">Ilovada va Telegram'da, qayerda bo'lmang.</p>
       </article>
     </div>
   </div>
 </section>
 
-<!-- ============ SIGNALS ============ -->
-<section id="signal" style="background:linear-gradient(180deg,transparent,var(--bg2) 30%,var(--bg2) 70%,transparent)">
+<section id="signal" class="sig-sec">
   <div class="wrap sig">
-    <div class="sig-stage rv" id="sigStage">
-      <div class="sig-glow" id="sigGlow"></div>
-      <div class="ring-pulse" id="ring1"></div>
-      <div class="ring-pulse r2" id="ring2"></div>
+    <div class="sig-stage" id="sigStage" data-s="green">
       <img src="images/3d/watch-green.webp" data-s="green" class="on" alt="Yashil holat: puls 72" loading="lazy">
       <img src="images/3d/watch-amber.webp" data-s="amber" alt="Sariq holat: puls 104" loading="lazy">
-      <img src="images/3d/watch-red.webp" data-s="red" alt="Qizil holat: SOS" loading="lazy">
+      <img src="images/3d/watch-red.webp" data-s="red" alt="Qizil holat: puls 138" loading="lazy">
     </div>
-    <div class="rv">
-      <span class="kicker" data-i18n="sig.kicker">Jonli ko'ring</span>
-      <h2 data-i18n="sig.title">Har holatga — o'z javobi.</h2>
+    <div>
+      <span class="eyebrow" data-i18n="sig.kicker">Signallar</span>
+      <h2 data-i18n="sig.title">Holatga qarab, kim nima qiladi.</h2>
       <div class="tabs" role="tablist">
-        <button class="tab on" data-s="green" role="tab"><span class="sdot" style="background:var(--green)"></span><span data-i18n="sig.green">Yashil</span></button>
-        <button class="tab" data-s="amber" role="tab"><span class="sdot" style="background:var(--amber)"></span><span data-i18n="sig.amber">Sariq</span></button>
-        <button class="tab" data-s="red" role="tab"><span class="sdot" style="background:var(--red)"></span><span data-i18n="sig.red">Qizil</span></button>
+        <button class="tab on" data-s="green" role="tab" aria-selected="true"><span class="sdot" style="background:var(--ok)"></span><span data-i18n="sig.green">Yashil</span></button>
+        <button class="tab" data-s="amber" role="tab" aria-selected="false"><span class="sdot" style="background:var(--warn)"></span><span data-i18n="sig.amber">Sariq</span></button>
+        <button class="tab" data-s="red" role="tab" aria-selected="false"><span class="sdot" style="background:var(--crit)"></span><span data-i18n="sig.red">Qizil</span></button>
       </div>
-      <div class="chain" id="chain"></div>
+      <ol class="chain" id="chain"></ol>
     </div>
   </div>
 </section>
 
-<!-- ============ FEATURES ============ -->
 <section id="imkoniyat">
   <div class="wrap">
-    <div class="head rv">
-      <span class="kicker" data-i18n="feat.kicker">Imkoniyatlar</span>
-      <h2 data-i18n="feat.title">Kam so'z. Ko'p g'amxo'rlik.</h2>
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow" data-i18n="feat.kicker">Imkoniyatlar</span>
+        <h2 data-i18n="feat.title">Oila uchun xotirjamlik.</h2>
+      </div>
+      <p data-i18n="feat.p">Klinika uchun tartib.</p>
     </div>
-    <div class="bento">
-      <div class="tile t-sos rv">
-        <span class="free-tag" data-i18n="feat.free">0 so'm</span>
-        <div class="sos-btn">SOS</div>
-        <h3 data-i18n="feat.sos">SOS hech qachon pullik emas.</h3>
-        <p data-i18n="feat.sosp">Bepul tarifda ham. Har doim.</p>
-      </div>
-      <div class="tile t-base rv">
-        <svg class="band" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 40 C60 30 100 50 160 38 S260 30 300 42 S370 34 400 38 L400 82 C360 86 330 76 300 84 S220 90 160 80 S60 88 0 80 Z" fill="rgba(34,211,238,.13)"/>
-          <path d="M0 60 C40 56 70 66 110 58 S170 50 200 62 S250 70 280 58 S330 20 350 30 S380 60 400 58" fill="none" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="350" cy="30" r="7" fill="#f59e0b"/><circle cx="350" cy="30" r="14" fill="none" stroke="#f59e0b" stroke-opacity=".4" stroke-width="2"/>
-        </svg>
-        <h3 data-i18n="feat.base">Shaxsiy norma</h3>
-        <p data-i18n="feat.basep">7 kunda o'rganadi. Og'ishni darrov ko'radi.</p>
-      </div>
-      <div class="tile rv">
-        <span class="big-ic" style="background:rgba(56,189,248,.14);color:#38bdf8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a6 6 0 0012 0V3M6 3H4M6 3h2M18 3h-2M18 3h2M12 15v2a4 4 0 008 0v-1"/><circle cx="20" cy="14" r="2"/></svg></span>
-        <h3 data-i18n="feat.doc">Shifokor nazorati</h3>
-      </div>
-      <div class="tile rv">
-        <span class="big-ic" style="background:rgba(167,139,250,.14);color:#a78bfa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg></span>
-        <h3 data-i18n="feat.tg">Telegram xabar</h3>
-      </div>
-      <div class="tile t-photo rv">
+    <div class="feat">
+      <figure class="photo">
         <img src="images/family_peace_reunion.png" alt="" loading="lazy">
-        <div class="txt">
-          <h3 data-i18n="feat.family">Butun oila — bir ekranda</h3>
-          <p data-i18n="feat.familyp">3 tagacha qarindosh.</p>
-        </div>
-      </div>
-      <div class="tile rv">
-        <span class="big-ic" style="background:rgba(244,114,182,.14);color:#f472b6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
-        <h3 data-i18n="feat.consent">Rozilik va audit</h3>
-      </div>
-      <div class="tile rv">
-        <span class="big-ic" style="background:rgba(245,158,11,.14);color:#fbbf24"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
-        <h3 data-i18n="feat.history">90 kunlik tarix</h3>
-      </div>
+        <figcaption><b data-i18n="feat.photo">Butun oila bir ekranda</b><span data-i18n="feat.photop">3 tagacha qarindosh kuzatadi</span></figcaption>
+      </figure>
+      <ul class="flist">
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span><b data-i18n="f1.t">Shaxsiy norma</b><span data-i18n="f1.p">Har kimning normasi o'zi bilan.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v6a6 6 0 0012 0V3M12 15v2a4 4 0 008 0v-1"/><circle cx="20" cy="14" r="2"/></svg></span><b data-i18n="f2.t">Shifokor nazorati</b><span data-i18n="f2.p">Mas'ul hamshira biriktiriladi.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg></span><b data-i18n="f3.t">Telegram xabar</b><span data-i18n="f3.p">Ilova o'rnatmasdan ham.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span><b data-i18n="f4.t">90 kunlik tarix</b><span data-i18n="f4.p">Trendlar shifokor bilan birga.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span><b data-i18n="f5.t">Rozilik bilan</b><span data-i18n="f5.p">Bemor kim ko'rishini o'zi tanlaydi.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="3"/><path d="M11 18h2"/></svg></span><b data-i18n="f6.t">Telefon ham bo'ladi</b><span data-i18n="f6.p">iPhone va Android sog'liq ma'lumotlari.</span></li>
+      </ul>
     </div>
   </div>
 </section>
 
-<!-- ============ PRICING ============ -->
-<section id="tarif">
+<section id="tarif" style="padding-top:20px">
   <div class="wrap">
-    <div class="head rv">
-      <span class="kicker" data-i18n="price.kicker">Tariflar</span>
-      <h2 data-i18n="price.title">Oddiy narxlar.</h2>
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow" data-i18n="price.kicker">Tariflar</span>
+        <h2 data-i18n="price.title">Oddiy narxlar.</h2>
+      </div>
+      <p data-i18n="price.p">Oylik to'lov. Istalgan vaqt to'xtatasiz.</p>
     </div>
     <div class="plans">
-      <div class="plan rv">
-        <span class="emoji">🛡️</span>
-        <h3 data-i18n="p1.name">Bepul himoya</h3>
-        <div class="price">0 <small data-i18n="p.forever">so'm · doim</small></div>
+      <div class="plan">
+        <h3 data-i18n="p1.name">Boshlang'ich</h3>
+        <div class="price">0<small data-i18n="p.sum">so'm</small></div>
         <ul>
           <li data-i18n="p1.f1">SOS signal</li>
           <li data-i18n="p1.f2">Qizil ogohlantirish</li>
           <li data-i18n="p1.f3">Oxirgi 24 soat</li>
         </ul>
-        <a class="btn btn-ghost" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.start">Boshlash</a>
+        <a class="btn btn-line" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.start">Boshlash</a>
       </div>
-      <div class="plan hot rv" style="transition-delay:.08s">
-        <span class="badge" data-i18n="p.popular">Ommabop</span>
-        <span class="emoji">💙</span>
+      <div class="plan hot">
+        <span class="tag" data-i18n="p.popular">Ko'p tanlanadi</span>
         <h3 data-i18n="p2.name">Xotirjam farzand</h3>
-        <div class="price">79 000 <small data-i18n="p.month">so'm / oy</small></div>
+        <div class="price">79&#8239;000<small data-i18n="p.month">so'm / oy</small></div>
         <ul>
           <li data-i18n="p2.f1">24/7 kuzatuv</li>
           <li data-i18n="p2.f2">Shaxsiy norma</li>
@@ -666,61 +506,51 @@
         </ul>
         <a class="btn btn-main" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.choose">Tanlash</a>
       </div>
-      <div class="plan rv" style="transition-delay:.16s">
-        <span class="emoji">🩺</span>
+      <div class="plan">
         <h3 data-i18n="p3.name">Shifokor bilan</h3>
-        <div class="price">199 000 <small data-i18n="p.month">so'm / oy</small></div>
+        <div class="price">199&#8239;000<small data-i18n="p.month">so'm / oy</small></div>
         <ul>
           <li data-i18n="p3.f1">Hammasi + shifokor</li>
           <li data-i18n="p3.f2">Haftalik xulosa</li>
           <li data-i18n="p3.f3">Og'ishda qo'ng'iroq</li>
         </ul>
-        <a class="btn btn-ghost" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.choose">Tanlash</a>
-      </div>
-      <div class="plan rv" style="transition-delay:.24s">
-        <span class="emoji">🏥</span>
-        <h3 data-i18n="p4.name">Klinikalar uchun</h3>
-        <div class="price" style="font-size:28px" data-i18n="p4.price">Shartnoma</div>
-        <ul>
-          <li data-i18n="p4.f1">Hamshira ish stoli</li>
-          <li data-i18n="p4.f2">Vazifa va eskalatsiya</li>
-          <li data-i18n="p4.f3">Audit jurnali</li>
-        </ul>
-        <a class="btn btn-ghost" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.talk">Bog'lanish</a>
+        <a class="btn btn-line" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.choose">Tanlash</a>
       </div>
     </div>
-    <p class="note rv" data-i18n-html="price.note">🛡️ <b>SOS va qizil signal</b> — hamma tarifda bepul.</p>
+    <div class="clinic">
+      <div><b data-i18n="p4.name">Klinika va poliklinikalar uchun</b><span data-i18n="p4.p">Hamshira ish stoli, vazifalar va audit jurnali. Shartnoma asosida.</span></div>
+      <a class="btn btn-line" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener" data-i18n="p.talk">Bog'lanish</a>
+    </div>
   </div>
 </section>
 
-<!-- ============ FINAL CTA ============ -->
-<section style="padding-top:40px">
+<section style="padding-block:20px 0">
   <div class="wrap">
-    <div class="final rv">
-      <div>
-        <h2 data-i18n-html="final.title">Bugun taqing.<br><span class="grad">Ertaga xotirjam bo'ling.</span></h2>
-        <p data-i18n="final.p">Telegram botga yozing — soat va ulanishni o'zimiz sozlaymiz.</p>
+    <div class="final tile-bg">
+      <div class="txt">
+        <h2 data-i18n="final.title">Bugun taqing, ertaga xotirjam bo'ling.</h2>
+        <p data-i18n="final.p">Botga yozing. Soat va ulanishni o'zimiz sozlaymiz.</p>
         <div class="cta-row">
           <a class="btn btn-main" href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3l-3.2 15.1c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13.1 1.4 11.6c-1-.3-1.1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg>
             @WMAX_uz_bot
           </a>
-          <a class="btn btn-ghost" href="/relative" data-portal="relative" data-i18n="nav.family">Oila portali</a>
+          <a class="btn btn-line" href="/relative" data-portal="relative" data-i18n="nav.family">Oila portali</a>
         </div>
       </div>
-      <img src="images/3d/watch-red.webp" alt="" loading="lazy">
+      <img src="images/3d/watch-green.webp" alt="" loading="lazy">
     </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap row">
-    <span>© 2026 WMAX · <span data-i18n="foot.disclaimer">Tizim o'lchaydi, tashxisni shifokor qo'yadi.</span></span>
-    <div class="fl">
+    <span>© 2026 WMAX · <span data-i18n="foot.d">Tizim o'lchaydi, tashxisni shifokor qo'yadi.</span></span>
+    <nav>
       <a href="/doctor" data-portal="doctor" data-i18n="nav.doctor">Shifokor kabineti</a>
       <a href="/relative" data-portal="relative" data-i18n="nav.family">Oila portali</a>
       <a href="https://t.me/WMAX_uz_bot" target="_blank" rel="noopener">Telegram</a>
-    </div>
+    </nav>
   </div>
 </footer>
 
@@ -729,146 +559,139 @@
   var I18N = {
     uz: {
       'nav.how': 'Qanday ishlaydi', 'nav.signal': 'Signallar', 'nav.features': 'Imkoniyatlar', 'nav.pricing': 'Tariflar',
-      'nav.login': 'Kirish', 'nav.doctor': 'Shifokor kabineti', 'nav.family': 'Oila portali',
-      'hero.live': 'Jonli', 'hero.badge': "Masofaviy monitoring · O'zbekiston",
-      'hero.t1': 'Siz uzoqdasiz.', 'hero.t2': "Ular yolg'iz emas.",
-      'hero.lead': "<b>Soat</b> o'lchaydi. <b>Shifokor</b> kuzatadi. <b>Siz</b> xotirjamsiz.",
+      'nav.login': 'Kirish', 'nav.doctor': 'Shifokor kabineti', 'nav.doctor_s': 'Hamshira va shifokorlar uchun', 'nav.family': 'Oila portali', 'nav.family_s': 'Farzandlar va qarindoshlar uchun',
+      'hero.eyebrow': "Masofaviy monitoring · O'zbekiston",
+      'hero.title': "Siz uzoqdasiz.<br><em>Ular yolg'iz emas.</em>",
+      'hero.lead': "Soat o'lchaydi. Shifokor kuzatadi. Siz xotirjamsiz.",
       'cta.telegram': "Telegram'da boshlash", 'cta.how': 'Qanday ishlaydi',
-      'trust.sos': 'SOS doim bepul', 'trust.doctor': 'Shifokor nazorati', 'trust.consent': 'Rozilik bilan',
-      'chip.pulse': 'Puls', 'chip.sleep': 'Uyqu', 'chip.mom': 'Onam', 'chip.ok': 'Hammasi joyida', 'u.h': 's', 'u.m': 'd',
-      'ticker': ['Puls', 'SpO₂', 'HRV', 'Uyqu', 'Faollik', 'SOS', 'Telegram', 'Shaxsiy norma'],
-      'how.kicker': '3 qadam', 'how.title': 'Oddiy. Ota-onangiz uchun ham.',
-      'how.s1': 'Taqing', 'how.s1p': "Soat o'zi o'lchaydi. Tugma bosish shart emas.",
-      'how.dash': 'Hamshira ekrani',
-      'how.s2': 'Shifokor kuzatadi', 'how.s2p': "Shaxsiy normadan og'ish bo'lsa, hamshiraga vazifa tushadi.",
-      'how.s3': 'Siz bilasiz', 'how.s3p': "Telefoningizda va Telegram'da. Qayerda bo'lmang.",
-      'phone.mom': 'Onam · Xorazm', 'phone.toast': 'Onam uxladi · 7s 20d',
-      'sig.kicker': "Jonli ko'ring", 'sig.title': "Har holatga — o'z javobi.",
+      'u.min': 'daq', 'u.days': 'kun',
+      'facts.f1': "o'lchov oralig'i", 'facts.f2': "shaxsiy normani o'rganadi", 'facts.f3': 'shifokor nazorati',
+      'notif.title': 'Onam · hammasi joyida', 'notif.body': 'Puls 72, uyqu 7 soat 20 daqiqa',
+      'chip.pulse': 'Puls', 'chip.ok': 'Hammasi joyida',
+      'how.kicker': 'Qanday ishlaydi', 'how.title': 'Ota-onangiz faqat soat taqadi.', 'how.p': 'Qolganini tizim, hamshira va shifokor bajaradi.',
+      'how.s1': "Soat o'lchaydi", 'how.s1p': 'Puls, SpO₂, uyqu. Tugma bosish shart emas.',
+      'how.dash': 'Hamshira ekrani', 'how.task': "Vazifa: To'rayev R. bilan bog'lanish",
+      'how.s2': 'Shifokor kuzatadi', 'how.s2p': "Normadan og'ish bo'lsa, mas'ul hamshiraga vazifa tushadi.",
+      'how.s3': "Siz ko'rasiz", 'how.s3p': "Ilovada va Telegram'da, qayerda bo'lmang.",
+      'phone.mom': 'Onam', 'phone.city': 'Xorazm',
+      'sig.kicker': 'Signallar', 'sig.title': 'Holatga qarab, kim nima qiladi.',
       'sig.green': 'Yashil', 'sig.amber': 'Sariq', 'sig.red': 'Qizil',
       'chain': {
-        green: [['💚', "Ko'rsatkichlar normada", 'Oila ilovasida yashil nur', 'har 5 daq'], ['😴', 'Uyqu va faollik yozildi', 'Tarix va trendlar', 'kun bo‘yi']],
-        amber: [['📈', "Normadan og'ish", 'Puls 104 · 3 o‘lchovda', '0 daq'], ['🩺', 'Hamshiraga vazifa', "Mas'ul shaxs biriktiriladi", '+1 daq'], ['🔔', 'Oilaga xabar', 'Ilova va Telegram', '+1 daq']],
-        red: [['🆘', 'SOS yoki qizil signal', 'Soatdan yoki ilovadan', '0 s'], ['🩺', 'Navbatchi shifokor', 'Darhol vazifa', '+30 s'], ['📲', 'Butun oila', 'Ilova va Telegram', '+30 s'], ['✅', 'Javob kuzatiladi', 'Tasdiqlanmaguncha qayta yuboriladi', 'doimiy']]
+        green: [['5 daq', "Ko'rsatkichlar normada", 'Oila ilovasida yashil holat', 'Oila'], ['Kun', 'Uyqu va faollik yozildi', 'Tarix va trendlar', 'Shifokor']],
+        amber: [['0', "Normadan og'ish", "Puls 104, uch o'lchov ketma-ket", 'Tizim'], ['+1 daq', 'Hamshiraga vazifa', "Mas'ul hamshira biriktiriladi", 'Hamshira'], ['+1 daq', 'Oilaga xabar', 'Ilova va Telegram', 'Oila']],
+        red: [['0', 'SOS yoki qizil signal', 'Soatdan yoki ilovadan', 'Bemor'], ['+30 s', 'Navbatchi shifokor', 'Darhol vazifa oladi', 'Shifokor'], ['+30 s', 'Butun oilaga xabar', 'Ilova va Telegram', 'Oila'], ['…', 'Javob kuzatiladi', 'Tasdiqlanmaguncha qayta yuboriladi', 'Tizim']]
       },
-      'feat.kicker': 'Imkoniyatlar', 'feat.title': "Kam so'z. Ko'p g'amxo'rlik.",
-      'feat.free': "0 so'm", 'feat.sos': 'SOS hech qachon pullik emas.', 'feat.sosp': 'Bepul tarifda ham. Har doim.',
-      'feat.base': 'Shaxsiy norma', 'feat.basep': "7 kunda o'rganadi. Og'ishni darrov ko'radi.",
-      'feat.doc': 'Shifokor nazorati', 'feat.tg': 'Telegram xabar', 'feat.family': 'Butun oila — bir ekranda', 'feat.familyp': '3 tagacha qarindosh.',
-      'feat.consent': 'Rozilik va audit', 'feat.history': '90 kunlik tarix',
-      'price.kicker': 'Tariflar', 'price.title': 'Oddiy narxlar.',
-      'p.forever': "so'm · doim", 'p.month': "so'm / oy", 'p.start': 'Boshlash', 'p.choose': 'Tanlash', 'p.talk': "Bog'lanish", 'p.popular': 'Ommabop',
-      'p1.name': 'Bepul himoya', 'p1.f1': 'SOS signal', 'p1.f2': 'Qizil ogohlantirish', 'p1.f3': 'Oxirgi 24 soat',
+      'feat.kicker': 'Imkoniyatlar', 'feat.title': 'Oila uchun xotirjamlik.', 'feat.p': 'Klinika uchun tartib.',
+      'feat.photo': 'Butun oila bir ekranda', 'feat.photop': '3 tagacha qarindosh kuzatadi',
+      'f1.t': 'Shaxsiy norma', 'f1.p': "Har kimning normasi o'zi bilan.",
+      'f2.t': 'Shifokor nazorati', 'f2.p': "Mas'ul hamshira biriktiriladi.",
+      'f3.t': 'Telegram xabar', 'f3.p': "Ilova o'rnatmasdan ham.",
+      'f4.t': '90 kunlik tarix', 'f4.p': 'Trendlar shifokor bilan birga.',
+      'f5.t': 'Rozilik bilan', 'f5.p': "Bemor kim ko'rishini o'zi tanlaydi.",
+      'f6.t': "Telefon ham bo'ladi", 'f6.p': "iPhone va Android sog'liq ma'lumotlari.",
+      'price.kicker': 'Tariflar', 'price.title': 'Oddiy narxlar.', 'price.p': "Oylik to'lov. Istalgan vaqt to'xtatasiz.",
+      'p.sum': "so'm", 'p.month': "so'm / oy", 'p.start': 'Boshlash', 'p.choose': 'Tanlash', 'p.talk': "Bog'lanish", 'p.popular': "Ko'p tanlanadi",
+      'p1.name': "Boshlang'ich", 'p1.f1': 'SOS signal', 'p1.f2': 'Qizil ogohlantirish', 'p1.f3': 'Oxirgi 24 soat',
       'p2.name': 'Xotirjam farzand', 'p2.f1': '24/7 kuzatuv', 'p2.f2': 'Shaxsiy norma', 'p2.f3': '90 kunlik tarix', 'p2.f4': '3 qarindosh',
       'p3.name': 'Shifokor bilan', 'p3.f1': 'Hammasi + shifokor', 'p3.f2': 'Haftalik xulosa', 'p3.f3': "Og'ishda qo'ng'iroq",
-      'p4.name': 'Klinikalar uchun', 'p4.price': 'Shartnoma', 'p4.f1': 'Hamshira ish stoli', 'p4.f2': 'Vazifa va eskalatsiya', 'p4.f3': 'Audit jurnali',
-      'price.note': '🛡️ <b>SOS va qizil signal</b> — hamma tarifda bepul.',
-      'final.title': "Bugun taqing.<br><span class=\"grad\">Ertaga xotirjam bo'ling.</span>",
-      'final.p': "Telegram botga yozing — soat va ulanishni o'zimiz sozlaymiz.",
-      'foot.disclaimer': "Tizim o'lchaydi, tashxisni shifokor qo'yadi."
+      'p4.name': 'Klinika va poliklinikalar uchun', 'p4.p': 'Hamshira ish stoli, vazifalar va audit jurnali. Shartnoma asosida.',
+      'final.title': "Bugun taqing, ertaga xotirjam bo'ling.", 'final.p': "Botga yozing. Soat va ulanishni o'zimiz sozlaymiz.",
+      'foot.d': "Tizim o'lchaydi, tashxisni shifokor qo'yadi."
     },
     ru: {
       'nav.how': 'Как работает', 'nav.signal': 'Сигналы', 'nav.features': 'Возможности', 'nav.pricing': 'Тарифы',
-      'nav.login': 'Войти', 'nav.doctor': 'Кабинет врача', 'nav.family': 'Портал семьи',
-      'hero.live': 'Онлайн', 'hero.badge': 'Удалённый мониторинг · Узбекистан',
-      'hero.t1': 'Вы далеко.', 'hero.t2': 'Они не одни.',
-      'hero.lead': '<b>Часы</b> измеряют. <b>Врач</b> наблюдает. <b>Вы</b> спокойны.',
+      'nav.login': 'Войти', 'nav.doctor': 'Кабинет врача', 'nav.doctor_s': 'Для медсестёр и врачей', 'nav.family': 'Портал семьи', 'nav.family_s': 'Для детей и родственников',
+      'hero.eyebrow': 'Удалённый мониторинг · Узбекистан',
+      'hero.title': 'Вы далеко.<br><em>Они не одни.</em>',
+      'hero.lead': 'Часы измеряют. Врач наблюдает. Вы спокойны.',
       'cta.telegram': 'Начать в Telegram', 'cta.how': 'Как работает',
-      'trust.sos': 'SOS всегда бесплатно', 'trust.doctor': 'Контроль врача', 'trust.consent': 'С согласия',
-      'chip.pulse': 'Пульс', 'chip.sleep': 'Сон', 'chip.mom': 'Мама', 'chip.ok': 'Всё хорошо', 'u.h': 'ч', 'u.m': 'м',
-      'ticker': ['Пульс', 'SpO₂', 'HRV', 'Сон', 'Активность', 'SOS', 'Telegram', 'Личная норма'],
-      'how.kicker': '3 шага', 'how.title': 'Просто. Даже для родителей.',
-      'how.s1': 'Наденьте', 'how.s1p': 'Часы измеряют сами. Ничего нажимать не нужно.',
-      'how.dash': 'Экран медсестры',
-      'how.s2': 'Врач наблюдает', 'how.s2p': 'При отклонении от личной нормы медсестра получает задачу.',
-      'how.s3': 'Вы в курсе', 'how.s3p': 'В телефоне и в Telegram. Где бы вы ни были.',
-      'phone.mom': 'Мама · Хорезм', 'phone.toast': 'Мама спала · 7ч 20м',
-      'sig.kicker': 'Посмотрите вживую', 'sig.title': 'Каждому состоянию — свой ответ.',
+      'u.min': 'мин', 'u.days': 'дней',
+      'facts.f1': 'интервал измерений', 'facts.f2': 'изучает личную норму', 'facts.f3': 'контроль врача',
+      'notif.title': 'Мама · всё хорошо', 'notif.body': 'Пульс 72, сон 7 ч 20 мин',
+      'chip.pulse': 'Пульс', 'chip.ok': 'Всё хорошо',
+      'how.kicker': 'Как работает', 'how.title': 'Родителям нужно только надеть часы.', 'how.p': 'Остальное делают система, медсестра и врач.',
+      'how.s1': 'Часы измеряют', 'how.s1p': 'Пульс, SpO₂, сон. Ничего нажимать не нужно.',
+      'how.dash': 'Экран медсестры', 'how.task': 'Задача: связаться с Тураевым Р.',
+      'how.s2': 'Врач наблюдает', 'how.s2p': 'При отклонении от нормы ответственная медсестра получает задачу.',
+      'how.s3': 'Вы видите', 'how.s3p': 'В приложении и в Telegram, где бы вы ни были.',
+      'phone.mom': 'Мама', 'phone.city': 'Хорезм',
+      'sig.kicker': 'Сигналы', 'sig.title': 'Кто и что делает в каждом состоянии.',
       'sig.green': 'Зелёный', 'sig.amber': 'Жёлтый', 'sig.red': 'Красный',
       'chain': {
-        green: [['💚', 'Показатели в норме', 'Зелёный статус у семьи', 'каждые 5 мин'], ['😴', 'Сон и активность записаны', 'История и тренды', 'весь день']],
-        amber: [['📈', 'Отклонение от нормы', 'Пульс 104 · 3 измерения', '0 мин'], ['🩺', 'Задача медсестре', 'Назначается ответственный', '+1 мин'], ['🔔', 'Сообщение семье', 'Приложение и Telegram', '+1 мин']],
-        red: [['🆘', 'SOS или красный сигнал', 'С часов или из приложения', '0 с'], ['🩺', 'Дежурный врач', 'Задача сразу', '+30 с'], ['📲', 'Вся семья', 'Приложение и Telegram', '+30 с'], ['✅', 'Ответ отслеживается', 'Повтор до подтверждения', 'всегда']]
+        green: [['5 мин', 'Показатели в норме', 'Зелёный статус у семьи', 'Семья'], ['День', 'Сон и активность записаны', 'История и тренды', 'Врач']],
+        amber: [['0', 'Отклонение от нормы', 'Пульс 104, три измерения подряд', 'Система'], ['+1 мин', 'Задача медсестре', 'Назначается ответственная медсестра', 'Медсестра'], ['+1 мин', 'Сообщение семье', 'Приложение и Telegram', 'Семья']],
+        red: [['0', 'SOS или красный сигнал', 'С часов или из приложения', 'Пациент'], ['+30 с', 'Дежурный врач', 'Сразу получает задачу', 'Врач'], ['+30 с', 'Сообщение всей семье', 'Приложение и Telegram', 'Семья'], ['…', 'Ответ отслеживается', 'Повтор до подтверждения', 'Система']]
       },
-      'feat.kicker': 'Возможности', 'feat.title': 'Меньше слов. Больше заботы.',
-      'feat.free': '0 сум', 'feat.sos': 'SOS никогда не платный.', 'feat.sosp': 'Даже на бесплатном тарифе. Всегда.',
-      'feat.base': 'Личная норма', 'feat.basep': 'Учится за 7 дней. Сразу видит отклонение.',
-      'feat.doc': 'Контроль врача', 'feat.tg': 'Сообщения в Telegram', 'feat.family': 'Вся семья — на одном экране', 'feat.familyp': 'До 3 родственников.',
-      'feat.consent': 'Согласие и аудит', 'feat.history': 'История 90 дней',
-      'price.kicker': 'Тарифы', 'price.title': 'Простые цены.',
-      'p.forever': 'сум · всегда', 'p.month': 'сум / мес', 'p.start': 'Начать', 'p.choose': 'Выбрать', 'p.talk': 'Связаться', 'p.popular': 'Популярный',
-      'p1.name': 'Бесплатная защита', 'p1.f1': 'Сигнал SOS', 'p1.f2': 'Красные оповещения', 'p1.f3': 'Последние 24 часа',
+      'feat.kicker': 'Возможности', 'feat.title': 'Спокойствие для семьи.', 'feat.p': 'Порядок для клиники.',
+      'feat.photo': 'Вся семья на одном экране', 'feat.photop': 'До 3 родственников',
+      'f1.t': 'Личная норма', 'f1.p': 'У каждого своя норма.',
+      'f2.t': 'Контроль врача', 'f2.p': 'Назначается ответственная медсестра.',
+      'f3.t': 'Сообщения в Telegram', 'f3.p': 'Даже без установки приложения.',
+      'f4.t': 'История 90 дней', 'f4.p': 'Тренды вместе с врачом.',
+      'f5.t': 'С согласия', 'f5.p': 'Пациент сам выбирает, кто видит данные.',
+      'f6.t': 'Работает и с телефоном', 'f6.p': 'Данные здоровья iPhone и Android.',
+      'price.kicker': 'Тарифы', 'price.title': 'Простые цены.', 'price.p': 'Помесячная оплата. Отмена в любой момент.',
+      'p.sum': 'сум', 'p.month': 'сум / мес', 'p.start': 'Начать', 'p.choose': 'Выбрать', 'p.talk': 'Связаться', 'p.popular': 'Чаще выбирают',
+      'p1.name': 'Базовый', 'p1.f1': 'Сигнал SOS', 'p1.f2': 'Красные оповещения', 'p1.f3': 'Последние 24 часа',
       'p2.name': 'Спокойный ребёнок', 'p2.f1': 'Наблюдение 24/7', 'p2.f2': 'Личная норма', 'p2.f3': 'История 90 дней', 'p2.f4': '3 родственника',
       'p3.name': 'С врачом', 'p3.f1': 'Всё + врач', 'p3.f2': 'Еженедельный отчёт', 'p3.f3': 'Звонок при отклонении',
-      'p4.name': 'Для клиник', 'p4.price': 'Договор', 'p4.f1': 'Рабочее место медсестры', 'p4.f2': 'Задачи и эскалация', 'p4.f3': 'Журнал аудита',
-      'price.note': '🛡️ <b>SOS и красный сигнал</b> — бесплатно на всех тарифах.',
-      'final.title': 'Наденьте сегодня.<br><span class="grad">Будьте спокойны завтра.</span>',
-      'final.p': 'Напишите боту в Telegram — часы и подключение настроим сами.',
-      'foot.disclaimer': 'Система измеряет, диагноз ставит врач.'
+      'p4.name': 'Для клиник и поликлиник', 'p4.p': 'Рабочее место медсестры, задачи и журнал аудита. По договору.',
+      'final.title': 'Наденьте сегодня, будьте спокойны завтра.', 'final.p': 'Напишите боту. Часы и подключение настроим сами.',
+      'foot.d': 'Система измеряет, диагноз ставит врач.'
     },
     en: {
       'nav.how': 'How it works', 'nav.signal': 'Signals', 'nav.features': 'Features', 'nav.pricing': 'Pricing',
-      'nav.login': 'Sign in', 'nav.doctor': 'Doctor workspace', 'nav.family': 'Family portal',
-      'hero.live': 'Live', 'hero.badge': 'Remote monitoring · Uzbekistan',
-      'hero.t1': "You're far away.", 'hero.t2': "They're not alone.",
-      'hero.lead': '<b>The watch</b> measures. <b>A doctor</b> watches. <b>You</b> relax.',
+      'nav.login': 'Sign in', 'nav.doctor': 'Doctor workspace', 'nav.doctor_s': 'For nurses and doctors', 'nav.family': 'Family portal', 'nav.family_s': 'For children and relatives',
+      'hero.eyebrow': 'Remote monitoring · Uzbekistan',
+      'hero.title': "You're far away.<br><em>They're not alone.</em>",
+      'hero.lead': 'The watch measures. A doctor watches. You relax.',
       'cta.telegram': 'Start on Telegram', 'cta.how': 'How it works',
-      'trust.sos': 'SOS always free', 'trust.doctor': 'Doctor oversight', 'trust.consent': 'Consent first',
-      'chip.pulse': 'Pulse', 'chip.sleep': 'Sleep', 'chip.mom': 'Mom', 'chip.ok': 'All good', 'u.h': 'h', 'u.m': 'm',
-      'ticker': ['Pulse', 'SpO₂', 'HRV', 'Sleep', 'Activity', 'SOS', 'Telegram', 'Personal baseline'],
-      'how.kicker': '3 steps', 'how.title': 'Simple. Even for your parents.',
-      'how.s1': 'Wear it', 'how.s1p': 'The watch measures on its own. No buttons.',
-      'how.dash': 'Nurse screen',
-      'how.s2': 'A doctor watches', 'how.s2p': 'A deviation from the personal baseline creates a nurse task.',
-      'how.s3': 'You know', 'how.s3p': 'On your phone and Telegram. Wherever you are.',
-      'phone.mom': 'Mom · Khorezm', 'phone.toast': 'Mom slept · 7h 20m',
-      'sig.kicker': 'See it live', 'sig.title': 'Every state gets its response.',
+      'u.min': 'min', 'u.days': 'days',
+      'facts.f1': 'between readings', 'facts.f2': 'to learn the personal baseline', 'facts.f3': 'doctor oversight',
+      'notif.title': 'Mom · all good', 'notif.body': 'Pulse 72, slept 7 h 20 min',
+      'chip.pulse': 'Pulse', 'chip.ok': 'All good',
+      'how.kicker': 'How it works', 'how.title': 'Your parents only wear the watch.', 'how.p': 'The system, a nurse and a doctor do the rest.',
+      'how.s1': 'The watch measures', 'how.s1p': 'Pulse, SpO₂, sleep. No buttons to press.',
+      'how.dash': 'Nurse screen', 'how.task': 'Task: contact R. Turayev',
+      'how.s2': 'A doctor watches', 'how.s2p': 'A deviation from the baseline creates a task for the responsible nurse.',
+      'how.s3': 'You see it', 'how.s3p': 'In the app and on Telegram, wherever you are.',
+      'phone.mom': 'Mom', 'phone.city': 'Khorezm',
+      'sig.kicker': 'Signals', 'sig.title': 'Who does what in each state.',
       'sig.green': 'Green', 'sig.amber': 'Amber', 'sig.red': 'Red',
       'chain': {
-        green: [['💚', 'Vitals in range', 'Green status for the family', 'every 5 min'], ['😴', 'Sleep and activity logged', 'History and trends', 'all day']],
-        amber: [['📈', 'Off baseline', 'Pulse 104 · 3 readings', '0 min'], ['🩺', 'Nurse task', 'A responsible person is assigned', '+1 min'], ['🔔', 'Family notified', 'App and Telegram', '+1 min']],
-        red: [['🆘', 'SOS or red signal', 'From the watch or the app', '0 s'], ['🩺', 'On-call doctor', 'Task right away', '+30 s'], ['📲', 'Whole family', 'App and Telegram', '+30 s'], ['✅', 'Response tracked', 'Retried until acknowledged', 'always']]
+        green: [['5 min', 'Vitals in range', 'Green status for the family', 'Family'], ['Day', 'Sleep and activity logged', 'History and trends', 'Doctor']],
+        amber: [['0', 'Off baseline', 'Pulse 104, three readings in a row', 'System'], ['+1 min', 'Nurse task', 'A responsible nurse is assigned', 'Nurse'], ['+1 min', 'Family notified', 'App and Telegram', 'Family']],
+        red: [['0', 'SOS or red signal', 'From the watch or the app', 'Patient'], ['+30 s', 'On-call doctor', 'Gets a task right away', 'Doctor'], ['+30 s', 'Whole family notified', 'App and Telegram', 'Family'], ['…', 'Response tracked', 'Retried until acknowledged', 'System']]
       },
-      'feat.kicker': 'Features', 'feat.title': 'Fewer words. More care.',
-      'feat.free': '0 UZS', 'feat.sos': 'SOS is never paywalled.', 'feat.sosp': 'Even on the free plan. Always.',
-      'feat.base': 'Personal baseline', 'feat.basep': 'Learns in 7 days. Spots deviations fast.',
-      'feat.doc': 'Doctor oversight', 'feat.tg': 'Telegram alerts', 'feat.family': 'The whole family, one screen', 'feat.familyp': 'Up to 3 relatives.',
-      'feat.consent': 'Consent and audit', 'feat.history': '90-day history',
-      'price.kicker': 'Pricing', 'price.title': 'Simple prices.',
-      'p.forever': 'UZS · forever', 'p.month': 'UZS / mo', 'p.start': 'Start', 'p.choose': 'Choose', 'p.talk': 'Contact us', 'p.popular': 'Popular',
-      'p1.name': 'Free safety', 'p1.f1': 'SOS signal', 'p1.f2': 'Red alerts', 'p1.f3': 'Last 24 hours',
+      'feat.kicker': 'Features', 'feat.title': 'Peace of mind for the family.', 'feat.p': 'Order for the clinic.',
+      'feat.photo': 'The whole family on one screen', 'feat.photop': 'Up to 3 relatives',
+      'f1.t': 'Personal baseline', 'f1.p': 'Everyone has their own normal.',
+      'f2.t': 'Doctor oversight', 'f2.p': 'A responsible nurse is assigned.',
+      'f3.t': 'Telegram alerts', 'f3.p': 'No app install needed.',
+      'f4.t': '90-day history', 'f4.p': 'Trends reviewed with the doctor.',
+      'f5.t': 'Consent first', 'f5.p': 'The patient chooses who sees the data.',
+      'f6.t': 'Works with phones too', 'f6.p': 'iPhone and Android health data.',
+      'price.kicker': 'Pricing', 'price.title': 'Simple prices.', 'price.p': 'Monthly billing. Stop any time.',
+      'p.sum': 'UZS', 'p.month': 'UZS / mo', 'p.start': 'Start', 'p.choose': 'Choose', 'p.talk': 'Contact us', 'p.popular': 'Most chosen',
+      'p1.name': 'Starter', 'p1.f1': 'SOS signal', 'p1.f2': 'Red alerts', 'p1.f3': 'Last 24 hours',
       'p2.name': 'Peace of mind', 'p2.f1': '24/7 monitoring', 'p2.f2': 'Personal baseline', 'p2.f3': '90-day history', 'p2.f4': '3 relatives',
       'p3.name': 'With a doctor', 'p3.f1': 'Everything + doctor', 'p3.f2': 'Weekly summary', 'p3.f3': 'Call on deviation',
-      'p4.name': 'For clinics', 'p4.price': 'Contract', 'p4.f1': 'Nurse workspace', 'p4.f2': 'Tasks and escalation', 'p4.f3': 'Audit log',
-      'price.note': '🛡️ <b>SOS and red signals</b> are free on every plan.',
-      'final.title': 'Put it on today.<br><span class="grad">Rest easy tomorrow.</span>',
-      'final.p': "Message our Telegram bot. We'll set up the watch and pairing.",
-      'foot.disclaimer': 'The system measures; a doctor diagnoses.'
+      'p4.name': 'For clinics and polyclinics', 'p4.p': 'Nurse workspace, tasks and audit log. By contract.',
+      'final.title': 'Put it on today, rest easy tomorrow.', 'final.p': "Message the bot. We'll set up the watch and pairing.",
+      'foot.d': 'The system measures; a doctor diagnoses.'
     }
   };
 
   var lang = 'uz';
   try { lang = localStorage.getItem('wmax_lang') || lang; } catch (e) {}
   if (!I18N[lang]) lang = 'uz';
-  var sigState = 'green';
-
+  var sig = 'green';
   function t(k) { return I18N[lang][k]; }
 
-  function renderTicker() {
-    var words = t('ticker');
-    var html = '';
-    for (var r = 0; r < 4; r++) words.forEach(function (w) { html += '<span>' + w + '</span>'; });
-    document.getElementById('ticker').innerHTML = html;
-  }
-
   function renderChain() {
-    var box = document.getElementById('chain');
-    var rows = t('chain')[sigState];
-    box.innerHTML = rows.map(function (r) {
-      return '<div class="link"><span class="ic">' + r[0] + '</span><div><b>' + r[1] + '</b><small>' + r[2] + '</small></div><span class="t">' + r[3] + '</span></div>';
+    document.getElementById('chain').innerHTML = t('chain')[sig].map(function (r) {
+      return '<li><span class="t">' + r[0] + '</span><div><b>' + r[1] + '</b><small>' + r[2] + '</small></div><span class="who">' + r[3] + '</span></li>';
     }).join('');
-    Array.prototype.forEach.call(box.children, function (el, i) {
-      setTimeout(function () { el.classList.add('show'); }, 90 * i + 30);
-    });
   }
 
   function applyLang(l) {
@@ -884,23 +707,23 @@
       if (typeof v === 'string') el.innerHTML = v;
     });
     document.querySelectorAll('.lang button').forEach(function (b) { b.classList.toggle('on', b.dataset.lang === l); });
-    renderTicker();
     renderChain();
   }
-
   document.querySelectorAll('.lang button').forEach(function (b) {
     b.addEventListener('click', function () { applyLang(b.dataset.lang); });
   });
 
-  // portal dropdown
-  var portal = document.getElementById('portal');
+  var nav = document.getElementById('nav');
+  addEventListener('scroll', function () { nav.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+
   var portalBtn = document.getElementById('portalBtn');
+  var menu = document.getElementById('portalMenu');
   portalBtn.addEventListener('click', function (e) {
     e.stopPropagation();
-    var open = portal.classList.toggle('open');
-    portalBtn.setAttribute('aria-expanded', open);
+    menu.hidden = !menu.hidden;
+    portalBtn.setAttribute('aria-expanded', String(!menu.hidden));
   });
-  document.addEventListener('click', function () { portal.classList.remove('open'); portalBtn.setAttribute('aria-expanded', false); });
+  document.addEventListener('click', function () { menu.hidden = true; portalBtn.setAttribute('aria-expanded', 'false'); });
 
   // local dev: portals run on Vite ports
   document.querySelectorAll('[data-portal]').forEach(function (a) {
@@ -913,54 +736,80 @@
     });
   });
 
-  // signals
-  var COLORS = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' };
-  var auto = true;
+  // signal demo
+  var auto = true, order = ['green', 'amber', 'red'];
   function setSig(s) {
-    sigState = s;
-    document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b.dataset.s === s); });
+    sig = s;
+    document.getElementById('sigStage').dataset.s = s;
+    document.querySelectorAll('.tab').forEach(function (b) {
+      var on = b.dataset.s === s;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', String(on));
+    });
     document.querySelectorAll('#sigStage img').forEach(function (im) { im.classList.toggle('on', im.dataset.s === s); });
-    document.getElementById('sigGlow').style.background = COLORS[s];
-    document.getElementById('ring1').style.borderColor = COLORS[s];
-    document.getElementById('ring2').style.borderColor = COLORS[s];
     renderChain();
   }
   document.querySelectorAll('.tab').forEach(function (b) {
     b.addEventListener('click', function () { auto = false; setSig(b.dataset.s); });
   });
-  var order = ['green', 'amber', 'red'];
-  setInterval(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduce) setInterval(function () {
     if (!auto || document.hidden) return;
     var r = document.getElementById('signal').getBoundingClientRect();
     if (r.bottom < 0 || r.top > innerHeight) return;
-    setSig(order[(order.indexOf(sigState) + 1) % order.length]);
-  }, 4200);
+    setSig(order[(order.indexOf(sig) + 1) % 3]);
+  }, 4500);
 
-  // heart rate wobble
-  var hr = document.getElementById('hr');
-  setInterval(function () { hr.textContent = 70 + Math.round(Math.random() * 5); }, 1800);
-
-  // hero tilt
-  var stage = document.getElementById('stage');
-  var tilt = document.getElementById('tilt');
-  if (matchMedia('(hover: hover)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    stage.addEventListener('mousemove', function (e) {
-      var r = stage.getBoundingClientRect();
-      var x = (e.clientX - r.left) / r.width - 0.5;
-      var y = (e.clientY - r.top) / r.height - 0.5;
-      tilt.style.transform = 'rotateY(' + (x * 18) + 'deg) rotateX(' + (-y * 14) + 'deg)';
-    });
-    stage.addEventListener('mouseleave', function () { tilt.style.transform = ''; });
+  // ECG strip
+  var cv = document.getElementById('ecg'), ctx = cv.getContext('2d');
+  var hrEl = document.getElementById('hr');
+  function beat(x) {
+    if (x < .1) return Math.sin(x / .1 * Math.PI) * .12;
+    if (x < .16) return 0;
+    if (x < .19) return -(x - .16) / .03 * .18;
+    if (x < .23) return -.18 + (x - .19) / .04 * 1.18;
+    if (x < .27) return 1 - (x - .23) / .04 * 1.35;
+    if (x < .30) return -.35 + (x - .27) / .03 * .35;
+    if (x < .42) return 0;
+    if (x < .58) return Math.sin((x - .42) / .16 * Math.PI) * .22;
+    return 0;
   }
-
-  // reveal on scroll
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.rv').forEach(function (el) { io.observe(el); });
-  } else {
-    document.querySelectorAll('.rv').forEach(function (el) { el.classList.add('in'); });
+  var head = 0, W = 0, H = 0, ys = [], period = 120, tick = 0;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function sample(i) { return H * .6 - beat((i % period) / period) * H * .45; }
+  function size() {
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ys = [];
+    for (var i = 0; i < Math.ceil(W); i++) ys.push(sample(i));
+    head = 0; tick = 0;
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+    for (var gx = 0; gx < W; gx += 24) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (var gy = 0; gy < H; gy += 24) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+    ctx.lineWidth = 2.2; ctx.strokeStyle = '#4ade80'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    var started = false;
+    for (var x = 0; x < ys.length; x++) {
+      if (x >= head && x < head + 16) { started = false; continue; }
+      if (!started) { ctx.moveTo(x, ys[x]); started = true; } else ctx.lineTo(x, ys[x]);
+    }
+    ctx.stroke();
+    if (head > 0) { ctx.fillStyle = '#bbf7d0'; ctx.beginPath(); ctx.arc(head - 1, ys[head - 1], 3, 0, 7); ctx.fill(); }
+  }
+  size();
+  addEventListener('resize', function () { size(); draw(); });
+  draw();
+  if (!reduce) {
+    (function loop() {
+      for (var k = 0; k < 2; k++) { ys[head] = sample(tick); head = (head + 1) % ys.length; tick++; }
+      draw();
+      requestAnimationFrame(loop);
+    })();
+    setInterval(function () { hrEl.textContent = 70 + Math.round(Math.random() * 4); }, 2200);
   }
 
   applyLang(lang);
