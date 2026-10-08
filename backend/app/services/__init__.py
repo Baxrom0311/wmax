@@ -14,6 +14,7 @@ from app.services.task_service import TaskService
 
 __all__ = [
     "compute_baseline_pure",
+    "compute_baselines_pure",
     "compute_prognosis_pure",
     "compute_trend_pure",
     "compute_zscores_pure",

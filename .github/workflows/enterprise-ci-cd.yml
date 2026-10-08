@@ -30,10 +30,10 @@ jobs:
       - name: Install Linting Tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
+          pip install ruff==0.16.10
 
       - name: Ruff Fast Lint
-        run: ruff check backend/ contracts/timewin.py
+        run: ruff check backend/ notifier/ contracts/timewin.py
 
       - name: Validate deployment shell scripts
         run: bash -n scripts/*.sh

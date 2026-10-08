@@ -205,7 +205,6 @@ class GeminiProvider(AIProvider):
             prompt_tokens += self.count_tokens(system_instruction)
         ai_tokens_total.labels(provider=PROVIDER_NAME, direction="input").inc(prompt_tokens)
 
-        json_schema = schema_class.model_json_schema()
         payload: dict[str, Any] = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
