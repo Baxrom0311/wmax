@@ -43,8 +43,11 @@ export const App: React.FC = () => {
   }, []);
   const [isSosDispatcherOpen, setIsSosDispatcherOpen] = useState<boolean>(false);
   const [isDemo, setIsDemo] = useState<boolean>(() => {
+    // ?demo=true only applies before sign-in; it must never hide a real
+    // clinician's patients behind sample data.
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("demo") === "true" || isDemoSession();
+    const wantsDemo = urlParams.get("demo") === "true" && !getStoredToken();
+    return wantsDemo || isDemoSession();
   });
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -78,7 +81,7 @@ export const App: React.FC = () => {
   const [plStatusFilter, setPlStatusFilter] = useState<string>("all");
   const [plTaskFilter, setPlTaskFilter] = useState<boolean>(false);
   const [plSearchQuery, setPlSearchQuery] = useState<string>("");
-  const [sosCount, setSosCount] = useState<number>(2);
+  const [sosCount, setSosCount] = useState<number>(0);
 
   // Login form state
   const [selectedRole, setSelectedRole] = useState<"doctor" | "nurse">("doctor");
@@ -272,7 +275,6 @@ export const App: React.FC = () => {
           role={user?.role || "doctor"}
           onLogout={handleLogout}
           activeTab={activeTab}
-          openHandoffsCount={2}
           activeSosCount={sosCount}
           theme={theme}
           onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}

@@ -10,6 +10,7 @@ interface SosBannerProps {
 
 export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }) => {
   const [activeEvents, setActiveEvents] = useState<SosEventItem[]>([]);
+  const [connectionLost, setConnectionLost] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -23,9 +24,11 @@ export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }
             (e) => e.status === "raised" || e.status === "acknowledged" || e.status === "dispatched_103"
           );
           setActiveEvents(unresolved);
+          setConnectionLost(false);
         }
       } catch {
-        // Silent failure in background polling
+        // Keep the last known events and tell the user the list may be stale.
+        if (isMounted) setConnectionLost(true);
       }
     };
 
@@ -36,6 +39,24 @@ export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }
       clearInterval(timer);
     };
   }, [isDemo]);
+
+  if (connectionLost && activeEvents.length === 0) {
+    return (
+      <div className="sos-global-top-banner" role="alert">
+        <div className="sos-banner-left">
+          <div className="sos-banner-content">
+            <div className="sos-banner-title">
+              <Siren size={16} color="#fee2e2" />
+              <span className="sos-title-text">SOS serveri bilan aloqa yo'q</span>
+            </div>
+            <span className="sos-banner-sub">
+              Yangi favqulodda chaqiruvlar ko'rinmasligi mumkin. Internet yoki server holatini tekshiring.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (activeEvents.length === 0) return null;
 
