@@ -34,6 +34,7 @@ from app.models import (
     DeviceAssignment,
     Patient,
     PatientAccess,
+    PatientConsent,
     PatientMembership,
     Reading,
     Task,
@@ -234,6 +235,7 @@ async def seed(force: bool) -> None:
                 device_id=f"GW5-{str(pid)[:4]}",
             ))
 
+        now_utc = datetime.now(timezone.utc)
         for rid, pid, name, phone in RELATIVES:
             caregiver_account_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"caregiver_{phone}")
             session.add(Account(
@@ -249,6 +251,15 @@ async def seed(force: bool) -> None:
                 account_id=caregiver_account_id,
                 role="caregiver",
                 relation="qarovchi",
+                accepted_at=now_utc,
+            ))
+            session.add(PatientConsent(
+                patient_id=pid,
+                scope="family_access",
+                granted=True,
+                method="in_app",
+                target_account_id=caregiver_account_id,
+                recorded_at=now_utc,
             ))
         await session.flush()
 
