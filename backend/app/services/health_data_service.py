@@ -374,7 +374,9 @@ class HealthDataIngestService:
                     "hr_list": [],
                     "spo2_list": [],
                     "temp_list": [],
-                    "steps": 0,
+                    "rmssd_list": [],
+                    "rr_list": [],
+                    "steps": None,
                     "worn_state": None,
                 }
 
@@ -391,14 +393,22 @@ class HealthDataIngestService:
                     windows[key]["spo2_list"].append(float(val))
                 elif metric in ("skin_temperature_c", "body_temperature_c"):
                     windows[key]["temp_list"].append(float(val))
-                elif metric in ("steps", "daily_steps"):
-                    windows[key]["steps"] += int(val)
+                elif metric == "heart_rate_variability_rmssd_ms":
+                    windows[key]["rmssd_list"].append(float(val))
+                elif metric == "respiratory_rate_bpm":
+                    windows[key]["rr_list"].append(float(val))
+                elif metric == "steps":
+                    # daily_steps is a running total since midnight; adding it
+                    # to interval deltas would inflate the window's step count.
+                    windows[key]["steps"] = (windows[key]["steps"] or 0) + int(val)
 
         reading_records: list[dict[str, Any]] = []
         for (pat_id, dev_id, w_start), data in windows.items():
             hr_list = data["hr_list"]
             spo2_list = data["spo2_list"]
             temp_list = data["temp_list"]
+            rmssd_list = data["rmssd_list"]
+            rr_list = data["rr_list"]
 
             reading_records.append(
                 {
@@ -412,10 +422,12 @@ class HealthDataIngestService:
                     "hr_max": round(max(hr_list), 1) if hr_list else None,
                     "spo2": round(sum(spo2_list) / len(spo2_list), 1) if spo2_list else None,
                     "skin_temp": round(sum(temp_list) / len(temp_list), 1) if temp_list else None,
+                    "rmssd": round(sum(rmssd_list) / len(rmssd_list), 1) if rmssd_list else None,
+                    "rr_est": round(sum(rr_list) / len(rr_list), 1) if rr_list else None,
                     "steps": data["steps"],
                     # A valid physiological measurement implies the sensor had
                     # contact, unless the source explicitly reported unworn.
-                    "worn": data["worn_state"] if data["worn_state"] is not None else bool(hr_list or spo2_list),
+                    "worn": data["worn_state"] if data["worn_state"] is not None else bool(hr_list or spo2_list or rmssd_list),
                 }
             )
 
