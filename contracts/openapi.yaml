@@ -3490,6 +3490,81 @@ paths:
               schema:
                 type: object
                 title: Response Health Check Api V1 Health Get
+  /api/v1/patients/{id}/health-summary:
+    get:
+      tags:
+      - patients
+      summary: Measured watch and Health Connect data grouped by local day
+      operationId: patient_health_summary_api_v1_patients__id__health_summary_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 30
+          minimum: 1
+          default: 7
+          title: Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/relatives/{token}/health-summary:
+    get:
+      tags:
+      - relative
+      summary: Caregiver view of measured watch data grouped by local day.
+      operationId: get_relative_health_summary_api_v1_relatives__token__health_summary_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 30
+          minimum: 1
+          default: 7
+          title: Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AccessAcceptRequest:
@@ -7046,6 +7121,500 @@ components:
       - phone
       - code
       title: VerifyCodeRequest
+    ActivitySummary:
+      properties:
+        today:
+          anyOf:
+          - $ref: '#/components/schemas/DailyActivity'
+          - type: 'null'
+        daily:
+          items:
+            $ref: '#/components/schemas/DailyActivity'
+          type: array
+          title: Daily
+        goal_steps:
+          type: integer
+          title: Goal Steps
+      type: object
+      required:
+      - daily
+      - goal_steps
+      title: ActivitySummary
+    BloodPressure:
+      properties:
+        systolic:
+          type: integer
+          title: Systolic
+        diastolic:
+          type: integer
+          title: Diastolic
+        at:
+          type: string
+          format: date-time
+          title: At
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - systolic
+      - diastolic
+      - at
+      - source
+      title: BloodPressure
+    DailyActivity:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        steps:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Steps
+        distance_m:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Distance M
+        active_calories_kcal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Active Calories Kcal
+        total_calories_kcal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Total Calories Kcal
+        floors:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Floors
+        elevation_gain_m:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Elevation Gain M
+      type: object
+      required:
+      - day
+      title: DailyActivity
+    DailySleep:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        asleep_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Asleep Minutes
+        in_bed_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: In Bed Minutes
+      type: object
+      required:
+      - day
+      title: DailySleep
+    DailyStress:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        score:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Score
+      type: object
+      required:
+      - day
+      title: DailyStress
+    DailyVital:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        avg:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Avg
+        min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min
+        max:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max
+        n:
+          type: integer
+          title: N
+          default: 0
+      type: object
+      required:
+      - day
+      title: DailyVital
+    ExerciseItem:
+      properties:
+        exercise_type:
+          type: string
+          title: Exercise Type
+        start_time:
+          type: string
+          format: date-time
+          title: Start Time
+        end_time:
+          type: string
+          format: date-time
+          title: End Time
+        duration_minutes:
+          type: integer
+          title: Duration Minutes
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - exercise_type
+      - start_time
+      - end_time
+      - duration_minutes
+      - source
+      title: ExerciseItem
+    FallEvent:
+      properties:
+        at:
+          type: string
+          format: date-time
+          title: At
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - at
+      - source
+      title: FallEvent
+    Freshness:
+      properties:
+        status:
+          type: string
+          enum:
+          - fresh
+          - stale
+          - no_data
+          title: Status
+        last_sample_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Sample At
+        stale_after_minutes:
+          type: integer
+          title: Stale After Minutes
+        excluded_samples:
+          type: integer
+          title: Excluded Samples
+          default: 0
+      type: object
+      required:
+      - status
+      - stale_after_minutes
+      title: Freshness
+    HealthEvents:
+      properties:
+        falls:
+          items:
+            $ref: '#/components/schemas/FallEvent'
+          type: array
+          title: Falls
+      type: object
+      required:
+      - falls
+      title: HealthEvents
+    HealthInsight:
+      properties:
+        key:
+          type: string
+          title: Key
+        severity:
+          type: string
+          enum:
+          - attention
+          - info
+          - positive
+          title: Severity
+        params:
+          type: object
+          title: Params
+      type: object
+      required:
+      - key
+      - severity
+      - params
+      title: HealthInsight
+    HealthSummary:
+      properties:
+        patient_id:
+          type: string
+          title: Patient Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        window_days:
+          type: integer
+          title: Window Days
+        timezone:
+          type: string
+          title: Timezone
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+        metrics:
+          additionalProperties:
+            $ref: '#/components/schemas/VitalSummary'
+          type: object
+          title: Metrics
+        latest_measurements:
+          additionalProperties:
+            anyOf:
+            - $ref: '#/components/schemas/MetricPoint'
+            - type: 'null'
+          type: object
+          title: Latest Measurements
+        blood_pressure:
+          anyOf:
+          - $ref: '#/components/schemas/BloodPressure'
+          - type: 'null'
+        activity:
+          $ref: '#/components/schemas/ActivitySummary'
+        sleep:
+          $ref: '#/components/schemas/SleepSummary'
+        stress:
+          $ref: '#/components/schemas/StressSummary'
+        exercise_sessions:
+          items:
+            $ref: '#/components/schemas/ExerciseItem'
+          type: array
+          title: Exercise Sessions
+        events:
+          $ref: '#/components/schemas/HealthEvents'
+        insights:
+          items:
+            $ref: '#/components/schemas/HealthInsight'
+          type: array
+          title: Insights
+      type: object
+      required:
+      - patient_id
+      - generated_at
+      - window_days
+      - timezone
+      - freshness
+      - metrics
+      - latest_measurements
+      - activity
+      - sleep
+      - stress
+      - exercise_sessions
+      - events
+      - insights
+      title: HealthSummary
+      description: Measured health data for one patient, grouped by local (Tashkent)
+        day.
+    MetricPoint:
+      properties:
+        value:
+          type: number
+          title: Value
+        at:
+          type: string
+          format: date-time
+          title: At
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - value
+      - at
+      - source
+      title: MetricPoint
+    SleepNight:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        start_time:
+          type: string
+          format: date-time
+          title: Start Time
+        end_time:
+          type: string
+          format: date-time
+          title: End Time
+        source:
+          type: string
+          title: Source
+        in_bed_minutes:
+          type: integer
+          title: In Bed Minutes
+        asleep_minutes:
+          type: integer
+          title: Asleep Minutes
+        efficiency_pct:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Efficiency Pct
+        stages_minutes:
+          anyOf:
+          - $ref: '#/components/schemas/SleepStagesMinutes'
+          - type: 'null'
+      type: object
+      required:
+      - day
+      - start_time
+      - end_time
+      - source
+      - in_bed_minutes
+      - asleep_minutes
+      title: SleepNight
+    SleepStagesMinutes:
+      properties:
+        deep:
+          type: integer
+          title: Deep
+        light:
+          type: integer
+          title: Light
+        rem:
+          type: integer
+          title: Rem
+        awake:
+          type: integer
+          title: Awake
+        unspecified:
+          type: integer
+          title: Unspecified
+      type: object
+      required:
+      - deep
+      - light
+      - rem
+      - awake
+      - unspecified
+      title: SleepStagesMinutes
+    SleepSummary:
+      properties:
+        last_night:
+          anyOf:
+          - $ref: '#/components/schemas/SleepNight'
+          - type: 'null'
+        daily:
+          items:
+            $ref: '#/components/schemas/DailySleep'
+          type: array
+          title: Daily
+      type: object
+      required:
+      - daily
+      title: SleepSummary
+    StressPoint:
+      properties:
+        score:
+          type: integer
+          title: Score
+        level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Level
+        at:
+          type: string
+          format: date-time
+          title: At
+      type: object
+      required:
+      - score
+      - level
+      - at
+      title: StressPoint
+    StressSummary:
+      properties:
+        method:
+          type: string
+          title: Method
+        is_estimate:
+          type: boolean
+          title: Is Estimate
+          default: true
+        status:
+          type: string
+          enum:
+          - ok
+          - insufficient_baseline
+          - no_recent_hrv
+          title: Status
+        baseline_hrv_ms:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Baseline Hrv Ms
+        latest:
+          anyOf:
+          - $ref: '#/components/schemas/StressPoint'
+          - type: 'null'
+        daily:
+          items:
+            $ref: '#/components/schemas/DailyStress'
+          type: array
+          title: Daily
+      type: object
+      required:
+      - method
+      - status
+      - daily
+      title: StressSummary
+    VitalSummary:
+      properties:
+        latest:
+          anyOf:
+          - $ref: '#/components/schemas/MetricPoint'
+          - type: 'null'
+        daily:
+          items:
+            $ref: '#/components/schemas/DailyVital'
+          type: array
+          title: Daily
+        samples_n:
+          type: integer
+          title: Samples N
+          default: 0
+        today:
+          anyOf:
+          - $ref: '#/components/schemas/DailyVital'
+          - type: 'null'
+      type: object
+      required:
+      - daily
+      title: VitalSummary
   securitySchemes:
     HTTPBearer:
       type: http
