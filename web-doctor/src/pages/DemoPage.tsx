@@ -19,6 +19,7 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
   const [input, setInput] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -81,7 +82,7 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
                 allowFullScreen
               />
             ) : DEMO_VIDEO.fileUrl ? (
-              <video src={DEMO_VIDEO.fileUrl} poster={DEMO_VIDEO.poster} controls preload="metadata" className="w-full h-full bg-black" />
+              <video ref={videoRef} src={DEMO_VIDEO.fileUrl} poster={DEMO_VIDEO.poster} controls preload="metadata" className="w-full h-full bg-black" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-slate-300 bg-gradient-to-br from-slate-900 to-emerald-950">
                 <img src={DEMO_VIDEO.poster} alt="" className="w-24 sm:w-56 opacity-80" />
@@ -101,10 +102,21 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
           <ol className="space-y-3">
             {d.chapters.map((c) => (
               <li key={c.t} className="flex gap-3 text-sm sm:text-base">
-                <span className="inline-flex items-center gap-1 shrink-0 w-16 font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = videoRef.current;
+                    if (!v) return;
+                    const [m, sec] = c.t.split(':').map(Number);
+                    v.currentTime = m * 60 + sec;
+                    v.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    void v.play().catch(() => undefined);
+                  }}
+                  className="inline-flex items-center gap-1 shrink-0 w-16 font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                >
                   <Clock className="w-3.5 h-3.5" />
                   {c.t}
-                </span>
+                </button>
                 <span className="text-slate-700 dark:text-slate-300">{c.text}</span>
               </li>
             ))}

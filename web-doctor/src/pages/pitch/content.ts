@@ -25,8 +25,8 @@ export const LINKS = {
  */
 export const DEMO_VIDEO = {
   embedUrl: '',
-  fileUrl: '',
-  poster: '/images/3d/watch-hero.png',
+  fileUrl: '/demo/wmax-demo.mp4',
+  poster: '/demo/wmax-demo-poster.jpg',
 };
 
 export type TeamMember = {
@@ -38,37 +38,37 @@ export type TeamMember = {
 
 export const TEAM: TeamMember[] = [
   {
+    name: 'Nafisa Gʻanijanova',
+    role: {
+      uz: 'Asoschi · dizayner, UI/UX',
+      ru: 'Основатель · дизайнер, UI/UX',
+      en: 'Founder · designer, UI/UX',
+    },
+    skills: ['Product design', 'UI/UX', 'Figma', 'User research'],
+    links: [],
+  },
+  {
     name: 'Baxrom Reyimberganov',
     role: {
-      uz: 'Asoschi, jamoa yetakchisi · backend, signal algoritmlari, Wear OS, DevOps',
-      ru: 'Основатель, тимлид · backend, алгоритмы сигналов, Wear OS, DevOps',
-      en: 'Founder & team lead · backend, signal algorithms, Wear OS, DevOps',
+      uz: 'Jamoa yetakchisi · full-stack, Wear OS va mobil ilova, DevOps',
+      ru: 'Тимлид · full-stack, Wear OS и мобильное приложение, DevOps',
+      en: 'Team lead · full-stack, Wear OS and mobile app, DevOps',
     },
-    skills: ['Python / FastAPI', 'PostgreSQL', 'Kotlin · Wear OS', 'Docker · CI/CD', 'Signal processing'],
+    skills: ['React / TypeScript', 'Kotlin · Wear OS', 'Flutter', 'Docker · CI/CD', 'Signal processing'],
     links: [
       { label: 'GitHub', url: 'https://github.com/Baxrom0311' },
       { label: 'Email', url: 'mailto:bahromreyimberganov0311@gmail.com' },
     ],
   },
   {
-    name: 'Mansur Durdimatov',
+    name: 'Nodirbek Boltayev',
     role: {
-      uz: 'Frontend va Telegram bot · shifokor paneli, qarovchi portali, AI yordamchi',
-      ru: 'Frontend и Telegram-бот · панель врача, портал опекуна, ИИ-ассистент',
-      en: 'Frontend & Telegram bot · doctor panel, caregiver portal, AI assistant',
+      uz: 'Backend va AI/LLM muhandisi',
+      ru: 'Backend и AI/LLM-инженер',
+      en: 'Backend & AI/LLM engineer',
     },
-    skills: ['React / TypeScript', 'Tailwind', 'Telegram Mini App', 'i18n (uz/ru/en)'],
-    links: [{ label: 'GitHub', url: 'https://github.com/durdimatovmansur6-coder' }],
-  },
-  {
-    name: 'Vafoyev',
-    role: {
-      uz: 'Mobil dasturchi · Flutter qarovchi ilovasi, Bluetooth orqali soat ulash',
-      ru: 'Мобильный разработчик · Flutter-приложение опекуна, привязка часов по Bluetooth',
-      en: 'Mobile developer · Flutter caregiver app, Bluetooth watch pairing',
-    },
-    skills: ['Flutter / Dart', 'Android · iOS', 'Bluetooth LE'],
-    links: [{ label: 'GitHub', url: 'https://github.com/Vafoyev' }],
+    skills: ['Python / FastAPI', 'PostgreSQL', 'LLM (Gemini, DeepSeek)', 'Guardrails'],
+    links: [],
   },
 ];
 
@@ -147,7 +147,7 @@ export const PITCH: Record<Lang, PitchText> = {
     ],
     teamTag: '2. Jamoa',
     teamTitle: 'Kichik, lekin toʻliq stekni qoplaydigan jamoa',
-    teamSub: 'Rollar, koʻnikmalar va havolalar. Barcha kod ochiq repozitoriyada.',
+    teamSub: 'Jamoa 0xDEAD: rollar, koʻnikmalar va havolalar. Barcha kod ochiq repozitoriyada.',
     techTitle: 'Foydalanilgan texnologiyalar',
     whyTag: '3. Nima uchun aynan biz',
     whyTitle: 'Nima uchun bu jamoa muammoni hal qila oladi',
@@ -263,7 +263,7 @@ export const PITCH: Record<Lang, PitchText> = {
     ],
     teamTag: '2. Команда',
     teamTitle: 'Небольшая команда, покрывающая весь стек',
-    teamSub: 'Роли, навыки и ссылки. Весь код в открытом репозитории.',
+    teamSub: 'Команда 0xDEAD: роли, навыки и ссылки. Весь код в открытом репозитории.',
     techTitle: 'Используемые технологии',
     whyTag: '3. Почему мы',
     whyTitle: 'Почему эта команда может решить проблему',
@@ -329,7 +329,7 @@ export const PITCH: Record<Lang, PitchText> = {
     ],
     teamTag: '2. Team',
     teamTitle: 'A small team covering the whole stack',
-    teamSub: 'Roles, skills and links. All code is in an open repository.',
+    teamSub: 'Team 0xDEAD: roles, skills and links. All code is in an open repository.',
     techTitle: 'Technologies we use',
     whyTag: '3. Why us',
     whyTitle: 'Why this team can solve the problem',
