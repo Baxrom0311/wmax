@@ -26,7 +26,6 @@ const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage")
 const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const PresentationPage = React.lazy(() => import("./pages/PresentationPage").then((m) => ({ default: m.PresentationPage })));
 const AifuPage = React.lazy(() => import("./pages/AifuPage").then((m) => ({ default: m.AifuPage })));
-const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const HandoffsPage = React.lazy(() => import("./pages/HandoffsPage").then((m) => ({ default: m.HandoffsPage })));
 const DeviceInventoryModal = React.lazy(() => import("./components/DeviceInventoryModal").then((m) => ({ default: m.DeviceInventoryModal })));
 const PatientDetailPage = React.lazy(() => import("./pages/PatientDetail").then((m) => ({ default: m.PatientDetailPage })));
@@ -425,13 +424,6 @@ export const App: React.FC = () => {
 
           {currentRoute === "/aifu" && (
             <AifuPage
-              onNavigate={navigate}
-              lang={lang}
-            />
-          )}
-
-          {currentRoute === "/demo" && (
-            <DemoPage
               onNavigate={navigate}
               lang={lang}
             />
