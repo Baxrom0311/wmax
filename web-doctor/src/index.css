@@ -1,3 +1,10 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --animate-spin-slow: spin 18s linear infinite;
+}
+
 /* ==========================================================================
    WMAX · Clinical Light Design System (web-doctor)
    Official Hospital Telemetric Workstation (SSV Clinical Standards)
@@ -202,10 +209,14 @@ body.dark {
   border-color: var(--border-subtle) !important;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Kept in the base layer so Tailwind utilities (p-*, m-*) on the landing
+   and pitch pages can override this reset. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 body {
@@ -219,11 +230,13 @@ body {
   overflow-x: hidden;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 button:focus-visible,

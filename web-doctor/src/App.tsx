@@ -23,6 +23,7 @@ import { SosBanner } from "./components/SosBanner";
 
 const LandingPage = React.lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage").then((m) => ({ default: m.RelativePortalPage })));
+const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const PresentationPage = React.lazy(() => import("./pages/PresentationPage").then((m) => ({ default: m.PresentationPage })));
 const HandoffsPage = React.lazy(() => import("./pages/HandoffsPage").then((m) => ({ default: m.HandoffsPage })));
 const DeviceInventoryModal = React.lazy(() => import("./components/DeviceInventoryModal").then((m) => ({ default: m.DeviceInventoryModal })));
@@ -35,6 +36,7 @@ function parseCurrentRoute(): string {
   if (path.startsWith("/doctor")) return "/doctor";
   if (path.startsWith("/r") || path.startsWith("/relative")) return "/r";
   if (path.startsWith("/pptx") || path.startsWith("/presentation")) return "/pptx";
+  if (path.startsWith("/demo")) return "/demo";
   return "/";
 }
 
@@ -44,8 +46,13 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem("wmax_lang") as Lang | null;
     return saved === "ru" || saved === "en" || saved === "uz" ? saved : "uz";
   });
-  const [token, setToken] = useState<string | null>(getStoredToken());
-  const [user, setUser] = useState<TokenPair | null>(getStoredUser());
+  // A shared "/doctor?demo=true" link opens the synthetic demo workstation directly.
+  const [initialDemo] = useState<TokenPair | null>(() => {
+    const wantsDemo = new URLSearchParams(window.location.search).get("demo") === "true" && !getStoredToken();
+    return wantsDemo ? startDemoDoctorSession("doctor") : null;
+  });
+  const [token, setToken] = useState<string | null>(initialDemo?.access_token ?? getStoredToken());
+  const [user, setUser] = useState<TokenPair | null>(initialDemo ?? getStoredUser());
 
   // Caregiver user session
   const [relativeUser, setRelativeUser] = useState<{ full_name: string; role: string; patients?: any[] } | null>(() => {
@@ -71,6 +78,7 @@ export const App: React.FC = () => {
     if (route.startsWith("/doctor")) normalized = "/doctor";
     else if (route.startsWith("/r") || route.startsWith("/relative")) normalized = "/r";
     else if (route.startsWith("/pptx") || route.startsWith("/presentation")) normalized = "/pptx";
+    else if (route.startsWith("/demo")) normalized = "/demo";
 
     if (window.location.pathname !== route) {
       window.history.pushState({}, "", route);
@@ -393,6 +401,14 @@ export const App: React.FC = () => {
               relativeUser={relativeUser}
               onRelativeLoginSuccess={handleRelativeLoginSuccess}
               onLogoutRelative={handleLogoutRelative}
+            />
+          )}
+
+          {currentRoute === "/demo" && (
+            <DemoPage
+              key={lang}
+              onNavigate={navigate}
+              lang={lang}
             />
           )}
 
