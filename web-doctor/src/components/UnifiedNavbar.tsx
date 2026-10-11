@@ -4,6 +4,7 @@ import {
   Stethoscope,
   HeartHandshake,
   Presentation,
+  PlayCircle,
   Sun,
   Moon,
   Globe,
@@ -76,6 +77,7 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       clinic: "Klinika",
       relative: "Oila & Qarovchi",
       presentation: "Taqdimot",
+      demo: "Demo",
       login: "Kirish",
       logout: "Chiqish",
       doctorRole: "Klinik Shifokor",
@@ -92,6 +94,7 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       clinic: "Клиника",
       relative: "Семья & Опекун",
       presentation: "Презентация",
+      demo: "Демо",
       login: "Войти",
       logout: "Выйти",
       doctorRole: "Врач-кардиолог",
@@ -108,6 +111,7 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       clinic: "Clinic",
       relative: "Family & Caregiver",
       presentation: "Slides",
+      demo: "Demo",
       login: "Sign In",
       logout: "Sign Out",
       doctorRole: "Cardiologist",
@@ -126,7 +130,7 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand Logo */}
         <div className="flex items-center gap-6">
           <button
@@ -143,11 +147,11 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
                 <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white">
                   WMAX
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   RPM
                 </span>
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block -mt-1">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden sm:block -mt-1">
                 Telehealth & Telemonitoring
               </span>
             </div>
@@ -376,7 +380,7 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 text-xs sm:text-sm font-semibold transition shadow-sm"
             >
               <LogIn className="w-4 h-4" />
-              <span>{t.login}</span>
+              <span className="hidden sm:inline">{t.login}</span>
             </button>
           )}
 

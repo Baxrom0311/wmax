@@ -23,6 +23,7 @@ import { SosBanner } from "./components/SosBanner";
 
 const LandingPage = React.lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage").then((m) => ({ default: m.RelativePortalPage })));
+const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const PresentationPage = React.lazy(() => import("./pages/PresentationPage").then((m) => ({ default: m.PresentationPage })));
 const AifuPage = React.lazy(() => import("./pages/AifuPage").then((m) => ({ default: m.AifuPage })));
 const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
@@ -48,8 +49,13 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem("wmax_lang") as Lang | null;
     return saved === "ru" || saved === "en" || saved === "uz" ? saved : "uz";
   });
-  const [token, setToken] = useState<string | null>(getStoredToken());
-  const [user, setUser] = useState<TokenPair | null>(getStoredUser());
+  // A shared "/doctor?demo=true" link opens the synthetic demo workstation directly.
+  const [initialDemo] = useState<TokenPair | null>(() => {
+    const wantsDemo = new URLSearchParams(window.location.search).get("demo") === "true" && !getStoredToken();
+    return wantsDemo ? startDemoDoctorSession("doctor") : null;
+  });
+  const [token, setToken] = useState<string | null>(initialDemo?.access_token ?? getStoredToken());
+  const [user, setUser] = useState<TokenPair | null>(initialDemo ?? getStoredUser());
 
   // Caregiver user session
   const [relativeUser, setRelativeUser] = useState<{ full_name: string; role: string; patients?: any[] } | null>(() => {
@@ -399,6 +405,14 @@ export const App: React.FC = () => {
               relativeUser={relativeUser}
               onRelativeLoginSuccess={handleRelativeLoginSuccess}
               onLogoutRelative={handleLogoutRelative}
+            />
+          )}
+
+          {currentRoute === "/demo" && (
+            <DemoPage
+              key={lang}
+              onNavigate={navigate}
+              lang={lang}
             />
           )}
 
