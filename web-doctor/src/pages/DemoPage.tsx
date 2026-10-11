@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Bot, Copy, ExternalLink, KeyRound, Send } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Copy, ExternalLink, KeyRound } from 'lucide-react';
 import type { Lang } from '../i18n';
 import { DEMO_VIDEO, LINKS } from './pitch/content';
-import { DEMO, answerFor } from './pitch/demoContent';
+import { DEMO } from './pitch/demoContent';
+import { PitchChat } from './pitch/PitchChat';
 import { PitchTopBar } from './pitch/PitchHome';
 import './pitch/pitch.css';
 
@@ -12,28 +13,10 @@ interface DemoPageProps {
   onNavigate: (route: string) => void;
 }
 
-type ChatMsg = { from: 'bot' | 'user'; text: string };
-
 export const DemoPage: React.FC<DemoPageProps> = ({ lang, onLangChange, onNavigate }) => {
   const d = DEMO[lang];
-  const [messages, setMessages] = useState<ChatMsg[]>([{ from: 'bot', text: d.chatHello }]);
-  const [input, setInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const chatBox = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const box = chatBox.current;
-    if (box) box.scrollTop = box.scrollHeight;
-  }, [messages]);
-
-  const ask = (question: string, preset?: string) => {
-    const q = question.trim();
-    if (!q) return;
-    const answer = preset ?? answerFor(lang, q) ?? d.chatFallback;
-    setMessages((prev) => [...prev, { from: 'user', text: q }, { from: 'bot', text: answer }]);
-    setInput('');
-  };
 
   const seek = (t: string) => {
     const v = videoRef.current;
@@ -52,9 +35,9 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onLangChange, onNaviga
       <div className="pitch-blob b1" />
       <div className="pitch-blob b2" />
       <div className="pitch-blob b3" />
-      <PitchTopBar lang={lang} onLangChange={onLangChange} onNavigate={onNavigate} active="demo" />
+      <PitchTopBar lang={lang} onLangChange={onLangChange} onNavigate={onNavigate} page="demo" />
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-5">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 pt-[7.5rem] lg:pt-24 pb-28 space-y-5">
         {/* 6.1 Video + 6.2 description */}
         <section className="glass glass-strong rounded-3xl p-3 sm:p-4">
           <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
@@ -102,49 +85,9 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onLangChange, onNaviga
           </div>
         </section>
 
-        {/* Optional: Q&A chatbot and API access */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-          <section className="glass rounded-3xl p-4 lg:col-span-3 flex flex-col">
-            <h2 className="font-extrabold flex items-center gap-2">
-              <Bot className="w-5 h-5 text-sky-300" />
-              {d.chatTitle}
-            </h2>
-            <div ref={chatBox} className="mt-3 h-52 overflow-y-auto space-y-2 pr-1">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${m.from === 'user' ? 'bg-emerald-400 text-slate-950 rounded-br-md' : 'glass-chip rounded-bl-md'}`}>
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-1.5 my-3">
-              {d.qa.map((item) => (
-                <button key={item.q} onClick={() => ask(item.q, item.a)} className="glass-chip rounded-full px-2.5 py-1 text-xs hover:bg-white/15">
-                  {item.q}
-                </button>
-              ))}
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                ask(input);
-              }}
-              className="flex gap-2"
-            >
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={d.chatPlaceholder}
-                className="glass-chip flex-1 min-w-0 rounded-xl px-3 py-2 text-sm placeholder:text-white/40 outline-none focus:border-emerald-300/70"
-              />
-              <button type="submit" aria-label={d.chatSend} className="px-3.5 rounded-xl bg-emerald-400 text-slate-950 hover:bg-emerald-300">
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
-          </section>
-
-          <section className="glass rounded-3xl p-4 lg:col-span-2">
+        {/* Optional: API access (the Q&A chatbot is the floating button) */}
+        <div>
+          <section className="glass rounded-3xl p-4">
             <h2 className="font-extrabold flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-amber-300" />
               {d.apiTitle}
@@ -184,6 +127,7 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onLangChange, onNaviga
           </section>
         </div>
       </main>
+      <PitchChat lang={lang} />
     </div>
   );
 };

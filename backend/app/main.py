@@ -14,6 +14,7 @@ from app.api.alerts import router as alerts_router
 from app.api.billing import contract_router as billing_contract_router
 from app.api.billing import router as billing_router
 from app.api.devices import router as devices_router
+from app.api.pitch_chat import router as pitch_chat_router
 from app.api.health import router as health_router
 from app.api.ingest import router as ingest_router
 from app.api.orphans import router as orphans_router
@@ -213,6 +214,7 @@ app.include_router(relatives_router)
 app.include_router(billing_router)
 app.include_router(billing_contract_router)
 app.include_router(devices_router)
+app.include_router(pitch_chat_router)
 # /health, /ready, /live and /metrics — scraped by Prometheus and used as the
 # container healthcheck.
 app.include_router(health_router)

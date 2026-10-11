@@ -3396,6 +3396,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/public/pitch-chat:
+    post:
+      tags:
+      - public
+      summary: Ask the WMAX site assistant (DeepSeek)
+      operationId: pitch_chat_api_v1_public_pitch_chat_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PitchChatRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PitchChatResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       tags:
@@ -4039,6 +4064,24 @@ components:
       required:
       - decision
       title: BaselineDecisionRequest
+    ChatTurn:
+      properties:
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+          title: Role
+        content:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Content
+      type: object
+      required:
+      - role
+      - content
+      title: ChatTurn
     ConditionCreate:
       properties:
         icd10:
@@ -5814,6 +5857,45 @@ components:
       required:
       - new_pin
       title: PinResetRequest
+    PitchChatRequest:
+      properties:
+        message:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Message
+        lang:
+          type: string
+          enum:
+          - uz
+          - ru
+          - en
+          title: Lang
+          default: uz
+        history:
+          items:
+            $ref: '#/components/schemas/ChatTurn'
+          type: array
+          maxItems: 10
+          title: History
+      type: object
+      required:
+      - message
+      title: PitchChatRequest
+    PitchChatResponse:
+      properties:
+        answer:
+          type: string
+          title: Answer
+        source:
+          type: string
+          const: deepseek
+          title: Source
+          default: deepseek
+      type: object
+      required:
+      - answer
+      title: PitchChatResponse
     ProblemItem:
       properties:
         param:

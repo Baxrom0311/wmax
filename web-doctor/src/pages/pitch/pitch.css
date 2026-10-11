@@ -5,7 +5,8 @@
 .pitch-root {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  /* clip (not hidden) so the sticky stage still sticks to the viewport */
+  overflow-x: clip;
   color: #f1f5f9;
   background: radial-gradient(120% 90% at 50% 0%, #0b1a33 0%, #050913 55%, #03060d 100%);
   font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
@@ -13,7 +14,7 @@
 
 /* Soft colour fields behind the glass so the blur has something to refract. */
 .pitch-blob {
-  position: absolute;
+  position: fixed;
   border-radius: 9999px;
   filter: blur(90px);
   opacity: 0.55;
@@ -38,7 +39,6 @@
     inset 0 -1px 0 rgba(255, 255, 255, 0.06),
     0 20px 50px -12px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
 }
 /* Specular highlight across the top edge. */
 .glass::before {
@@ -59,7 +59,6 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .pitch-watch {
@@ -77,11 +76,10 @@
   pointer-events: none;
 }
 
-.pitch-node {
-  transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s, color 0.3s;
-  will-change: transform;
+.pitch-piece {
+  will-change: transform, opacity;
 }
-.pitch-node.active {
+.pitch-piece.active {
   background: rgba(16, 185, 129, 0.28);
   border-color: rgba(52, 211, 153, 0.7);
   box-shadow: 0 0 30px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -104,8 +102,25 @@
   to { transform: scaleX(1); }
 }
 
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.pitch-chat-fab {
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.pitch-chat-panel {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.82));
+  backdrop-filter: blur(28px) saturate(170%);
+  transform-origin: bottom right;
+  animation: pitch-chat-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pitch-chat-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pitch-blob, .pitch-watch, .pitch-slide-enter, .pitch-progress { animation: none; }
+  .pitch-blob, .pitch-watch, .pitch-slide-enter, .pitch-progress, .pitch-chat-panel { animation: none; }
 }
 
 }
