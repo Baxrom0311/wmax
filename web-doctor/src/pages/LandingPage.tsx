@@ -12,6 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import type { Lang } from '../i18n';
+import { PitchSections } from './pitch/PitchSections';
 
 interface LandingPageProps {
   onNavigate: (route: string) => void;
@@ -33,7 +34,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badge: "O'zbekistonda birinchi masofaviy kardio-monitoring",
       heroTitle: "Siz uzoqdasiz.",
       heroHighlight: "Ular yolg'iz emas.",
-      heroSub: "Aqlli soat ota-onangizning puls, SpO₂ va EKG ko'rsatkichlarini 24/7 o'lchaydi. Shifokor kuzatadi, siz esa xotirjam bo'lasiz.",
+      heroSub: "Aqlli soat ota-onangizning puls, SpO₂, faollik va yiqilishni 24/7 kuzatadi. Shifokor kuzatadi, siz esa xotirjam bo'lasiz.",
       btnDoctor: "Shifokor ish stansiyasi",
       btnRelative: "Qarovchi portali",
       btnSlides: "Loyihani ko'rish",
@@ -55,7 +56,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Soat o'lchaydi",
       step1Desc: "Galaxy Watch 5 har 5 daqiqada yurak urishi, qondagi kislorod va harakatni tahlil qiladi.",
       step2Title: "2. Shifokor kuzatadi",
-      step2Desc: "Kardiolog stansiyasida AI xavfni 48 soat oldin aniqlaydi va zarur bo'lsa dori dozasini to'g'irlaydi.",
+      step2Desc: "Panel bemorning shaxsiy me'yoridan og'ishni ko'rsatadi; klinik qarorni shifokor qabul qiladi.",
       step3Title: "3. Oila xotirjam",
       step3Desc: "Farzandlar o'z telefonlarida ota-onasining tinch va barqaror ekanligini ko'rib turadi.",
 
@@ -76,8 +77,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Galaxy Watch 5 soati taqdim etiladi",
         "Shaxsiy kardiolog doimiy nazorati",
-        "Tez tibbiy yordam (103) avtomatik chaqiruv",
-        "AI erta dekompensatsiya prognozi",
+        "SOS signalini navbatchi shifokorga yetkazish",
+        "Shaxsiy me'yor (baseline) asosida trend tahlili",
       ],
       plan3Title: "Klinikalar uchun",
       plan3Price: "Kelishuv asosida",
@@ -95,7 +96,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       faqs: [
         {
           q: "Aqlli soat qanday o'lchaydi va qanchalik aniq?",
-          a: "Samsung Galaxy Watch 5 va Wear OS sensorlari tibbiy darajadagi fotopletizmografiya (PPG) va bio-impedans datchiklari orqali puls, SpO2 va EKG signallarini uzluksiz qayd etadi."
+          a: "Samsung Galaxy Watch 5 va Wear OS sensorlari optik (PPG) sensori orqali puls va SpO₂ ni, akselerometr orqali faollik va yiqilishni qayd etadi. Aniqlik pilotda Polar H10 EKG sensori bilan solishtirib tekshiriladi."
         },
         {
           q: "Internet uzilib qolsa ma'lumotlar yo'qoladimi?",
@@ -111,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badge: "Первая в Узбекистане система телемониторинга сердца",
       heroTitle: "Вы далеко.",
       heroHighlight: "Они не одни.",
-      heroSub: "Умные часы 24/7 измеряют пульс, SpO₂ и ЭКГ ваших родителей. Врач наблюдает, а вы спокойны.",
+      heroSub: "Умные часы 24/7 отслеживают пульс, SpO₂, активность и падения ваших родителей. Врач наблюдает, а вы спокойны.",
       btnDoctor: "Кабинет врача",
       btnRelative: "Портал опекуна",
       btnSlides: "Презентация проекта",
@@ -133,7 +134,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Часы измеряют",
       step1Desc: "Galaxy Watch 5 каждые 5 минут оценивает пульс, кислород в крови и двигательную активность.",
       step2Title: "2. Врач наблюдает",
-      step2Desc: "В рабочей станции кардиолога ИИ выявляет риски за 48 часов до кризиса.",
+      step2Desc: "Панель показывает отклонения от личной нормы пациента; решение принимает врач.",
       step3Title: "3. Семья спокойна",
       step3Desc: "Дети в мобильном приложении видят статус 'Все в порядке' и спокойны за родителей.",
 
@@ -154,8 +155,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Предоставляются часы Galaxy Watch 5",
         "Персональный врач-кардиолог",
-        "Автовызов скорой помощи (103)",
-        "ИИ прогноз декомпенсации за 48 часов",
+        "Доставка SOS дежурному врачу",
+        "Анализ трендов по личной норме (baseline)",
       ],
       plan3Title: "Для Клиник",
       plan3Price: "По договору",
@@ -173,7 +174,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       faqs: [
         {
           q: "Насколько точны измерения умных часов?",
-          a: "Датчики Samsung Galaxy Watch 5 сертифицированы для медицинского скрининга и фиксируют пульс и уровень кислорода с высокой клинической точностью."
+          a: "Оптический датчик (PPG) фиксирует пульс и SpO₂, акселерометр — активность и падения. Точность проверяется в пилоте по ЭКГ-датчику Polar H10."
         },
         {
           q: "Что произойдет, если отключится интернет?",
@@ -189,7 +190,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badge: "Uzbekistan's First Remote Cardiac Telemonitoring Platform",
       heroTitle: "You are away.",
       heroHighlight: "They are not alone.",
-      heroSub: "Smartwatches measure your elderly parents' pulse, SpO₂, and ECG 24/7. Cardiologists monitor anomalies, giving you peace of mind.",
+      heroSub: "Smartwatches track your elderly parents' pulse, SpO₂, activity and falls 24/7. Cardiologists monitor anomalies, giving you peace of mind.",
       btnDoctor: "Doctor Workstation",
       btnRelative: "Caregiver Portal",
       btnSlides: "View Slides",
@@ -211,7 +212,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Watch Measures",
       step1Desc: "Galaxy Watch 5 reads heart rate, oxygen saturation, and activity every 5 minutes.",
       step2Title: "2. Clinician Observes",
-      step2Desc: "Our AI engine predicts decompensation up to 48 hours in advance for early intervention.",
+      step2Desc: "The dashboard flags deviations from each patient's personal baseline; the doctor makes the clinical decision.",
       step3Title: "3. Family Reassured",
       step3Desc: "Children see real-time 'All Good' status and can check on their parents anytime.",
 
@@ -232,8 +233,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Galaxy Watch 5 device included",
         "Dedicated cardiologist supervision",
-        "Ambulance (103) dispatch coordination",
-        "AI early decompensation prediction",
+        "SOS delivery to the on-call doctor",
+        "Trend analysis against a personal baseline",
       ],
       plan3Title: "For Clinics",
       plan3Price: "Custom quote",
@@ -273,8 +274,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badgeColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
       hr: '72 bpm',
       spo2: '98%',
-      pressure: '120 / 80',
-      temp: '36.6 °C',
+      activity: lang === 'ru' ? '3 214 шагов' : lang === 'en' ? '3,214 steps' : '3 214 qadam',
+      signal: lang === 'ru' ? 'Норма' : lang === 'en' ? 'Normal' : 'Normal',
       doctorAction: lang === 'uz' ? "Doimiy avtomatik monitoring davom etmoqda. Shifokor aralashuvi talab etilmaydi." : lang === 'ru' ? "Мониторинг в норме. Вмешательство врача не требуется." : "Routine telemetry active. No clinical intervention needed.",
       familyNotice: lang === 'uz' ? "Otangiz o'zini yaxshi his qilmoqda. Xavf yo'q." : lang === 'ru' ? "Родители чувствуют себя хорошо. Рисков нет." : "Your parent is feeling well. All vitals normal."
     },
@@ -284,8 +285,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badgeColor: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
       hr: '104 bpm',
       spo2: '93%',
-      pressure: '145 / 92',
-      temp: '37.2 °C',
+      activity: lang === 'ru' ? '410 шагов' : lang === 'en' ? '410 steps' : '410 qadam',
+      signal: lang === 'ru' ? 'Пульс ↑ в покое' : lang === 'en' ? 'Resting HR ↑' : 'Tinch puls ↑',
       doctorAction: lang === 'uz' ? "Kardiologga bildirishnoma yuborildi. Dori ichish jadvali tekshirilmoqda." : lang === 'ru' ? "Уведомление врачу отправлено. Проверяется график приема лекарств." : "Cardiologist notified. Medication adherence being verified.",
       familyNotice: lang === 'uz' ? "Puls biroz ko'tarilgan. Shifokor xabardor qilindi." : lang === 'ru' ? "Пульс немного повышен. Врач уже в курсе." : "Slight pulse elevation. Doctor already notified."
     },
@@ -295,9 +296,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badgeColor: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
       hr: '138 bpm',
       spo2: '86%',
-      pressure: '180 / 110',
-      temp: '38.1 °C',
-      doctorAction: lang === 'uz' ? "Reanimatolog navbatchiligiga qizil signal uzatildi. Tez yordam (103) chaqiruvga tayyor." : lang === 'ru' ? "Красная тревога дежурному реаниматологу. Скорая 103 готова к выезду." : "Red alert sent to ICU staff. 103 ambulance standby triggered.",
+      activity: lang === 'ru' ? 'Падение' : lang === 'en' ? 'Fall' : 'Yiqilish',
+      signal: 'SOS',
+      doctorAction: lang === 'uz' ? "Reanimatolog navbatchiligiga qizil signal uzatildi. Shifokor bemor bilan bog'lanmoqda." : lang === 'ru' ? "Красная тревога дежурному реаниматологу. Врач связывается с пациентом." : "Red alert sent to ICU staff. Doctor is contacting the patient.",
       familyNotice: lang === 'uz' ? "Bemorga zudlik bilan shifokor jalb etildi. Telefon orqali bog'lanilmoqda." : lang === 'ru' ? "Врач срочно подключается. Идет вызов пациенту." : "Immediate doctor intervention. Contacting patient now."
     }
   }[simState];
@@ -406,6 +407,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
+      {/* -------------------- PITCH DAY: problem, team, why us, roadmap, plan -------------------- */}
+      <PitchSections lang={lang} onNavigate={onNavigate} />
+
       {/* -------------------- 2. INTERACTIVE SIMULATOR -------------------- */}
       <section className="py-16 sm:py-24 bg-white dark:bg-slate-900/60 border-y border-slate-200/80 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -494,12 +498,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">{simData.spo2}</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Qon bosimi</div>
-                  <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">{simData.pressure}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{lang === 'ru' ? 'Активность' : lang === 'en' ? 'Activity' : 'Faollik'}</div>
+                  <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">{simData.activity}</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Harorat</div>
-                  <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">{simData.temp}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{lang === 'ru' ? 'Сигнал' : lang === 'en' ? 'Signal' : 'Signal'}</div>
+                  <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">{simData.signal}</div>
                 </div>
               </div>
 
@@ -737,6 +741,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button onClick={() => onNavigate('/doctor')} className="hover:text-slate-900 dark:hover:text-white transition">Klinika</button>
             <button onClick={() => onNavigate('/r')} className="hover:text-slate-900 dark:hover:text-white transition">Qarovchi</button>
             <button onClick={() => onNavigate('/pptx')} className="hover:text-slate-900 dark:hover:text-white transition">Taqdimot</button>
+            <button onClick={() => onNavigate('/demo')} className="hover:text-slate-900 dark:hover:text-white transition">Demo</button>
           </div>
         </div>
       </footer>
