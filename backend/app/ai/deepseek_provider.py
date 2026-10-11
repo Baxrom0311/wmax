@@ -190,6 +190,34 @@ class DeepSeekProvider(AIProvider):
         text = self._extract_text(data)
         return text.strip() if text else "Javob generatsiya qilinmadi."
 
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 400,
+    ) -> str:
+        """Multi-turn chat: `messages` is the OpenAI-style role/content list.
+
+        Unlike `generate_text` this raises when no key is configured, so a
+        caller can fall back to its own answers instead of showing a stub.
+        """
+        if not self.api_key:
+            raise AIProviderException("DEEPSEEK_API_KEY o'rnatilmagan")
+
+        data = await self._execute_with_retry(
+            {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": False,
+            }
+        )
+        text = self._extract_text(data).strip()
+        if not text:
+            raise AIProviderException("DeepSeek bo'sh javob qaytardi")
+        return text
+
     async def generate_structured(
         self,
         prompt: str,
