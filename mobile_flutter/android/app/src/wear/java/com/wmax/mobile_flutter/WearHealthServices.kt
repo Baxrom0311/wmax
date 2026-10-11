@@ -7,6 +7,8 @@ import androidx.core.content.ContextCompat
 import androidx.health.services.client.HealthServices
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.ExerciseType
+import androidx.health.services.client.data.HealthEvent
+import androidx.health.services.client.data.PassiveMonitoringCapabilities
 import androidx.health.services.client.data.PassiveListenerConfig
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executor
@@ -35,7 +37,8 @@ object WearHealthServices {
         )
     }
 
-    private fun listenerConfig(context: Context, supported: Set<DataType<*, *>>): PassiveListenerConfig {
+    private fun listenerConfig(context: Context, capabilities: PassiveMonitoringCapabilities): PassiveListenerConfig {
+        val supported = capabilities.supportedDataTypesPassiveMonitoring
         val requested: MutableSet<DataType<*, *>> = mutableSetOf(DataType.HEART_RATE_BPM)
         val canReadActivity = ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) ==
             PackageManager.PERMISSION_GRANTED
@@ -52,9 +55,18 @@ object WearHealthServices {
                 ).filter { it in supported },
             )
         }
+        val healthEvents = if (
+            canReadActivity &&
+            HealthEvent.Type.FALL_DETECTED in capabilities.supportedHealthEventTypes
+        ) {
+            setOf(HealthEvent.Type.FALL_DETECTED)
+        } else {
+            emptySet()
+        }
         return PassiveListenerConfig.builder()
             .setDataTypes(requested)
             .setShouldUserActivityInfoBeRequested(canReadActivity)
+            .setHealthEventTypes(healthEvents)
             .build()
     }
 
@@ -66,7 +78,7 @@ object WearHealthServices {
             if (DataType.HEART_RATE_BPM !in capabilities.supportedDataTypesPassiveMonitoring) {
                 return "HEART_RATE_UNSUPPORTED"
             }
-            val config = listenerConfig(context, capabilities.supportedDataTypesPassiveMonitoring)
+            val config = listenerConfig(context, capabilities)
             client.setPassiveListenerServiceAsync(WmaxPassiveHealthService::class.java, config)
                 .get(25, TimeUnit.SECONDS)
             null
@@ -86,7 +98,7 @@ object WearHealthServices {
                     if (DataType.HEART_RATE_BPM !in capabilities.supportedDataTypesPassiveMonitoring) {
                         callback.onComplete(false, "HEART_RATE_UNSUPPORTED")
                     } else {
-                        val config = listenerConfig(context, capabilities.supportedDataTypesPassiveMonitoring)
+                        val config = listenerConfig(context, capabilities)
                         val registration = client.setPassiveListenerServiceAsync(
                             WmaxPassiveHealthService::class.java,
                             config,

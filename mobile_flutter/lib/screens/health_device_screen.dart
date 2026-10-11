@@ -83,8 +83,12 @@ class _HealthDeviceScreenState extends State<HealthDeviceScreen> {
       if (mounted) setState(() => _platform = platform);
       final permission =
           await NativeHealthBridge.requestHealthDataPermissions();
+      // Sync whatever the person allowed; declined record types are skipped
+      // by the native reader instead of blocking every other type.
       final granted =
           permission['all_granted'] == true ||
+          (permission['granted'] is List &&
+              (permission['granted'] as List).isNotEmpty) ||
           (platform['healthkit_available'] == true &&
               permission['request_completed'] == true);
       if (!granted) {

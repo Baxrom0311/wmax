@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/health_summary.dart';
 import '../models/models.dart';
 import '../services/session_service.dart';
 
@@ -320,6 +321,39 @@ class ApiService {
     } catch (_) {
       return _generateOfflineNoDataView(patientId, patientName);
     }
+  }
+
+  /// Measured watch data for one patient. Caregivers read it through their
+  /// patient link; patients and clinicians through the patient id.
+  /// Throws on any failure: callers must show "no connection", never
+  /// substitute values.
+  static Future<HealthSummaryData> fetchHealthSummary({
+    required PatientSummary patient,
+    int days = 7,
+  }) async {
+    final baseUrl = await SessionService.getBaseUrl();
+    final authToken = await SessionService.getAccessToken();
+    if (authToken == null || authToken.isEmpty) {
+      throw StateError('Not signed in');
+    }
+    final role = SessionService.roleFromAccessToken(authToken);
+    final path = role == 'relative'
+        ? '/api/v1/relatives/${Uri.encodeComponent(patient.accessToken)}/health-summary'
+        : '/api/v1/patients/${Uri.encodeComponent(patient.id)}/health-summary';
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl$path?days=$days'),
+          headers: {'Authorization': 'Bearer $authToken'},
+        )
+        .timeout(const Duration(seconds: 12));
+    if (response.statusCode != 200) {
+      throw StateError('Health summary HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Invalid health summary response.');
+    }
+    return HealthSummaryData.fromJson(decoded);
   }
 
   /// Emergency SOS: POST /api/v1/sos

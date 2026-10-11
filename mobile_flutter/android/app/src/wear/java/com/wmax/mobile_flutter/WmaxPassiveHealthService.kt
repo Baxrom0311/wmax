@@ -6,6 +6,8 @@ import android.os.SystemClock
 import androidx.health.services.client.PassiveListenerService
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.HealthEvent
+import androidx.health.services.client.data.HeartRateAccuracy
 import androidx.health.services.client.data.UserActivityInfo
 import androidx.health.services.client.data.UserActivityState
 import org.json.JSONArray
@@ -13,6 +15,19 @@ import org.json.JSONObject
 import java.time.Instant
 
 class WmaxPassiveHealthService : PassiveListenerService() {
+    override fun onHealthEventReceived(event: HealthEvent) {
+        if (event.type != HealthEvent.Type.FALL_DETECTED) return
+        val at = event.eventTime
+        val samples = JSONArray().put(
+            JSONObject()
+                .put("metric", "fall_detected")
+                .put("recorded_at", at.toString())
+                .put("value_text", "fall_detected")
+                .put("source_record_id", "fall-${at.toEpochMilli()}"),
+        )
+        enqueueBatch(samples)
+    }
+
     override fun onUserActivityInfoReceived(info: UserActivityInfo) {
         val state = when (info.userActivityState) {
             UserActivityState.USER_ACTIVITY_ASLEEP -> "asleep"
@@ -47,36 +62,63 @@ class WmaxPassiveHealthService : PassiveListenerService() {
         val samples = JSONArray()
         var latestDailySteps: Long? = null
         var latestDailyStepsAt: Instant? = null
-        fun appendInterval(metric: String, value: Number, unit: String, start: Instant, end: Instant) {
-            samples.put(
-                JSONObject()
-                    .put("metric", metric)
-                    .put("recorded_at", end.toString())
-                    .put("started_at", start.toString())
-                    .put("ended_at", end.toString())
-                    .put("value_num", value)
-                    .put("unit", unit)
-                    .put("source_record_id", "$metric-${end.toEpochMilli()}")
-                    .put("quality", 1.0),
-            )
+        fun appendInterval(
+            metric: String,
+            value: Number,
+            unit: String,
+            start: Instant,
+            end: Instant,
+            dailyCumulative: Boolean = false,
+        ) {
+            val sample = JSONObject()
+                .put("metric", metric)
+                .put("recorded_at", end.toString())
+                .put("started_at", start.toString())
+                .put("ended_at", end.toString())
+                .put("value_num", value)
+                .put("unit", unit)
+                .put("source_record_id", "$metric-${end.toEpochMilli()}")
+                .put("quality", 1.0)
+            if (dailyCumulative) {
+                // *_DAILY types are running totals since midnight, not deltas.
+                sample.put("metadata", JSONObject().put("aggregation", "daily_cumulative"))
+            }
+            samples.put(sample)
         }
         var latestHeartRate: Double? = null
         var latestTimestamp: Instant? = null
         for (point in dataPoints.getData(DataType.HEART_RATE_BPM)) {
             val timestamp = point.getTimeInstant(bootInstant)
-            if (latestTimestamp == null || timestamp.isAfter(latestTimestamp)) {
+            val sensorStatus = (point.accuracy as? HeartRateAccuracy)?.sensorStatus
+            val quality = heartRateQuality(sensorStatus)
+            if (sensorStatus == HeartRateAccuracy.SensorStatus.NO_CONTACT) {
+                // The watch is off the wrist; report that instead of a 0 bpm reading.
+                samples.put(
+                    JSONObject()
+                        .put("metric", "worn_state")
+                        .put("recorded_at", timestamp.toString())
+                        .put("value_text", "not_worn")
+                        .put("source_record_id", "worn-${timestamp.toEpochMilli()}"),
+                )
+                continue
+            }
+            if ((quality == null || quality >= 0.5) &&
+                (latestTimestamp == null || timestamp.isAfter(latestTimestamp))
+            ) {
                 latestHeartRate = point.value
                 latestTimestamp = timestamp
             }
-            samples.put(
-                JSONObject()
-                    .put("metric", "heart_rate_bpm")
-                    .put("recorded_at", timestamp.toString())
-                    .put("value_num", point.value)
-                    .put("unit", "bpm")
-                    .put("source_record_id", "hr-${timestamp.toEpochMilli()}")
-                    .put("quality", 1.0),
-            )
+            val sample = JSONObject()
+                .put("metric", "heart_rate_bpm")
+                .put("recorded_at", timestamp.toString())
+                .put("value_num", point.value)
+                .put("unit", "bpm")
+                .put("source_record_id", "hr-${timestamp.toEpochMilli()}")
+            if (quality != null) sample.put("quality", quality)
+            if (sensorStatus != null) {
+                sample.put("metadata", JSONObject().put("sensor_status", sensorStatus.toString()))
+            }
+            samples.put(sample)
         }
         for (point in dataPoints.getData(DataType.STEPS)) {
             appendInterval(
@@ -99,6 +141,7 @@ class WmaxPassiveHealthService : PassiveListenerService() {
                 "steps",
                 point.getStartInstant(bootInstant),
                 end,
+                dailyCumulative = true,
             )
         }
         for (point in dataPoints.getData(DataType.FLOORS)) {
@@ -126,6 +169,7 @@ class WmaxPassiveHealthService : PassiveListenerService() {
                 "kcal",
                 point.getStartInstant(bootInstant),
                 point.getEndInstant(bootInstant),
+                dailyCumulative = true,
             )
         }
         for (point in dataPoints.getData(DataType.DISTANCE_DAILY)) {
@@ -135,6 +179,7 @@ class WmaxPassiveHealthService : PassiveListenerService() {
                 "m",
                 point.getStartInstant(bootInstant),
                 point.getEndInstant(bootInstant),
+                dailyCumulative = true,
             )
         }
         var latestVo2: Double? = null
@@ -186,6 +231,15 @@ class WmaxPassiveHealthService : PassiveListenerService() {
         }
         state.commit()
         enqueueBatch(samples)
+    }
+
+    private fun heartRateQuality(status: HeartRateAccuracy.SensorStatus?): Double? = when (status) {
+        HeartRateAccuracy.SensorStatus.ACCURACY_HIGH -> 1.0
+        HeartRateAccuracy.SensorStatus.ACCURACY_MEDIUM -> 0.8
+        HeartRateAccuracy.SensorStatus.ACCURACY_LOW -> 0.5
+        HeartRateAccuracy.SensorStatus.UNRELIABLE -> 0.2
+        HeartRateAccuracy.SensorStatus.NO_CONTACT -> 0.0
+        else -> null
     }
 
     private fun enqueueBatch(samples: JSONArray) {

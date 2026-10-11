@@ -4,8 +4,10 @@ import '../models/models.dart';
 import '../services/session_service.dart';
 import '../api/api_service.dart';
 import '../widgets/vitals_card.dart';
+import 'health_screen.dart';
 import '../widgets/watch_sheet.dart';
 import '../widgets/language_selector.dart';
+import '../services/health_auto_sync.dart';
 import '../services/native_health_bridge.dart';
 import '../services/device_credential_store.dart';
 import '../utils/launcher_utils.dart';
@@ -88,6 +90,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     } finally {
       _wearQueueSyncRunning = false;
     }
+    // SpO2, HRV, sleep stages and skin temperature from Samsung Health and
+    // other watch apps reach the phone through Health Connect.
+    await HealthAutoSync.syncIfDue(deviceToken: token);
   }
 
   @override
@@ -281,6 +286,10 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
 
     final pages = [
       _buildMonitoringView(uz),
+      HealthScreen(
+        isUzbek: uz,
+        patient: _patients.isEmpty ? null : currentPatient,
+      ),
       _buildDevicesView(uz),
       _buildAlertsView(uz),
       _buildProfileView(uz),
@@ -1584,13 +1593,18 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
             Icons.monitor_heart_rounded,
             uz ? "Monitoring" : "Мониторинг",
           ),
-          _buildNavItem(1, Icons.watch_rounded, uz ? "Qurilmalar" : "Приборы"),
           _buildNavItem(
-            2,
+            1,
+            Icons.health_and_safety_rounded,
+            uz ? "Salomatlik" : "Здоровье",
+          ),
+          _buildNavItem(2, Icons.watch_rounded, uz ? "Qurilmalar" : "Приборы"),
+          _buildNavItem(
+            3,
             Icons.notifications_rounded,
             uz ? "Xabarlar" : "Сигналы",
           ),
-          _buildNavItem(3, Icons.person_rounded, uz ? "Profil" : "Профиль"),
+          _buildNavItem(4, Icons.person_rounded, uz ? "Profil" : "Профиль"),
         ],
       ),
     );
@@ -1603,7 +1617,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFE0F2FE) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),

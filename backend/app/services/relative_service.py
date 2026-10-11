@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,7 @@ import timewin
 from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES, TrendResult
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models import Account, PatientConsent, PatientMembership, TenantMember
+from app.models import Account, Patient, PatientConsent, PatientMembership, TenantMember
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
@@ -73,15 +74,11 @@ class RelativeService:
         self.alert_repo = AlertRepository(session)
         self.task_repo = TaskRepository(session)
 
-    async def get_relative_view(
-        self, token: str, caregiver_phone: str | None = None
-    ) -> RelativeView:
-        """Assembles rich patient status for the caregiver behind `token`.
-
-        The access token identifies the link; `caregiver_phone` comes from the
-        authenticated session and must match the record the link points at, so
-        a leaked URL alone does not expose a patient's clinical history.
-        """
+    async def authorize_link(
+        self, token: str, caregiver_phone: str | None
+    ) -> tuple[Any, Patient]:
+        """Resolve a caregiver link to its patient after checking the caller owns it
+        and the patient's family-access consent is still in force."""
         relative = await self.relative_repo.get_by_token(token)
         if not relative:
             raise NotFoundException(message="Yaqin kishi havolasi topilmadi", resource_name="Relative")
@@ -114,6 +111,18 @@ class RelativeService:
             raise NotFoundException(message="Bemor topilmadi", resource_name="Patient")
         if patient.deceased_at is not None:
             raise ForbiddenException("Bemor profili yopilgan")
+        return relative, patient
+
+    async def get_relative_view(
+        self, token: str, caregiver_phone: str | None = None
+    ) -> RelativeView:
+        """Assembles rich patient status for the caregiver behind `token`.
+
+        The access token identifies the link; `caregiver_phone` comes from the
+        authenticated session and must match the record the link points at, so
+        a leaked URL alone does not expose a patient's clinical history.
+        """
+        relative, patient = await self.authorize_link(token, caregiver_phone=caregiver_phone)
 
         now = datetime.now(timezone.utc)
         since = now - timedelta(days=7)

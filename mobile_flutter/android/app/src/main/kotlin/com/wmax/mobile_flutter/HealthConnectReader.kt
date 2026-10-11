@@ -9,7 +9,9 @@ import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.BodyTemperatureRecord
 import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ElevationGainedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
@@ -40,6 +42,24 @@ interface HealthConnectResultCallback {
 
 object HealthConnectReader {
     @JvmStatic
+    fun grantedPermissions(context: Context, callback: HealthConnectResultCallback) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (HealthConnectClient.getSdkStatus(context) != HealthConnectClient.SDK_AVAILABLE) {
+                    callback.onError("HEALTH_CONNECT_UNAVAILABLE", "Health Connect is not available")
+                    return@launch
+                }
+                val granted = HealthConnectClient.getOrCreate(context)
+                    .permissionController
+                    .getGrantedPermissions()
+                callback.onSuccess(mapOf("granted" to granted.toList()))
+            } catch (error: Throwable) {
+                callback.onError("HEALTH_CONNECT_PERMISSION_CHECK_FAILED", error.message ?: error.javaClass.simpleName)
+            }
+        }
+    }
+
+    @JvmStatic
     fun readRecent(context: Context, hours: Long, callback: HealthConnectResultCallback) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -56,26 +76,42 @@ object HealthConnectReader {
                 val samples = mutableListOf<Map<String, Any?>>()
                 val sleepSessions = mutableListOf<Map<String, Any?>>()
                 val exerciseSessions = mutableListOf<Map<String, Any?>>()
-
-                readHeartRate(client, range, samples)
-                readHeartRateVariability(client, range, samples)
-                readSteps(client, range, samples)
-                readRespiratoryRate(client, range, samples)
-                readOxygenSaturation(client, range, samples)
-                readRestingHeartRate(client, range, samples)
-                readSkinTemperature(client, range, samples)
-                readBodyTemperature(client, range, samples)
-                readBloodPressure(client, range, samples)
-                readBloodGlucose(client, range, samples)
-                readWeight(client, range, samples)
-                readBodyFat(client, range, samples)
-                readVo2Max(client, range, samples)
-                readDistance(client, range, samples)
-                readActiveCalories(client, range, samples)
-                readTotalCalories(client, range, samples)
-                readSpeed(client, range, samples)
-                readSleep(client, range, sleepSessions)
-                readExercise(client, range, exerciseSessions)
+                val deniedTypes = mutableListOf<String>()
+                val readers: List<Pair<String, suspend () -> Unit>> = listOf(
+                    "heart_rate" to suspend { readHeartRate(client, range, samples) },
+                    "heart_rate_variability" to suspend { readHeartRateVariability(client, range, samples) },
+                    "steps" to suspend { readSteps(client, range, samples) },
+                    "respiratory_rate" to suspend { readRespiratoryRate(client, range, samples) },
+                    "oxygen_saturation" to suspend { readOxygenSaturation(client, range, samples) },
+                    "resting_heart_rate" to suspend { readRestingHeartRate(client, range, samples) },
+                    "skin_temperature" to suspend { readSkinTemperature(client, range, samples) },
+                    "body_temperature" to suspend { readBodyTemperature(client, range, samples) },
+                    "blood_pressure" to suspend { readBloodPressure(client, range, samples) },
+                    "blood_glucose" to suspend { readBloodGlucose(client, range, samples) },
+                    "weight" to suspend { readWeight(client, range, samples) },
+                    "body_fat" to suspend { readBodyFat(client, range, samples) },
+                    "vo2_max" to { readVo2Max(client, range, samples) },
+                    "distance" to suspend { readDistance(client, range, samples) },
+                    "active_calories" to suspend { readActiveCalories(client, range, samples) },
+                    "total_calories" to suspend { readTotalCalories(client, range, samples) },
+                    "floors" to suspend { readFloors(client, range, samples) },
+                    "elevation_gained" to suspend { readElevation(client, range, samples) },
+                    "speed" to suspend { readSpeed(client, range, samples) },
+                    "sleep" to suspend { readSleep(client, range, sleepSessions) },
+                    "exercise" to suspend { readExercise(client, range, exerciseSessions) },
+                )
+                // A single declined record type must not discard every other
+                // type the person did allow; report what was skipped instead.
+                for ((name, read) in readers) {
+                    try {
+                        read()
+                    } catch (_: SecurityException) {
+                        deniedTypes += name
+                    }
+                }
+                if (deniedTypes.size == readers.size) {
+                    throw SecurityException("No Health Connect record type is readable")
+                }
 
                 val prefs = context.getSharedPreferences("wmax_health_state", Context.MODE_PRIVATE).edit()
                 samples.filter { it["metric"] == "oxygen_saturation_pct" }
@@ -114,6 +150,7 @@ object HealthConnectReader {
                             "window_hours" to hours,
                             "start_time" to start.toString(),
                             "end_time" to now.toString(),
+                            "denied_record_types" to deniedTypes,
                         ),
                     ),
                 )
@@ -364,6 +401,18 @@ object HealthConnectReader {
                     ),
                 )
             }
+        }
+    }
+
+    private suspend fun readFloors(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
+        for (record in readAllRecords(client, FloorsClimbedRecord::class, range)) {
+            out.add(sampleMap("floors", record.endTime, record.floors, "floors", startedAt = record.startTime, endedAt = record.endTime, sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
+        }
+    }
+
+    private suspend fun readElevation(client: HealthConnectClient, range: TimeRangeFilter, out: MutableList<Map<String, Any?>>) {
+        for (record in readAllRecords(client, ElevationGainedRecord::class, range)) {
+            out.add(sampleMap("elevation_gain_m", record.endTime, doubleFromUnit(record.elevation, "getMeters"), "m", startedAt = record.startTime, endedAt = record.endTime, sourceRecordId = record.metadata.safeId(), metadata = sourceMetadata(record.metadata)))
         }
     }
 

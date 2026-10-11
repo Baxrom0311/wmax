@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_relative
 from app.core.db import get_session
 from app.schemas.auth import CurrentUser
+from app.schemas.health_summary import HealthSummary
 from app.schemas.relative import RelativeView
+from app.services.health_summary_service import HealthSummaryService
 from app.services.relative_service import RelativeService
 
 router = APIRouter(prefix="/api/v1/relatives", tags=["relative"])
@@ -31,3 +33,18 @@ async def get_relative_view(
     """
     service = RelativeService(session)
     return await service.get_relative_view(token, caregiver_phone=caregiver.phone)
+
+
+@router.get(
+    "/{token}/health-summary",
+    response_model=HealthSummary,
+    summary="Caregiver view of measured watch data grouped by local day.",
+)
+async def get_relative_health_summary(
+    token: str,
+    days: int = Query(7, ge=1, le=30),
+    session: AsyncSession = Depends(get_session),
+    caregiver: CurrentUser = Depends(get_current_relative),
+) -> HealthSummary:
+    _relative, patient = await RelativeService(session).authorize_link(token, caregiver_phone=caregiver.phone)
+    return await HealthSummaryService(session).get_summary(patient.id, days=days)

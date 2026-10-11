@@ -127,6 +127,19 @@ public class MainActivity extends FlutterActivity {
                                 }
                             });
                             break;
+                        case "getHealthDataPermissionStatus":
+                            HealthConnectReader.grantedPermissions(this, new HealthConnectResultCallback() {
+                                @Override
+                                public void onSuccess(Map<String, ?> payload) {
+                                    runOnUiThread(() -> result.success(payload));
+                                }
+
+                                @Override
+                                public void onError(String code, String message) {
+                                    runOnUiThread(() -> result.error(code, message, null));
+                                }
+                            });
+                            break;
                         default:
                             result.notImplemented();
                     }
@@ -540,6 +553,8 @@ public class MainActivity extends FlutterActivity {
         permissions.add(HealthPermission.READ_SPEED);
         permissions.add(HealthPermission.READ_SLEEP);
         permissions.add(HealthPermission.READ_EXERCISE);
+        permissions.add("android.permission.health.READ_FLOORS_CLIMBED");
+        permissions.add("android.permission.health.READ_ELEVATION_GAINED");
         return permissions;
     }
 }

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import CurrentUser, require_clinician, require_doctor
+from app.auth.deps import CurrentUser, get_current_principal, require_clinician, require_doctor
 from app.auth.scope import assert_patient_access
 from app.core.db import get_session
 from app.core.exceptions import ForbiddenException, ValidationException
@@ -26,8 +26,10 @@ from app.models.baseline import Baseline
 from app.models.patient import Patient
 from app.models.reading import Reading
 from app.schemas.common import AlertLevel
+from app.schemas.health_summary import HealthSummary
 from app.schemas.patient import PatientDetail, PatientSummary
 from app.schemas.task import Task as TaskSchema
+from app.services.health_summary_service import HealthSummaryService
 from app.services.patient_relationship_service import PatientRelationshipService
 from app.services.patient_service import PatientService
 
@@ -223,6 +225,21 @@ async def patient_readings(
         }
         for row in rows
     ]
+
+
+@router.get(
+    "/{id}/health-summary",
+    response_model=HealthSummary,
+    summary="Measured watch and Health Connect data grouped by local day",
+)
+async def patient_health_summary(
+    id: uuid.UUID,
+    days: int = Query(7, ge=1, le=30),
+    session: AsyncSession = Depends(get_session),
+    principal: CurrentUser = Depends(get_current_principal),
+) -> HealthSummary:
+    await assert_patient_access(session, principal, id)
+    return await HealthSummaryService(session).get_summary(id, days=days)
 
 
 @router.get("/{id}/baseline", summary="Current patient baseline")

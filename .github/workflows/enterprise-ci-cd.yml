@@ -102,7 +102,7 @@ jobs:
           flutter pub get
           flutter analyze --fatal-infos
           # Keep CI hermetic; the live integration test can create a real SOS.
-          flutter test test/widget_test.dart test/wear_health_test.dart
+          flutter test test/widget_test.dart test/wear_health_test.dart test/health_screen_test.dart
           flutter build apk --debug --flavor phone
           flutter build apk --debug --flavor wear
 

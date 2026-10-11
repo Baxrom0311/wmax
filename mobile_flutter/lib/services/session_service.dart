@@ -40,6 +40,21 @@ class SessionService {
     return prefs.getString(_keyAccessToken);
   }
 
+  /// Reads the `role` claim of a JWT without verifying it; the server
+  /// still authorizes every request, this only picks which endpoint to call.
+  static String? roleFromAccessToken(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    try {
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      return payload is Map ? payload['role']?.toString() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<String?> getRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyRefreshToken);

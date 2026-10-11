@@ -65,6 +65,23 @@ class NativeHealthBridge {
     return raw ?? <String, dynamic>{};
   }
 
+  /// Health Connect permissions already granted, read without showing any
+  /// permission UI. Empty when unavailable (for example on iOS).
+  static Future<Set<String>> grantedHealthDataPermissions() async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, dynamic>(
+        'getHealthDataPermissionStatus',
+      );
+      return ((raw?['granted'] as List?) ?? const [])
+          .map((permission) => '$permission')
+          .toSet();
+    } on MissingPluginException {
+      return const {};
+    } on PlatformException {
+      return const {};
+    }
+  }
+
   static Future<HealthDataBatch> readRecentHealthData({int hours = 24}) async {
     final raw = await _channel.invokeMapMethod<String, dynamic>(
       'readRecentHealthData',
