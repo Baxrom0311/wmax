@@ -5967,6 +5967,10 @@ components:
           const: deepseek
           title: Source
           default: deepseek
+        model:
+          type: string
+          title: Model
+          default: DeepSeek-V3
       type: object
       required:
       - answer

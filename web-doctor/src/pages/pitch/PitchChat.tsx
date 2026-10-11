@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bot, MessageCircle, Send, X } from 'lucide-react';
 import type { Lang } from '../../i18n';
 import { LINKS } from './content';
-import { CHAT_UI, SAMPLE_QUESTIONS, answer, isSample } from './chatbot';
+import { CHAT_UI, SAMPLE_QUESTIONS, answer } from './chatbot';
 
 const CHAT_URL = '/api/v1/public/pitch-chat';
 
-type Msg = { from: 'bot' | 'user'; text: string; fallback?: boolean };
+type Msg = { from: 'bot' | 'user'; text: string; fallback?: boolean; model?: string };
 
 /* Floating Q&A chat in the bottom-right corner of the Pitch Day pages. */
 export const PitchChat: React.FC<{ lang: Lang }> = ({ lang }) => {
@@ -27,21 +27,14 @@ export const PitchChat: React.FC<{ lang: Lang }> = ({ lang }) => {
     if (open) field.current?.focus();
   }, [open]);
 
-  // Sample questions get the prepared answer instantly. Anything else goes to
-  // DeepSeek through our backend; if that is unavailable the prepared answers
-  // and the Telegram link still cover it.
+  // Every single question goes directly to DeepSeek AI through our backend API.
+  // Prepared answers in chatbot.ts only act as offline fallback if network/API drops.
   const ask = async (raw: string) => {
     const q = raw.trim();
     if (!q || thinking) return;
     setInput('');
     const history = messages.filter((m) => !m.fallback).slice(-8).map((m) => ({ role: m.from === 'user' ? 'user' : 'assistant', content: m.text }));
     setMessages((prev) => [...prev, { from: 'user', text: q }]);
-
-    const local = answer(lang, q);
-    if (local && isSample(lang, q)) {
-      setMessages((prev) => [...prev, { from: 'bot', text: local }]);
-      return;
-    }
 
     setThinking(true);
     let reply: Msg;
@@ -52,11 +45,12 @@ export const PitchChat: React.FC<{ lang: Lang }> = ({ lang }) => {
         body: JSON.stringify({ message: q.slice(0, 500), lang, history }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { answer?: string };
+      const data = (await res.json()) as { answer?: string; model?: string };
       if (!data.answer) throw new Error('empty');
-      reply = { from: 'bot', text: data.answer };
+      reply = { from: 'bot', text: data.answer, model: data.model || 'DeepSeek-V3' };
     } catch {
-      reply = local ? { from: 'bot', text: local } : { from: 'bot', text: ui.fallback, fallback: true };
+      const local = answer(lang, q);
+      reply = local ? { from: 'bot', text: local, fallback: true } : { from: 'bot', text: ui.fallback, fallback: true };
     } finally {
       setThinking(false);
     }
@@ -66,24 +60,41 @@ export const PitchChat: React.FC<{ lang: Lang }> = ({ lang }) => {
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col items-end gap-3">
       {open && (
-        <div className="glass glass-strong pitch-chat-panel rounded-3xl w-[min(92vw,380px)] h-[min(72svh,540px)] flex flex-col overflow-hidden text-slate-100" role="dialog" aria-label={ui.title}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-            <div className="flex items-center gap-2 font-extrabold">
-              <span className="w-8 h-8 rounded-xl bg-emerald-400/90 text-slate-950 flex items-center justify-center">
+        <div className="glass glass-strong pitch-chat-panel rounded-3xl w-[min(92vw,390px)] h-[min(72svh,540px)] flex flex-col overflow-hidden text-slate-100 shadow-2xl" role="dialog" aria-label={ui.title}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-emerald-400 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-emerald-400/20">
                 <Bot className="w-4 h-4" />
               </span>
-              {ui.title}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm">{ui.title}</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    DeepSeek-V3
+                  </span>
+                </div>
+                <div className="text-[11px] text-white/50 -mt-0.5">
+                  Jonli sun'iy intellekt assistenti
+                </div>
+              </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label={ui.close} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10">
+            <button onClick={() => setOpen(false)} aria-label={ui.close} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div ref={box} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-            {[{ from: 'bot' as const, text: ui.hello }, ...messages].map((m, i) => (
+          <div ref={box} className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+            {[{ from: 'bot' as const, text: ui.hello, model: 'DeepSeek-V3' }, ...messages].map((m, i) => (
               <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-snug ${m.from === 'user' ? 'bg-emerald-400 text-slate-950 rounded-br-md' : 'glass-chip rounded-bl-md'}`}>
+                <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-snug ${m.from === 'user' ? 'bg-emerald-400 text-slate-950 rounded-br-md font-medium shadow-sm' : 'glass-chip rounded-bl-md'}`}>
                   {m.text}
+                  {m.from === 'bot' && !('fallback' in m && m.fallback) && i > 0 && (
+                    <div className="mt-1.5 pt-1 border-t border-white/10 flex items-center gap-1 text-[10px] text-emerald-300/80 font-mono">
+                      <span>⚡</span>
+                      <span>DeepSeek AI javobi</span>
+                    </div>
+                  )}
                   {'fallback' in m && m.fallback && (
                     <a href={LINKS.telegramBot} target="_blank" rel="noreferrer" className="block mt-1.5 text-emerald-300 font-semibold underline underline-offset-2">
                       {ui.telegram} →
