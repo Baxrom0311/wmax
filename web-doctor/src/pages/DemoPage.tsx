@@ -1,28 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Clock, Copy, ExternalLink, KeyRound, PlayCircle, Send, Video } from 'lucide-react';
+import { Bot, Copy, ExternalLink, KeyRound, Send } from 'lucide-react';
 import type { Lang } from '../i18n';
 import { DEMO_VIDEO, LINKS } from './pitch/content';
 import { DEMO, answerFor } from './pitch/demoContent';
+import { PitchTopBar } from './pitch/PitchHome';
+import './pitch/pitch.css';
 
 interface DemoPageProps {
   lang: Lang;
+  onLangChange: (lang: Lang) => void;
   onNavigate: (route: string) => void;
 }
 
 type ChatMsg = { from: 'bot' | 'user'; text: string };
 
-const card = 'rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm';
-
-export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
+export const DemoPage: React.FC<DemoPageProps> = ({ lang, onLangChange, onNavigate }) => {
   const d = DEMO[lang];
   const [messages, setMessages] = useState<ChatMsg[]>([{ from: 'bot', text: d.chatHello }]);
   const [input, setInput] = useState('');
-  const [copied, setCopied] = useState<string | null>(null);
-  const chatEnd = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const chatBox = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const box = chatBox.current;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [messages]);
 
   const ask = (question: string, preset?: string) => {
@@ -33,154 +35,92 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
     setInput('');
   };
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : LINKS.site;
-  const snippets = [
-    { id: 'health', code: `curl ${origin}/api/v1/health` },
-    { id: 'openapi', code: `curl ${origin}${LINKS.openapi} -o wmax-openapi.json` },
-  ];
-
-  const copy = async (id: string, code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(id);
-      setTimeout(() => setCopied(null), 1500);
-    } catch {
-      /* clipboard unavailable: user can still select the text */
-    }
+  const seek = (t: string) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const [m, s] = t.split(':').map(Number);
+    v.currentTime = m * 60 + s;
+    void v.play().catch(() => undefined);
   };
 
+  const origin = window.location.origin;
+  const curl = `curl ${origin}/api/v1/health`;
   const isExternal = (href: string) => href.startsWith('http');
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
-        <div>
-          <button
-            onClick={() => onNavigate('/')}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {d.back}
-          </button>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-950 dark:text-white">{d.title}</h1>
-          <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg mt-3">{d.sub}</p>
-        </div>
+    <div className="pitch-root">
+      <div className="pitch-blob b1" />
+      <div className="pitch-blob b2" />
+      <div className="pitch-blob b3" />
+      <PitchTopBar lang={lang} onLangChange={onLangChange} onNavigate={onNavigate} active="demo" />
 
-        {/* 6.1 Demo video */}
-        <section id="video" aria-labelledby="video-title">
-          <h2 id="video-title" className="text-2xl font-extrabold mb-4 flex items-center gap-2">
-            <Video className="w-6 h-6 text-emerald-500" />
-            {d.videoTitle}
-          </h2>
-          <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-5">
+        {/* 6.1 Video + 6.2 description */}
+        <section className="glass glass-strong rounded-3xl p-3 sm:p-4">
+          <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
             {DEMO_VIDEO.embedUrl ? (
-              <iframe
-                src={DEMO_VIDEO.embedUrl}
-                title={d.videoTitle}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : DEMO_VIDEO.fileUrl ? (
-              <video ref={videoRef} src={DEMO_VIDEO.fileUrl} poster={DEMO_VIDEO.poster} controls preload="metadata" className="w-full h-full bg-black" />
+              <iframe src={DEMO_VIDEO.embedUrl} title={d.videoTitle} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-slate-300 bg-gradient-to-br from-slate-900 to-emerald-950">
-                <img src={DEMO_VIDEO.poster} alt="" className="w-24 sm:w-56 opacity-80" />
-                <div className="flex items-center gap-2 text-sm sm:text-base font-semibold px-4 text-center">
-                  <PlayCircle className="w-5 h-5" />
-                  {d.videoPending}
-                </div>
-              </div>
+              <video ref={videoRef} src={DEMO_VIDEO.fileUrl} poster={DEMO_VIDEO.poster} controls preload="metadata" className="w-full h-full" />
             )}
+          </div>
+          <div className="px-1 sm:px-2 pt-4 pb-1 flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{d.videoTitle}</h1>
+              <p className="text-sm text-white/65">{d.descLead}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {d.chapters.map((c) => (
+                <button key={c.t} onClick={() => seek(c.t)} className="glass-chip rounded-lg px-2.5 py-1 text-xs hover:bg-white/15">
+                  <span className="font-mono text-emerald-300 mr-1">{c.t}</span>
+                  {c.text}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* 6.2 Video description */}
-        <section id="tavsif" className={`${card} p-6 sm:p-8`} aria-labelledby="desc-title">
-          <h2 id="desc-title" className="text-2xl font-extrabold mb-3">{d.descTitle}</h2>
-          <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-6">{d.descLead}</p>
-          <ol className="space-y-3">
-            {d.chapters.map((c) => (
-              <li key={c.t} className="flex gap-3 text-sm sm:text-base">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const v = videoRef.current;
-                    if (!v) return;
-                    const [m, sec] = c.t.split(':').map(Number);
-                    v.currentTime = m * 60 + sec;
-                    v.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    void v.play().catch(() => undefined);
-                  }}
-                  className="inline-flex items-center gap-1 shrink-0 w-16 font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  {c.t}
-                </button>
-                <span className="text-slate-700 dark:text-slate-300">{c.text}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
         {/* 6.3 Working prototype */}
-        <section id="prototip" aria-labelledby="proto-title">
-          <h2 id="proto-title" className="text-2xl font-extrabold mb-1">{d.protoTitle}</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-5">{d.protoSub}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <section>
+          <h2 className="text-sm uppercase tracking-wider text-white/55 font-bold mb-2 px-1">{d.protoTitle}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {d.protos.map((pr) => (
               <a
                 key={pr.href}
                 href={pr.href}
                 target={isExternal(pr.href) ? '_blank' : undefined}
                 rel={isExternal(pr.href) ? 'noreferrer' : undefined}
-                className={`${card} p-5 group hover:border-emerald-500/60 transition block`}
+                className="glass rounded-2xl p-4 flex items-center justify-between gap-3 hover:bg-white/10 transition"
               >
-                <div className="flex items-center justify-between gap-2 font-bold text-slate-900 dark:text-white">
-                  {pr.title}
-                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
+                <div>
+                  <div className="font-bold">{pr.title}</div>
+                  <div className="text-xs text-white/60">{pr.desc}</div>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{pr.desc}</p>
-                <p className="text-xs font-mono text-emerald-700 dark:text-emerald-400 mt-3 break-all">
-                  {isExternal(pr.href) ? pr.href.replace('https://', '') : `${origin.replace(/^https?:\/\//, '')}${pr.href}`}
-                </p>
+                <ExternalLink className="w-4 h-4 text-emerald-300 shrink-0" />
               </a>
             ))}
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Optional: Q&A chatbot */}
-          <section id="chatbot" className={`${card} p-6 flex flex-col`} aria-labelledby="chat-title">
-            <h2 id="chat-title" className="text-xl font-extrabold flex items-center gap-2">
-              <Bot className="w-5 h-5 text-sky-500" />
+        {/* Optional: Q&A chatbot and API access */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+          <section className="glass rounded-3xl p-4 lg:col-span-3 flex flex-col">
+            <h2 className="font-extrabold flex items-center gap-2">
+              <Bot className="w-5 h-5 text-sky-300" />
               {d.chatTitle}
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 mb-4">{d.chatSub}</p>
-            <div className="flex-1 min-h-64 max-h-80 overflow-y-auto space-y-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div ref={chatBox} className="mt-3 h-52 overflow-y-auto space-y-2 pr-1">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${
-                      m.from === 'user'
-                        ? 'bg-emerald-600 text-white rounded-br-md'
-                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-md'
-                    }`}
-                  >
+                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${m.from === 'user' ? 'bg-emerald-400 text-slate-950 rounded-br-md' : 'glass-chip rounded-bl-md'}`}>
                     {m.text}
                   </div>
                 </div>
               ))}
-              <div ref={chatEnd} />
             </div>
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mt-4 mb-2">{d.chatTry}</div>
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 my-3">
               {d.qa.map((item) => (
-                <button
-                  key={item.q}
-                  onClick={() => ask(item.q, item.a)}
-                  className="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400"
-                >
+                <button key={item.q} onClick={() => ask(item.q, item.a)} className="glass-chip rounded-full px-2.5 py-1 text-xs hover:bg-white/15">
                   {item.q}
                 </button>
               ))}
@@ -196,58 +136,54 @@ export const DemoPage: React.FC<DemoPageProps> = ({ lang, onNavigate }) => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={d.chatPlaceholder}
-                className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+                className="glass-chip flex-1 min-w-0 rounded-xl px-3 py-2 text-sm placeholder:text-white/40 outline-none focus:border-emerald-300/70"
               />
-              <button type="submit" className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm inline-flex items-center gap-1.5">
+              <button type="submit" aria-label={d.chatSend} className="px-3.5 rounded-xl bg-emerald-400 text-slate-950 hover:bg-emerald-300">
                 <Send className="w-4 h-4" />
-                <span className="hidden sm:inline">{d.chatSend}</span>
               </button>
             </form>
           </section>
 
-          {/* Optional: API access */}
-          <section id="api" className={`${card} p-6`} aria-labelledby="api-title">
-            <h2 id="api-title" className="text-xl font-extrabold flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-amber-500" />
+          <section className="glass rounded-3xl p-4 lg:col-span-2">
+            <h2 className="font-extrabold flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-amber-300" />
               {d.apiTitle}
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 mb-4">{d.apiSub}</p>
-            <div className="flex flex-wrap gap-2 mb-5">
+            <p className="text-xs text-white/60 mt-1">{d.apiSub}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
               {[
-                { label: 'Swagger UI', href: LINKS.apiDocs },
+                { label: 'Swagger', href: LINKS.apiDocs },
                 { label: 'ReDoc', href: LINKS.apiRedoc },
-                { label: 'openapi.json', href: LINKS.openapi },
+                { label: 'OpenAPI', href: LINKS.openapi },
               ].map((l) => (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold inline-flex items-center gap-1.5"
-                >
+                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="glass-chip rounded-xl px-3 py-1.5 text-sm font-semibold inline-flex items-center gap-1.5 hover:bg-white/15">
                   {l.label}
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               ))}
             </div>
-            <div className="space-y-3">
-              {snippets.map((s) => (
-                <div key={s.id} className="relative rounded-xl bg-slate-950 text-emerald-300 font-mono text-xs p-4 pt-10">
-                  <code className="block whitespace-pre-wrap break-all">{s.code}</code>
-                  <button
-                    onClick={() => copy(s.id, s.code)}
-                    className="absolute top-2.5 right-2.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-sans font-semibold inline-flex items-center gap-1"
-                  >
-                    <Copy className="w-3 h-3" />
-                    {copied === s.id ? d.copied : d.copy}
-                  </button>
-                </div>
-              ))}
+            <div className="mt-3 rounded-xl bg-black/40 border border-white/10 p-3 font-mono text-xs text-emerald-200 flex items-start justify-between gap-2">
+              <code className="break-all">{curl}</code>
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(curl)
+                    .then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    })
+                    .catch(() => undefined);
+                }}
+                aria-label={d.copy}
+                className="shrink-0 text-white/70 hover:text-white"
+              >
+                {copied ? <span className="font-sans text-[11px]">{d.copied}</span> : <Copy className="w-3.5 h-3.5" />}
+              </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">{d.apiNote}</p>
+            <p className="text-[11px] text-white/45 mt-3">{d.apiNote}</p>
           </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

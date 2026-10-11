@@ -21,11 +21,10 @@ import type { PatientDetail, PatientSummary, SosEventItem, TokenPair } from "./l
 import { PatientsList } from "./pages/PatientsList";
 import { SosBanner } from "./components/SosBanner";
 
-const LandingPage = React.lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
+const PitchHome = React.lazy(() => import("./pages/pitch/PitchHome").then((m) => ({ default: m.PitchHome })));
 const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage").then((m) => ({ default: m.RelativePortalPage })));
 const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const PresentationPage = React.lazy(() => import("./pages/PresentationPage").then((m) => ({ default: m.PresentationPage })));
-const AifuPage = React.lazy(() => import("./pages/AifuPage").then((m) => ({ default: m.AifuPage })));
 const HandoffsPage = React.lazy(() => import("./pages/HandoffsPage").then((m) => ({ default: m.HandoffsPage })));
 const DeviceInventoryModal = React.lazy(() => import("./components/DeviceInventoryModal").then((m) => ({ default: m.DeviceInventoryModal })));
 const PatientDetailPage = React.lazy(() => import("./pages/PatientDetail").then((m) => ({ default: m.PatientDetailPage })));
@@ -346,28 +345,32 @@ export const App: React.FC = () => {
     showToast(t("demo.banner_title", lang) + ": " + demoPair.full_name);
   };
 
+  const isPitchRoute = currentRoute === "/" || currentRoute === "/demo" || currentRoute === "/aifu";
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* 1. Unified Sticky Navbar */}
-      <UnifiedNavbar
-        currentRoute={currentRoute}
-        onNavigate={navigate}
-        lang={lang}
-        onLangChange={handleLangChange}
-        theme={theme}
-        onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-        doctorUser={user}
-        relativeUser={relativeUser}
-        onOpenLogin={() => setAuthModalOpen(true)}
-        onLogoutDoctor={handleLogoutDoctor}
-        onLogoutRelative={handleLogoutRelative}
-        doctorActiveTab={activeTab}
-        onDoctorTabChange={(tab) => {
-          handleTabChange(tab as NavTab);
-          setSelectedPatientId(null);
-        }}
-        sosCount={sosCount}
-      />
+      {/* 1. Unified Sticky Navbar (the Pitch Day pages draw their own glass top bar) */}
+      {!isPitchRoute && (
+        <UnifiedNavbar
+          currentRoute={currentRoute}
+          onNavigate={navigate}
+          lang={lang}
+          onLangChange={handleLangChange}
+          theme={theme}
+          onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+          doctorUser={user}
+          relativeUser={relativeUser}
+          onOpenLogin={() => setAuthModalOpen(true)}
+          onLogoutDoctor={handleLogoutDoctor}
+          onLogoutRelative={handleLogoutRelative}
+          doctorActiveTab={activeTab}
+          onDoctorTabChange={(tab) => {
+            handleTabChange(tab as NavTab);
+            setSelectedPatientId(null);
+          }}
+          sosCount={sosCount}
+        />
+      )}
 
       {/* 2. Unified Auth Modal */}
       <UnifiedAuthModal
@@ -389,12 +392,8 @@ export const App: React.FC = () => {
       {/* 4. Main Route Content */}
       <main className="flex-1 w-full">
         <React.Suspense fallback={<div className="route-loading">{t("app.loading", lang)}</div>}>
-          {currentRoute === "/" && (
-            <LandingPage
-              onNavigate={navigate}
-              lang={lang}
-              onOpenLogin={() => setAuthModalOpen(true)}
-            />
+          {(currentRoute === "/" || currentRoute === "/aifu") && (
+            <PitchHome lang={lang} onLangChange={handleLangChange} onNavigate={navigate} />
           )}
 
           {currentRoute === "/r" && (
@@ -408,22 +407,11 @@ export const App: React.FC = () => {
           )}
 
           {currentRoute === "/demo" && (
-            <DemoPage
-              key={lang}
-              onNavigate={navigate}
-              lang={lang}
-            />
+            <DemoPage key={lang} lang={lang} onLangChange={handleLangChange} onNavigate={navigate} />
           )}
 
           {currentRoute === "/pptx" && (
             <PresentationPage
-              onNavigate={navigate}
-              lang={lang}
-            />
-          )}
-
-          {currentRoute === "/aifu" && (
-            <AifuPage
               onNavigate={navigate}
               lang={lang}
             />
