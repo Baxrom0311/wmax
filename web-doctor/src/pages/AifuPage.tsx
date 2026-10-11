@@ -17,6 +17,7 @@ import {
   Database
 } from 'lucide-react';
 import type { Lang } from '../i18n';
+import { TEAM } from './pitch/content';
 
 interface AifuPageProps {
   onNavigate: (route: string) => void;
@@ -39,7 +40,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
   const [isTyping, setIsTyping] = useState(false);
 
   const sampleQuestions = [
-    lang === 'ru' ? "Как ИИ прогнозирует декомпенсацию за 48 часов?" : lang === 'en' ? "How does AI predict decompensation 48 hours early?" : "AI qanday qilib 48 soat oldin xavfni bashorat qiladi?",
+    lang === 'ru' ? "Как работает ИИ-ядро?" : lang === 'en' ? "How does the AI core work?" : "AI yadro qanday ishlaydi?",
     lang === 'ru' ? "Какие носимые устройства поддерживаются?" : lang === 'en' ? "Which wearable devices are supported?" : "Qaysi aqlli soatlar tizimga ulanadi?",
     lang === 'ru' ? "Как защищены персональные медицинские данные?" : lang === 'en' ? "How are personal medical health data secured?" : "Bemorlarning tibbiy ma'lumotlari qanday himoyalangan?",
     lang === 'ru' ? "Какая роль родственников и опекунов?" : lang === 'en' ? "What is the role of family caregivers?" : "Oila a'zolari va qarovchilar roli qanday?"
@@ -57,29 +58,29 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
     setTimeout(() => {
       let reply = "";
       const lower = userMsg.toLowerCase();
-      if (lower.includes('48') || lower.includes('bashorat') || lower.includes('прогноз') || lower.includes('predict')) {
+      if (lower.includes('bashorat') || lower.includes('прогноз') || lower.includes('predict')) {
         reply = lang === 'ru'
-          ? "Алгоритм WMAX анализирует 5-минутные тренды ЧСС, SpO2, вариабельности сердечного ритма (ВСР) и подвижности. Модель на базе градиентного бустинга и биофизических инвариантов фиксирует субклиническую задержку жидкости и гипоксию за 24–48 часов до острой сердечной недостаточности."
+          ? "WMAX сначала изучает личную норму пациента, затем сравнивает новые измерения по z-score с учётом циркадного ритма и сигнализирует медсестре при устойчивом отклонении. Это не диагноз; точность будет проверена в пилоте."
           : lang === 'en'
-          ? "The WMAX algorithm analyzes 5-minute telemetry intervals of heart rate, SpO2, HRV, and physical mobility. Our gradient boosting pipeline identifies subclinical fluid retention and micro-hypoxia 24–48 hours before acute cardiac decompensation."
-          : "WMAX algoritmi har 5 daqiqalik puls, SpO2, HRV (yurak ritmi o'zgaruvchanligi) va harakat telemetriyasini tahlil qiladi. Gradient boosting va biofizik modellar dekompensatsiyaning dastlabki mikrogipoksiya belgilarini krizisdan 24–48 soat oldin aniqlaydi.";
+          ? "WMAX first learns each patient's personal baseline, then compares new readings with a circadian-aware z-score and alerts the nurse on sustained deviation. It is not a diagnosis; accuracy will be tested in the pilot."
+          : "WMAX avval har bir bemorning shaxsiy normasini o'rganadi, keyin yangi o'lchovlarni sirkadian ritmni hisobga olgan z-score bilan solishtiradi va barqaror og'ishda hamshiraga signal beradi. Bu tashxis emas; aniqlik pilotda tekshiriladi.";
       } else if (lower.includes('soat') || lower.includes('устройств') || lower.includes('device') || lower.includes('watch')) {
         reply = lang === 'ru'
-          ? "Мы поддерживаем Samsung Galaxy Watch 4/5/6/7 (Wear OS), Apple Watch, а также медицинские Bluetooth BLE пульсоксиметры и тонометры по протоколу IEEE 11073."
+          ? "Мы поддерживаем Samsung Galaxy Watch (Wear OS). Версия для Apple Watch запланирована на этапе MVP."
           : lang === 'en'
-          ? "We support Samsung Galaxy Watch 4/5/6/7 (Wear OS), Apple Watch, and medical BLE pulse oximeters and blood pressure monitors adhering to IEEE 11073."
-          : "Tizim Samsung Galaxy Watch 4/5/6/7 (Wear OS), Apple Watch hamda tibbiy Bluetooth BLE pulsoksimetr va tonometrlarni (IEEE 11073 standarti) qo'llab-quvvatlaydi.";
+          ? "We support Samsung Galaxy Watch (Wear OS) today. An Apple Watch version is planned for the MVP."
+          : "Hozir Samsung Galaxy Watch (Wear OS). Apple Watch versiyasi MVP bosqichida rejalashtirilgan.";
       } else if (lower.includes('himoya') || lower.includes('защит') || lower.includes('secur')) {
         reply = lang === 'ru'
-          ? "Данные шифруются TLS 1.3 / AES-256 в транзите и хранении. Архитектура реализует RLS (Row Level Security), ролевую модель RBAC и полное соответствие законодательству РУз о персональных данных и HIPAA."
+          ? "Пациент сам даёт согласие и может отозвать его в любой момент. Передача данных идёт по HTTPS, в PostgreSQL используются RLS (Row Level Security) и ограниченные роли."
           : lang === 'en'
-          ? "Data is encrypted using TLS 1.3 / AES-256 at rest and in transit. We implement PostgreSQL Row Level Security (RLS), RBAC, and comply with Uzbekistan Personal Data Protection laws & HIPAA."
-          : "Barcha ma'lumotlar TLS 1.3 va AES-256 shifrlash bilan himoyalanadi. PostgreSQL RLS (Row Level Security), RBAC rollar tizimi va O'zbekiston Respublikasi shaxsiy ma'lumotlar to'g'risidagi qonunchiligiga to'liq muvofiq.";
+          ? "Patients give consent and can revoke it at any time. Data travels over HTTPS, and PostgreSQL uses Row Level Security (RLS) and restricted roles."
+          : "Bemor kuzatuvga o'zi rozilik beradi va istalgan vaqtda bekor qila oladi. Ma'lumot HTTPS orqali uzatiladi, PostgreSQL da RLS (qatorlar darajasida kirish nazorati) va cheklangan rollar ishlatiladi.";
       } else {
         reply = lang === 'ru'
-          ? "Отличный вопрос! WMAX объединяет носимые датчики, рабочее место кардиолога с ИИ-триажем и мобильный портал для близких, гарантируя раннее обнаружение кризов и вызов помощи 103."
+          ? "Отличный вопрос! WMAX объединяет носимые датчики, рабочее место кардиолога с ИИ-триажем и мобильный портал для близких, чтобы ухудшение замечали раньше."
           : lang === 'en'
-          ? "Great question! WMAX bridges consumer wearables, an AI cardiologist triage workstation, and a peace-of-mind caregiver app, ensuring proactive intervention and rapid emergency dispatch."
+          ? "Great question! WMAX bridges consumer wearables, an AI cardiologist triage workstation, and a peace-of-mind caregiver app, so deterioration is noticed earlier."
           : "Ajoyib savol! WMAX aqlli soatlar, sun'iy intellektli shifokor ish stansiyasi va qarovchilar mobil ilovasini bitta xavfsizlik zanjiriga birlashtiradi.";
       }
       setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
@@ -91,23 +92,23 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
     uz: {
       badge: "Pitch Day 3.0 · 1-Bosqich Konkurs Taqdimoti",
       heroTitle: "WMAX — Masofaviy Kardio-Monitoring va AI Tizimi",
-      heroSub: "O'zbekistonda yurak-qon tomir kasalliklari asoratlarini aqlli soatlar va sun'iy intellekt yordamida 48 soat oldin aniqlash, asoratlar va o'limni 3 baravargacha kamaytirish yechimi.",
+      heroSub: "Kasalxonadan chiqqan bemorni 30 kun davomida aqlli soat orqali kuzatib, oilaviy shifokor va yaqinlarini bog'laydigan uzluksiz parvarish zanjiri.",
       btnDemo: "Jonli Video & Prototip Demoni Ko'rish",
       btnApi: "API Hujjatlari (OpenAPI)",
       btnClinic: "Shifokor Stansiyasini Sinash",
       
       sec1Title: "1. Muammo → Yechim",
-      sec1Sub: "O'zbekistondagi real tibbiy holat va WMAX taklif qilayotgan inqilobiy yechim",
+      sec1Sub: "O'zbekistondagi tibbiy holat va WMAX yechimi",
       p1Title: "Kritik Muammo",
-      p1Desc: "O'zbekistonda o'lim holatlarining 60% dan ortig'i yurak-qon tomir kasalliklariga to'g'ri keladi. Bemorlar kasalxonadan chiqqach, ularning holati nazoratsiz qoladi, shifokorlar esa faqat infarkt yoki krizis yuz bergandagina xabar topadi.",
+      p1Desc: "O'zbekistonda o'limlarning 57% i yurak-qon tomir kasalliklari sababli (O'zbekiston statistika agentligi, 2024). Bemorlar kasalxonadan chiqqach, ularning holati nazoratsiz qoladi, shifokorlar esa faqat infarkt yoki krizis yuz bergandagina xabar topadi.",
       s1Title: "Bizning Yechim",
-      s1Desc: "WMAX — aqlli soat orqali 24/7 telemetriya yig'uvchi, AI algoritmlari bilan krizisni 48 soat oldin bashorat qiluvchi va shifokor hamda oilaga darhol ogohlantirish yuboruvchi yagona platforma.",
+      s1Desc: "WMAX — aqlli soat orqali 24/7 kuzatuv, har bir bemorning shaxsiy normasidan barqaror og'ishda shifokor va oilaga signal yuboruvchi platforma. Tizim tashxis qo'ymaydi, qarorni shifokor qabul qiladi.",
 
       sec2Title: "2. Jamoa",
-      sec2Sub: "Loyiha ustida ishlayotgan yuqori malakali mutaxassislar",
+      sec2Sub: "Jamoa 0xDEAD",
       
       sec3Title: "3. Nima uchun Bizning Jamoa Buni Hal Qila Oladi?",
-      sec3Sub: "Tajriba, klinik aloqalar va chuqur texnik asos",
+      sec3Sub: "Ishlaydigan prototip, mahalliy sharoitni bilish va halol yondashuv",
 
       sec4Title: "4. Rivojlanish Yo'l Xaritasi (Roadmap)",
       sec4Sub: "Idea'dan to To'liq Bozorga Chiqishgacha (Idea → Prototype → MVP → Launched)",
@@ -121,7 +122,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
     ru: {
       badge: "Pitch Day 3.0 · Этап 1 Конкурсная Презентация",
       heroTitle: "WMAX — Удаленный Кардиомониторинг и ИИ-Система",
-      heroSub: "Решение для предотвращения кризисов сердечно-сосудистых заболеваний за 48 часов с помощью носимых устройств и искусственного интеллекта в Узбекистане.",
+      heroSub: "Непрерывная цепочка ухода: 30 дней наблюдения после выписки через умные часы, связывающая пациента, семейного врача и близких.",
       btnDemo: "Смотреть Видео и Демо Прототипа",
       btnApi: "API Документация (OpenAPI)",
       btnClinic: "Открыть Рабочую Станцию",
@@ -129,15 +130,15 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
       sec1Title: "1. Проблема → Решение",
       sec1Sub: "Реальная медицинская ситуация в Узбекистане и подход WMAX",
       p1Title: "Критическая Проблема",
-      p1Desc: "Более 60% летальных исходов в Узбекистане вызваны сердечно-сосудистыми заболеваниями. После выписки пациент остается без мониторинга, а врач узнает о проблеме лишь при наступлении инфаркта.",
+      p1Desc: "57% смертей в Узбекистане вызваны сердечно-сосудистыми заболеваниями (Агентство статистики, 2024). После выписки пациент остается без мониторинга, а врач узнает о проблеме лишь при наступлении инфаркта.",
       s1Title: "Наше Решение",
-      s1Desc: "WMAX — платформа, собирающая телеметрию 24/7 с носимых часов, прогнозирующая кризис за 48 часов с помощью ИИ и оперативно оповещающая врача и родственников.",
+      s1Desc: "WMAX — платформа 24/7 наблюдения через часы, которая сигнализирует врачу и семье при устойчивом отклонении от личной нормы пациента. Диагноз ставит врач.",
 
       sec2Title: "2. Команда",
-      sec2Sub: "Специалисты, стоящие за разработкой платформы",
+      sec2Sub: "Команда 0xDEAD",
 
       sec3Title: "3. Почему Наша Команда Решит Эту Проблему?",
-      sec3Sub: "Опыт, доступ к медицинским данным и доказанный стек",
+      sec3Sub: "Работающий прототип, знание местных условий и честный подход",
 
       sec4Title: "4. Дорожная Карта (Roadmap)",
       sec4Sub: "От Идеи до Полноценного Запуска (Idea → Prototype → MVP → Launched)",
@@ -151,7 +152,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
     en: {
       badge: "Pitch Day 3.0 · Stage 1 Competition Submission",
       heroTitle: "WMAX — Remote Cardio-Monitoring & AI Platform",
-      heroSub: "Early detection of cardiovascular risks 48 hours prior to acute crisis using smartwatch telemetry and predictive clinical intelligence in Uzbekistan.",
+      heroSub: "An unbroken care chain: 30 days of smartwatch follow-up after discharge, connecting the patient, the family doctor and relatives.",
       btnDemo: "Watch Demo Video & Live Prototype",
       btnApi: "API Documentation (OpenAPI)",
       btnClinic: "Explore Clinician Workstation",
@@ -159,15 +160,15 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
       sec1Title: "1. Problem → Solution",
       sec1Sub: "Current healthcare crisis vs WMAX innovative telehealth paradigm",
       p1Title: "Critical Problem",
-      p1Desc: "Over 60% of all mortality in Uzbekistan stems from cardiovascular diseases. Once patients leave the hospital, they lack continuous monitoring, leading to avoidable fatal decompensations.",
+      p1Desc: "57% of deaths in Uzbekistan are caused by cardiovascular disease (Statistics Agency, 2024). Once patients leave the hospital, they lack continuous monitoring, so deterioration is noticed late.",
       s1Title: "Our Solution",
-      s1Desc: "WMAX bridges 24/7 consumer wearable telemetry with predictive AI algorithms and an automated clinical triage station, alarming doctors and caregivers 48 hours ahead of crisis.",
+      s1Desc: "WMAX combines 24/7 smartwatch monitoring with a personal-baseline AI that alerts doctors and caregivers on sustained deviation. It does not diagnose; the doctor decides.",
 
       sec2Title: "2. The Team",
-      sec2Sub: "Multidisciplinary engineers and clinical domain specialists",
+      sec2Sub: "Team 0xDEAD",
 
       sec3Title: "3. Why Our Team Will Solve This",
-      sec3Sub: "Proven track record, clinical partnerships, and robust infrastructure",
+      sec3Sub: "A working prototype, local knowledge and an honest approach",
 
       sec4Title: "4. Strategic Roadmap",
       sec4Sub: "From Conception to Scale (Idea → Prototype → MVP → Launched)",
@@ -180,36 +181,13 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
     }
   }[lang];
 
-  const teamMembers = [
-    {
-      name: "Baxrom Bekchanov",
-      role: "Lead Systems Architect & Full-Stack Engineer",
-      skills: "FastAPI, PostgreSQL 16, React, TypeScript, Docker, Flutter, Microservices",
-      links: "GitHub / LinkedIn",
-      bio: "10+ yillik IT arxitektura va yuqori yuklamali tizimlar tajribasi. WMAX backend, xavfsizlik va ma'lumotlar bazasi me'mori."
-    },
-    {
-      name: "Dr. Islom Yusupov",
-      role: "Clinical Lead & Cardiologist Advisor",
-      skills: "Kardiologiya, NYHA tasnifi, EKG tahlili, Telemeditsina standartlari",
-      links: "Klinik retsenziyalar",
-      bio: "Kardiologiya kafedrasi mutaxassisi. Biofizik chegaralar, triaj qoidalari va shifokor ish stansiyasining klinik tekshiruvi rahbari."
-    },
-    {
-      name: "Bobur Rahimov",
-      role: "AI & Signal Processing Specialist",
-      skills: "Python, Scikit-Learn, PyTorch, Signal Processing (HRV, FFT, Filter)",
-      links: "ML Portfolio",
-      bio: "Puls va SpO2 vaqt qatorlarini tahlil qilish, shovqinlarni tozalash va dekompensatsiyani 48 soat oldin bashorat qilish modellari ishlab chiquvchisi."
-    },
-    {
-      name: "Zilola Saidova",
-      role: "Mobile & UX Engineer",
-      skills: "Flutter, Android Wear OS, iOS HealthKit, Shadcn UI, Accessibility",
-      links: "Behance / GitHub",
-      bio: "Keksalar va qarovchilar uchun oson, 1 bosishda yordam chaqiruvchi mobil va soat interfeyslarini yaratish bo'yicha ekspert."
-    }
-  ];
+  const teamMembers = TEAM.map((m) => ({
+    name: m.name,
+    role: m.role[lang],
+    skills: m.skills.join(', '),
+    links: m.links.map((l) => l.label).join(' / ') || '0xDEAD',
+    bio: '',
+  }));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
@@ -267,19 +245,19 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
             {/* Key stats badges */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 text-left">
               <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">48 Soat</div>
-                <div className="text-xs text-slate-400 mt-1">Erta bashorat darchasi</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">30 kun</div>
+                <div className="text-xs text-slate-400 mt-1">Chiqarilgandan keyingi kuzatuv</div>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
                 <div className="text-2xl sm:text-3xl font-extrabold text-sky-400 font-mono">24 / 7</div>
                 <div className="text-xs text-slate-400 mt-1">Uzluksiz telemetriya o'lchovi</div>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-                <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">3x Kam</div>
-                <div className="text-xs text-slate-400 mt-1">Krizis va qayta gospitalizatsiya</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">24 soat</div>
+                <div className="text-xs text-slate-400 mt-1">Shifokorga topshiriq muddati</div>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm">
-                <div className="text-2xl sm:text-3xl font-extrabold text-purple-400 font-mono">100% Jonli</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-purple-400 font-mono">Onlayn</div>
                 <div className="text-xs text-slate-400 mt-1">Ishlayotgan real prototip</div>
               </div>
             </div>
@@ -313,7 +291,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <ul className="space-y-3 text-xs sm:text-sm text-slate-400 border-t border-rose-900/30 pt-6">
                 <li className="flex items-start gap-2.5">
                   <span className="text-rose-400 font-bold">✕</span>
-                  <span>Bemorlar shifokorga faqat ahvoli og'irlashib, tez yordam (103) kerak bo'lganda murojaat qiladi.</span>
+                  <span>Bemorlar shifokorga faqat ahvoli og'irlashib, holati og'irlashgandagina murojaat qiladi.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <span className="text-rose-400 font-bold">✕</span>
@@ -339,11 +317,11 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <ul className="space-y-3 text-xs sm:text-sm text-slate-300 border-t border-emerald-900/30 pt-6">
                 <li className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Aqlli Soat (Galaxy Watch / Apple Watch):</strong> Har 5 daqiqada puls, SpO2, bosim va harakatni o'lchaydi.</span>
+                  <span><strong>Aqlli Soat (Galaxy Watch / Apple Watch):</strong> Puls, SpO₂, faollik, yiqilish va SOS ni qayd etadi.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>AI Tahlil Markazi:</strong> Shovqinlarni tozalab, krizisni 48 soat oldin aniqlaydi va triaj ro'yxatiga chiqaradi.</span>
+                  <span><strong>AI Tahlil Markazi:</strong> Har bir bemorning shaxsiy normasini o'rganadi va barqaror og'ishda shifokorga signal beradi.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold">✓</span>
@@ -380,7 +358,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
                   </div>
                   <h3 className="text-lg font-bold text-white">{member.name}</h3>
                   <div className="text-xs font-semibold text-emerald-400 mt-1 mb-3">{member.role}</div>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-4">{member.bio}</p>
+                  {member.bio && <p className="text-xs text-slate-400 leading-relaxed mb-4">{member.bio}</p>}
                 </div>
                 
                 <div className="border-t border-slate-800/80 pt-4">
@@ -411,9 +389,9 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center mb-6 border border-sky-500/20">
                 <Compass className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">1. To'liq Sinergiya (Tech + Clinical)</h3>
+              <h3 className="text-xl font-bold text-white mb-2">1. Halol tibbiy yondashuv</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Biz faqat dasturchilar emasmiz. Jamoamizda amaliyotchi kardiologlar va tibbiyot kafedrasi mutaxassislari bor. Algoritmlarimiz nazariy emas, balki haqiqiy klinik protokollar (NYHA va ESC) asosida qurilgan.
+                Tizim tashxis qo'ymaydi: o'lchaydi va xabar beradi, qarorni shifokor qabul qiladi. Ma'lumot yo'qligi "sog'lom" deb talqin qilinmaydi. Signal aniqligi pilotda EKG sensori bilan tekshiriladi.
               </p>
             </div>
 
@@ -423,7 +401,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">2. Haqiqiy Ishlayotgan Prototip</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                WMAX — shunchaki slayd emas. Bizda serverda ishlayotgan jonli backend (FastAPI), ma'lumotlar bazasi (Postgres 16), WebSocket real-time kanallari, shifokor ish stansiyasi va qarovchi portali to'liq ishga tushirilgan.
+                WMAX — shunchaki slayd emas. Bizda serverda ishlayotgan jonli backend (FastAPI), ma'lumotlar bazasi (Postgres 16), shifokor ish stansiyasi va qarovchi portali to'liq ishga tushirilgan.
               </p>
             </div>
 
@@ -433,7 +411,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">3. O'zbekiston Bozoriga Moslashtirilgan</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Tizim mahalliy internet sifati (offline-first kesh), Telegram orqali oila a'zolariga avtomatik hisobotlar yuborish va 103 tez yordam bilan integratsiya imkoniyatlarini hisobga olgan holda loyihalashtirilgan.
+                Tizim mahalliy internet sifati (offline-first kesh), Telegram orqali oila a'zolariga xabar va eng muhim holatlar uchun SMS zaxira kanalini hisobga olgan holda loyihalashtirilgan.
               </p>
             </div>
           </div>
@@ -463,8 +441,8 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <div className="text-xs text-slate-400 mb-4">Iyun – Iyul 2026</div>
               <ul className="text-xs text-slate-400 space-y-2">
                 <li>• Kardiologik muammolarni chuqur o'rganish</li>
-                <li>• Shifokorlar va bemor oilalari bilan 40+ intervyu</li>
-                <li>• Biofizik invariantlar va arxitektura spec loyihasi</li>
+                <li>• Bemor, farzand va shifokor rollarini aniqlash</li>
+                <li>• Tibbiy cheklovlar va arxitektura loyihasi</li>
               </ul>
             </div>
 
@@ -483,7 +461,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
                 <li>• 24/7 telemetriya yig'uvchi FastAPI server</li>
                 <li>• Shifokor triaj stansiyasi (Web-Doctor)</li>
                 <li>• Qarovchi portali (Web-Relative)</li>
-                <li>• 3D simulyator va jonli demo video</li>
+                <li>• Wear OS soat ilovasi va Telegram bot</li>
               </ul>
             </div>
 
@@ -496,10 +474,10 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <h3 className="text-xl font-bold text-white mb-2">MVP (Pilot Sinov)</h3>
               <div className="text-xs text-slate-400 mb-4">Noyabr – Yanvar 2026/27</div>
               <ul className="text-xs text-slate-400 space-y-2">
-                <li>• 50 nafar kardiologik bemorda pilot sinov</li>
-                <li>• 2 ta kardiologiya klinikasi bilan hamkorlik</li>
+                <li>• 100 nafar bemorda rozilik asosida pilot</li>
+                <li>• Oilaviy poliklinika bilan hamkorlik</li>
                 <li>• Wear OS uchun rasmiy ilova relizi</li>
-                <li>• ML modelining 48 soatlik aniqligini 94% ga yetkazish</li>
+                <li>• Puls aniqligini Polar H10 EKG bilan solishtirish</li>
               </ul>
             </div>
 
@@ -513,8 +491,8 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
               <div className="text-xs text-slate-400 mb-4">Fevral 2027 dan</div>
               <ul className="text-xs text-slate-400 space-y-2">
                 <li>• B2C obuna (oyiga 190k so'm) va B2B klinikalar</li>
-                <li>• 103 Tez tibbiy yordam bilan to'g'ridan-to'g'ri integratsiya</li>
-                <li>• Butun O'zbekiston bo'ylab 5,000+ faol monitoring</li>
+                <li>• Tuman tibbiyot birlashmalari bilan shartnoma</li>
+                <li>• Yuridik shaxs va dasturiy ta'minotni ro'yxatdan o'tkazish</li>
               </ul>
             </div>
 
@@ -542,7 +520,7 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
                 <h3 className="font-bold text-white">Telemetriya & Hisoblash</h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed mb-3">
-                Har 5 daqiqalik oyna (timewin.py) bo'yicha puls, SpO2, bosim va harakat ma'lumotlari qabul qilinadi. Sensordagi titrashlar va artefaktlar avvaldan filtrlanadi.
+                Har 5 daqiqalik oyna (timewin.py) bo'yicha puls, SpO2 va harakat ma'lumotlari qabul qilinadi. Sensordagi titrashlar va artefaktlar avvaldan filtrlanadi.
               </p>
               <div className="text-[11px] font-mono text-emerald-400 bg-slate-950 p-2 rounded-xl border border-slate-800">
                 contracts/timewin.py · algo/baseline.py
@@ -554,13 +532,13 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
                 <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
                   <Bot className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-white">48 Soatlik AI Bashorat</h3>
+                <h3 className="font-bold text-white">Shaxsiy norma (AI yadro)</h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed mb-3">
-                Gradient Boosting va vaqt qatorlari tahlili orqali subklinik dekompensatsiya (gipoksiya va yurak yuklamasi ortishi) 24–48 soat oldin aniqlanadi.
+                Dastlabki kunlarda shaxsiy norma o'rganiladi, keyin sirkadian ritmni hisobga olgan z-score bilan barqaror og'ish aniqlanadi. LLM shifokorga qisqa xulosa yozadi, tashxis emas.
               </p>
               <div className="text-[11px] font-mono text-purple-400 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                PyTorch · Scikit-Learn · BioInvariants
+                Python · z-score · Gemini / DeepSeek
               </div>
             </div>
 
@@ -572,10 +550,10 @@ export const AifuPage: React.FC<AifuPageProps> = ({ onNavigate, lang }) => {
                 <h3 className="font-bold text-white">Backend & Xavfsizlik</h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed mb-3">
-                FastAPI asinxron arxitekturasi, PostgreSQL 16 bilan RLS (Row Level Security), Redis keshlash va shifrlangan tibbiy ma'lumotlar ombori.
+                FastAPI asinxron arxitekturasi, PostgreSQL 16 bilan RLS (Row Level Security), Redis keshlash va zaxira nusxa.
               </p>
               <div className="text-[11px] font-mono text-sky-400 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                FastAPI · Postgres 16 · Redis · TLS 1.3
+                FastAPI · Postgres 16 · Redis · HTTPS
               </div>
             </div>
 
