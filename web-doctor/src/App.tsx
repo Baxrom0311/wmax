@@ -24,6 +24,8 @@ import { SosBanner } from "./components/SosBanner";
 const LandingPage = React.lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage").then((m) => ({ default: m.RelativePortalPage })));
 const PresentationPage = React.lazy(() => import("./pages/PresentationPage").then((m) => ({ default: m.PresentationPage })));
+const AifuPage = React.lazy(() => import("./pages/AifuPage").then((m) => ({ default: m.AifuPage })));
+const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
 const HandoffsPage = React.lazy(() => import("./pages/HandoffsPage").then((m) => ({ default: m.HandoffsPage })));
 const DeviceInventoryModal = React.lazy(() => import("./components/DeviceInventoryModal").then((m) => ({ default: m.DeviceInventoryModal })));
 const PatientDetailPage = React.lazy(() => import("./pages/PatientDetail").then((m) => ({ default: m.PatientDetailPage })));
@@ -35,6 +37,8 @@ function parseCurrentRoute(): string {
   if (path.startsWith("/doctor")) return "/doctor";
   if (path.startsWith("/r") || path.startsWith("/relative")) return "/r";
   if (path.startsWith("/pptx") || path.startsWith("/presentation")) return "/pptx";
+  if (path.startsWith("/aifu")) return "/aifu";
+  if (path.startsWith("/demo")) return "/demo";
   return "/";
 }
 
@@ -71,6 +75,8 @@ export const App: React.FC = () => {
     if (route.startsWith("/doctor")) normalized = "/doctor";
     else if (route.startsWith("/r") || route.startsWith("/relative")) normalized = "/r";
     else if (route.startsWith("/pptx") || route.startsWith("/presentation")) normalized = "/pptx";
+    else if (route.startsWith("/aifu")) normalized = "/aifu";
+    else if (route.startsWith("/demo")) normalized = "/demo";
 
     if (window.location.pathname !== route) {
       window.history.pushState({}, "", route);
@@ -398,6 +404,20 @@ export const App: React.FC = () => {
 
           {currentRoute === "/pptx" && (
             <PresentationPage
+              onNavigate={navigate}
+              lang={lang}
+            />
+          )}
+
+          {currentRoute === "/aifu" && (
+            <AifuPage
+              onNavigate={navigate}
+              lang={lang}
+            />
+          )}
+
+          {currentRoute === "/demo" && (
+            <DemoPage
               onNavigate={navigate}
               lang={lang}
             />

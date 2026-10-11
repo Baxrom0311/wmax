@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   ChevronDown,
+  Rocket,
+  Play,
 } from 'lucide-react';
 import type { Lang } from '../i18n';
 
@@ -82,6 +84,8 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       handoffs: "Navbatchilik",
       sos: "SOS Chaqiruvlar",
       profile: "Profil",
+      aifu: "Pitch Day 3.0",
+      demo: "Demo & Video",
     },
     ru: {
       home: "Главная",
@@ -96,6 +100,8 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       handoffs: "Дежурство",
       sos: "SOS Вызовы",
       profile: "Профиль",
+      aifu: "Pitch Day 3.0",
+      demo: "Демо & Видео",
     },
     en: {
       home: "Home",
@@ -110,6 +116,8 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
       handoffs: "Handoffs",
       sos: "SOS Alerts",
       profile: "Profile",
+      aifu: "Pitch Day 3.0",
+      demo: "Demo & Video",
     },
   }[lang];
 
@@ -194,6 +202,28 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
             >
               <Presentation className="w-4 h-4" />
               {t.presentation}
+            </button>
+            <button
+              onClick={() => onNavigate('/aifu')}
+              className={`px-3 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
+                currentRoute === '/aifu'
+                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                  : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+              }`}
+            >
+              <Rocket className="w-4 h-4" />
+              {t.aifu}
+            </button>
+            <button
+              onClick={() => onNavigate('/demo')}
+              className={`px-3 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
+                currentRoute === '/demo'
+                  ? 'bg-teal-500 text-slate-950 shadow-sm'
+                  : 'text-teal-600 dark:text-teal-400 hover:bg-teal-500/10'
+              }`}
+            >
+              <Play className="w-4 h-4 fill-current" />
+              {t.demo}
             </button>
           </nav>
         </div>
@@ -424,6 +454,34 @@ export const UnifiedNavbar: React.FC<UnifiedNavbarProps> = ({
           >
             <Presentation className="w-4 h-4" />
             {t.presentation}
+          </button>
+          <button
+            onClick={() => {
+              onNavigate('/aifu');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+              currentRoute === '/aifu'
+                ? 'bg-emerald-500 text-slate-950'
+                : 'text-emerald-600 dark:text-emerald-400'
+            }`}
+          >
+            <Rocket className="w-4 h-4" />
+            {t.aifu}
+          </button>
+          <button
+            onClick={() => {
+              onNavigate('/demo');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+              currentRoute === '/demo'
+                ? 'bg-teal-500 text-slate-950'
+                : 'text-teal-600 dark:text-teal-400'
+            }`}
+          >
+            <Play className="w-4 h-4 fill-current" />
+            {t.demo}
           </button>
         </div>
       )}
