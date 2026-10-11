@@ -43,15 +43,27 @@ export const PitchTopBar: React.FC<PitchPageProps & { page: 'home' | 'demo'; cur
 }) => {
   const p = PITCH[lang];
   const links = [...SECTION_IDS.map((id, i) => ({ id, label: p.sections[i].label })), { id: CONTACT_ID, label: p.contact }];
-  const go = (id: string) => (onSection ? onSection(id) : onNavigate(`/#${id}`));
+  const go = (id: string) => (onSection ? onSection(id) : onNavigate(`/aifu#${id}`));
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 px-3 sm:px-6 pt-3">
       <div className="glass rounded-2xl max-w-6xl mx-auto px-3 sm:px-4">
         <div className="h-14 flex items-center justify-between gap-3">
-          <button onClick={() => (onSection ? onSection(SECTION_IDS[0]) : onNavigate('/'))} className="text-xl font-extrabold tracking-tight shrink-0">
-            WMAX
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate('/')}
+              className="text-xs text-white/60 hover:text-white px-2 py-1 rounded-lg glass-chip transition hidden sm:inline-block"
+              title={lang === 'ru' ? 'Главная' : lang === 'en' ? 'Home' : 'Bosh sahifa'}
+            >
+              {lang === 'ru' ? 'Главная' : lang === 'en' ? 'Home' : 'Bosh sahifa'}
+            </button>
+            <button onClick={() => (onSection ? onSection(SECTION_IDS[0]) : onNavigate('/aifu'))} className="text-xl font-extrabold tracking-tight shrink-0 flex items-center gap-1.5">
+              <span>WMAX</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                PITCH
+              </span>
+            </button>
+          </div>
           <nav className="hidden lg:flex items-center gap-0.5 min-w-0">
             {links.map((l, i) => (
               <button
@@ -76,11 +88,11 @@ export const PitchTopBar: React.FC<PitchPageProps & { page: 'home' | 'demo'; cur
               ))}
             </div>
             <button
-              onClick={() => onNavigate(page === 'demo' ? '/' : '/demo')}
+              onClick={() => onNavigate(page === 'demo' ? '/aifu' : '/demo')}
               className="px-3.5 py-2 rounded-xl bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-1.5 hover:bg-emerald-300 transition"
             >
               {page === 'demo' ? <ChevronLeft className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-              <span>{page === 'demo' ? 'WMAX' : p.demo}</span>
+              <span>{page === 'demo' ? 'Pitch Day' : p.demo}</span>
             </button>
           </div>
         </div>
@@ -256,7 +268,7 @@ export const PitchHome: React.FC<PitchPageProps> = ({ lang, onLangChange, onNavi
     const el = document.getElementById(id);
     if (!el) return;
     window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: smooth ? 'smooth' : 'auto' });
-    window.history.replaceState(null, '', `/#${id}`);
+    window.history.replaceState(null, '', `/aifu#${id}`);
   };
 
   // Let the page settle on a section instead of stopping between two.

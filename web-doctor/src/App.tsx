@@ -83,11 +83,20 @@ export const App: React.FC = () => {
     else if (route.startsWith("/aifu")) normalized = "/aifu";
     else if (route.startsWith("/demo")) normalized = "/demo";
 
-    if (window.location.pathname !== route) {
-      window.history.pushState({}, "", route);
-    }
+    const [, hash] = route.split("#");
+    window.history.pushState({}, "", route);
     setCurrentRoute(normalized);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, []);
 
   // Listen for browser popstate (back/forward navigation)
