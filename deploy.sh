@@ -109,26 +109,15 @@ server {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript image/svg+xml;
 
-    # 1. Landing Page (Bosh sahifa)
-    location = / {
-        root /opt/wmax/landing;
-        try_files /index.html =404;
-    }
-
-    # Landing page static images & assets
-    location /images/ {
-        root /opt/wmax/landing;
-        try_files $uri =404;
-    }
-
-    # 2. Backend REST API
+    # 1. API Endpoints
     location /api/ {
         proxy_pass http://127.0.0.1:8090;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
+        proxy_read_timeout 90s;
+        proxy_buffering off;
     }
 
     # WebSocket for realtime clinical updates
@@ -142,6 +131,7 @@ server {
         proxy_read_timeout 3600s;
     }
 
+    # Health & Readiness Probes
     location = /health { proxy_pass http://127.0.0.1:8090/health; }
     location = /ready  { proxy_pass http://127.0.0.1:8090/ready; }
 
@@ -161,31 +151,16 @@ server {
         proxy_pass http://127.0.0.1:8090/metrics;
     }
 
-    # 3. Relative / Caregiver Portal (/r/ & /relative)
-    location = /relative {
-        return 301 /r/;
-    }
-
-    location /r/ {
-        add_header X-Robots-Tag "noindex, nofollow" always;
-        proxy_pass http://127.0.0.1:8092/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # 4. Doctor Clinical Dashboard (/doctor/ & /doctor)
-    location = /doctor {
-        return 301 /doctor/;
-    }
-
-    location = /login {
-        return 302 /doctor/;
-    }
-
-    location /doctor/ {
+    # 2. Unified Web Frontend (Landing, Doctor, Relative, Presentation, AIFU, Demo)
+    location / {
         proxy_pass http://127.0.0.1:8091;
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
     }
 
     listen [::]:443 ssl ipv6only=on;

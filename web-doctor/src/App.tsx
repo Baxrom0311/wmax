@@ -21,6 +21,7 @@ import type { PatientDetail, PatientSummary, SosEventItem, TokenPair } from "./l
 import { PatientsList } from "./pages/PatientsList";
 import { SosBanner } from "./components/SosBanner";
 
+const LandingPage = React.lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const PitchHome = React.lazy(() => import("./pages/pitch/PitchHome").then((m) => ({ default: m.PitchHome })));
 const RelativePortalPage = React.lazy(() => import("./pages/RelativePortalPage").then((m) => ({ default: m.RelativePortalPage })));
 const DemoPage = React.lazy(() => import("./pages/DemoPage").then((m) => ({ default: m.DemoPage })));
@@ -392,7 +393,16 @@ export const App: React.FC = () => {
       {/* 4. Main Route Content */}
       <main className="flex-1 w-full">
         <React.Suspense fallback={<div className="route-loading">{t("app.loading", lang)}</div>}>
-          {(currentRoute === "/" || currentRoute === "/aifu") && (
+          {currentRoute === "/" && (
+            <LandingPage
+              key={lang}
+              lang={lang}
+              onNavigate={navigate}
+              onOpenLogin={() => setAuthModalOpen(true)}
+            />
+          )}
+
+          {currentRoute === "/aifu" && (
             <PitchHome lang={lang} onLangChange={handleLangChange} onNavigate={navigate} />
           )}
 
