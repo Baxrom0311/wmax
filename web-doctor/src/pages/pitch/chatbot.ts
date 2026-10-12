@@ -196,11 +196,11 @@ const INTENTS: Intent[] = [
     sample: true,
     q: { uz: 'Jamoada kimlar bor?', ru: 'Кто в команде?', en: 'Who is on the team?' },
     a: {
-      uz: 'Nafisa Gʻanijanova — asoschi, dizayner, UI/UX. Nodirbek Boltayev — backend va AI/LLM muhandis.',
-      ru: 'Нафиса Ганиджанова — основатель, дизайнер, UI/UX. Нодирбек Болтаев — backend и AI/LLM-инженер.',
-      en: 'Nafisa Gʻanijanova, founder, designer and UI/UX. Nodirbek Boltayev, backend and AI/LLM engineer.',
+      uz: 'Nafisa Gʻanijanova — asoschi, dizayner, UI/UX. Sevinchoy Polatova — AI/ML va telemetriya muhandisi.',
+      ru: 'Нафиса Ганиджанова — основатель, дизайнер, UI/UX. Севинчой Полатова — инженер AI/ML и телеметрии.',
+      en: 'Nafisa Gʻanijanova, founder, designer and UI/UX. Sevinchoy Polatova, AI/ML and telemetry engineer.',
     },
-    keys: ['jamoa', 'kim', 'asoschi', 'muallif', 'nafisa', 'nodirbek', 'команд', 'кто', 'основат', 'team', 'founder', 'who'],
+    keys: ['jamoa', 'kim', 'asoschi', 'muallif', 'nafisa', 'sevinchoy', 'polatova', 'команд', 'кто', 'основат', 'team', 'founder', 'who'],
   },
   {
     id: 'tech',

@@ -41,9 +41,9 @@ WMAX haqida asosiy ma'lumotlar:
 - SOS xizmati: SOS va kritik ogohlantirishlar hech qachon pullik qilinmaydi.
 - Bosqich: Hozirda Prototype bosqichidamiz (tizim onlayn ishlaydi, arxitektura to'liq faol). Yo'l xaritasi: Idea → Prototype (hozir) → MVP (100 bemorlik pilot sinov) → Launched (poliklinikalar va xususiy klinikalar).
 - Jamoa:
-  1. Baxrom Bekchanov — Asoschi, Bosh tizimlar arxitektori va Full-stack muhandis (FastAPI, PostgreSQL 16, React, TypeScript, Docker, Flutter, Microservices; backend va xavfsizlik arxitekturasi me'mori).
-  2. Nafisa Gʻanijanova — Asoschi, Bosh dizayner va UI/UX mutaxassisi (Figma, mahsulot dizayni, shifokor va bemor portallari interfeys me'mori).
-  3. Nodirbek Boltayev — AI / ML & Telemetriya muhandisi (Python, z-score biometrik tahlili, biometriya algoritmlari va LLM integratsiyasi).
+  1. Nafisa Gʻanijanova — Asoschi, Bosh dizayner va UI/UX mutaxassisi (Figma, mahsulot dizayni, shifokor va bemor portallari interfeys me'mori).
+  2. Sevinchoy Polatova — AI / ML & Telemetriya muhandisi (Python, z-score biometrik tahlili, biometriya algoritmlari va LLM integratsiyasi).
+  Jamoada faqat shu ikki kishi bor.
 - Texnologiyalar steki: FastAPI, PostgreSQL 16, React, TypeScript, Tailwind CSS, Flutter (Android & Wear OS), Redis, Telegram Bot, Docker Compose. AI vositalari: DeepSeek-V3, z-score baseline, Claude Code, GitHub Copilot.
 - Havolalar: Demo video va prototip: /demo; Shifokor paneli: /doctor?demo=true; Oila portali: /r; Telegram bot: t.me/WMAX_uz_bot; API hujjatlari: /api/docs (OpenAPI 3, JWT); Kod ombori: github.com/Baxrom0311/wmax.
 

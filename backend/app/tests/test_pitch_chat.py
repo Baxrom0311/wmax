@@ -38,7 +38,7 @@ def test_answer_comes_from_deepseek_with_project_facts_and_language(client):
     assert res.json() == {"answer": "WMAX — 30 kunlik kuzatuv.", "source": "deepseek", "model": "DeepSeek-V3"}
     messages = chat.await_args.args[0]
     assert messages[0]["role"] == "system"
-    assert "Baxrom" in messages[0]["content"] and "Nafisa" in messages[0]["content"] and "русский" in messages[0]["content"]
+    assert "Sevinchoy" in messages[0]["content"] and "Baxrom Bekchanov" not in messages[0]["content"] and "Nafisa" in messages[0]["content"] and "русский" in messages[0]["content"]
     assert [m["role"] for m in messages[1:]] == ["user", "assistant", "user"]
     assert messages[-1]["content"] == "WMAX nima?"
 

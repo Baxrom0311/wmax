@@ -39,21 +39,12 @@ export type TeamMember = { name: string; role: Record<Lang, string>; skills: str
 
 export const TEAM: TeamMember[] = [
   {
-    name: 'Baxrom Bekchanov',
-    role: {
-      uz: 'Asoschi · Tizimlar arxitektori, Full-Stack',
-      ru: 'Основатель · Архитектор систем, Full-Stack',
-      en: 'Founder · Systems Architect, Full-Stack',
-    },
-    skills: ['FastAPI', 'PostgreSQL', 'Docker', 'React', 'Flutter'],
-  },
-  {
     name: 'Nafisa Gʻanijanova',
     role: { uz: 'Asoschi · Dizayner, UI/UX', ru: 'Основатель · Дизайнер, UI/UX', en: 'Founder · Designer, UI/UX' },
     skills: ['Figma', 'UI/UX', 'Product design'],
   },
   {
-    name: 'Nodirbek Boltayev',
+    name: 'Sevinchoy Polatova',
     role: { uz: 'AI / ML & Telemetriya muhandisi', ru: 'AI / ML & Инженер телеметрии', en: 'AI / ML & Telemetry engineer' },
     skills: ['Python', 'FastAPI', 'PostgreSQL', 'LLM', 'z-score'],
   },
@@ -99,7 +90,7 @@ export const PITCH: Record<Lang, PitchText> = {
     sections: [
       { label: 'Muammo', line: 'Kasalxonadan chiqqan bemor 30 kun hech kim kuzatmasdan qoladi.' },
       { label: 'Yechim', line: 'Soat oʻlchaydi, shifokor vazifa oladi, oila xabar topadi.' },
-      { label: 'Jamoa', line: 'Uch kishi: tizimlar arxitekturasi, dizayn va AI/telemetriya.' },
+      { label: 'Jamoa', line: 'Ikki kishi: dizayn va AI/telemetriya.' },
       { label: 'Nega biz', line: 'Prototip allaqachon onlayn ishlaydi.' },
       { label: 'Yoʻl xaritasi', line: 'Hozir Prototype bosqichidamiz.' },
       { label: 'Reja', line: '12 oyda validatsiya, pilot va bozorga chiqish.' },
@@ -146,7 +137,7 @@ export const PITCH: Record<Lang, PitchText> = {
     sections: [
       { label: 'Проблема', line: 'После выписки пациент 30 дней остаётся без наблюдения.' },
       { label: 'Решение', line: 'Часы измеряют, врач получает задачу, семья получает уведомление.' },
-      { label: 'Команда', line: 'Три человека: архитектура систем, дизайн и ИИ/телеметрия.' },
+      { label: 'Команда', line: 'Два человека: дизайн и ИИ/телеметрия.' },
       { label: 'Почему мы', line: 'Прототип уже работает онлайн.' },
       { label: 'Дорожная карта', line: 'Сейчас мы на этапе Prototype.' },
       { label: 'План', line: 'За 12 месяцев: валидация, пилот и выход на рынок.' },
@@ -193,7 +184,7 @@ export const PITCH: Record<Lang, PitchText> = {
     sections: [
       { label: 'Problem', line: 'After discharge, patients go 30 days with no one watching.' },
       { label: 'Solution', line: 'The watch measures, the doctor gets a task, the family gets an alert.' },
-      { label: 'Team', line: 'Three members: systems architecture, design and AI/telemetry.' },
+      { label: 'Team', line: 'Two people: design and AI/telemetry.' },
       { label: 'Why us', line: 'The prototype already runs online.' },
       { label: 'Roadmap', line: 'We are at the Prototype stage.' },
       { label: 'Plan', line: 'In 12 months: validation, pilot and launch.' },
