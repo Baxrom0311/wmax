@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
@@ -24,16 +26,40 @@ class _HealthDeviceScreenState extends State<HealthDeviceScreen> {
   bool _showPairForm = true;
   String? _message;
   bool _failed = false;
+  Timer? _wearQueueTimer;
+  bool _wearQueueSyncRunning = false;
 
   @override
   void initState() {
     super.initState();
     _loadCredential();
     _refreshPlatform();
+    // Watch readings arrive in the native queue in the background; upload
+    // them while this screen is open instead of only on a button press.
+    _wearQueueTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _uploadWearQueue(),
+    );
+  }
+
+  Future<void> _uploadWearQueue() async {
+    final token = _deviceToken;
+    if (token == null || token.isEmpty || _loading || _wearQueueSyncRunning) {
+      return;
+    }
+    _wearQueueSyncRunning = true;
+    try {
+      await NativeHealthBridge.syncQueuedWearData(deviceToken: token);
+    } catch (_) {
+      // Failed batches stay in the native queue for the next attempt.
+    } finally {
+      _wearQueueSyncRunning = false;
+    }
   }
 
   @override
   void dispose() {
+    _wearQueueTimer?.cancel();
     _deviceIdController.dispose();
     _codeController.dispose();
     super.dispose();
@@ -47,6 +73,7 @@ class _HealthDeviceScreenState extends State<HealthDeviceScreen> {
           _deviceToken = token;
           _showPairForm = token == null || token.isEmpty;
         });
+        await _uploadWearQueue();
       }
     } catch (_) {
       if (mounted) {

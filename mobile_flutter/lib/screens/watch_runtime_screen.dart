@@ -26,6 +26,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   Timer? _clockTimer;
   Timer? _healthStatusTimer;
   Timer? _sosTimer;
+  Timer? _offlineQueueTimer;
+  bool _offlineQueueSyncRunning = false;
 
   DateTime _now = DateTime.now();
   int? _hr;
@@ -57,14 +59,40 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
     _healthStatusTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _refreshHealthStatus();
     });
+    // An SOS saved offline must not wait for someone to press "send".
+    _offlineQueueTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _uploadOfflineQueue();
+    });
   }
 
   Future<void> _loadDeviceCredential() async {
     try {
       final token = await DeviceCredentialStore.read();
       if (mounted) setState(() => _deviceToken = token);
+      await _uploadOfflineQueue();
     } catch (_) {
       if (mounted) setState(() => _deviceToken = null);
+    }
+  }
+
+  Future<void> _uploadOfflineQueue() async {
+    final token = _deviceToken;
+    if (token == null ||
+        token.isEmpty ||
+        _offlineQueueSyncRunning ||
+        _sendState == _WatchSendState.sending) {
+      return;
+    }
+    _offlineQueueSyncRunning = true;
+    try {
+      final uploaded = await NativeHealthBridge.syncQueuedWearData(
+        deviceToken: token,
+      );
+      if (uploaded > 0 && mounted) setState(() => _sentCount += uploaded);
+    } catch (_) {
+      // Failed batches stay queued for the next attempt.
+    } finally {
+      _offlineQueueSyncRunning = false;
     }
   }
 
@@ -73,6 +101,7 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
     _clockTimer?.cancel();
     _healthStatusTimer?.cancel();
     _sosTimer?.cancel();
+    _offlineQueueTimer?.cancel();
     super.dispose();
   }
 

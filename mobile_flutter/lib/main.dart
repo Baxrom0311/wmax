@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'app_mode.dart';
 import 'models/models.dart';
 import 'services/session_service.dart';
 import 'screens/login_screen.dart';
@@ -9,9 +10,9 @@ import 'screens/health_device_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const appMode = String.fromEnvironment(
-    'WMAX_APP_MODE',
-    defaultValue: 'phone',
+  final appMode = resolveAppMode(
+    defined: const String.fromEnvironment('WMAX_APP_MODE'),
+    flavor: appFlavor,
   );
   final isWatchMode = appMode == 'watch';
 
