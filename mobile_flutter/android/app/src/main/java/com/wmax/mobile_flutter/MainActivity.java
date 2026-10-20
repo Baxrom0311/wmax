@@ -8,9 +8,6 @@ import android.hardware.SensorManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.provider.Settings;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Base64;
 
 import androidx.annotation.NonNull;
 import androidx.activity.result.contract.ActivityResultContract;
@@ -22,13 +19,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -41,9 +31,6 @@ public class MainActivity extends FlutterActivity {
     private static final int BODY_SENSOR_PERMISSION_REQUEST_CODE = 7302;
     private static final int BACKGROUND_SENSOR_PERMISSION_REQUEST_CODE = 7303;
     private static final int ACTIVITY_RECOGNITION_PERMISSION_REQUEST_CODE = 7304;
-    private static final String DEVICE_CREDENTIAL_PREFS = "wmax_device_credentials";
-    private static final String DEVICE_CREDENTIAL_KEY = "device_token";
-    private static final String DEVICE_CREDENTIAL_KEY_ALIAS = "wmax_device_token_v1";
     private final ActivityResultContract<Set<String>, Set<String>> healthPermissionContract =
             PermissionController.createRequestPermissionResultContract();
     private MethodChannel.Result pendingHealthPermissionResult;
@@ -54,6 +41,7 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
+        if (!getWearQueue().isEmpty()) WearQueueUploadWorker.schedule(this);
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {
@@ -146,46 +134,9 @@ public class MainActivity extends FlutterActivity {
                 });
     }
 
-    private SecretKey getDeviceCredentialKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-        keyStore.load(null);
-        if (keyStore.containsAlias(DEVICE_CREDENTIAL_KEY_ALIAS)) {
-            return (SecretKey) keyStore.getKey(DEVICE_CREDENTIAL_KEY_ALIAS, null);
-        }
-
-        KeyGenerator generator = KeyGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_AES,
-                "AndroidKeyStore");
-        generator.init(new KeyGenParameterSpec.Builder(
-                DEVICE_CREDENTIAL_KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setRandomizedEncryptionRequired(true)
-                .build());
-        return generator.generateKey();
-    }
-
     private void readDeviceCredential(MethodChannel.Result result) {
         try {
-            String encoded = getSharedPreferences(DEVICE_CREDENTIAL_PREFS, MODE_PRIVATE)
-                    .getString(DEVICE_CREDENTIAL_KEY, null);
-            if (encoded == null) {
-                result.success(null);
-                return;
-            }
-            byte[] stored = Base64.decode(encoded, Base64.NO_WRAP);
-            ByteBuffer buffer = ByteBuffer.wrap(stored);
-            int ivLength = buffer.get() & 0xff;
-            byte[] iv = new byte[ivLength];
-            buffer.get(iv);
-            byte[] ciphertext = new byte[buffer.remaining()];
-            buffer.get(ciphertext);
-
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, getDeviceCredentialKey(), new GCMParameterSpec(128, iv));
-            byte[] plaintext = cipher.doFinal(ciphertext);
-            result.success(new String(plaintext, StandardCharsets.UTF_8));
+            result.success(DeviceCredentialVault.read(this));
         } catch (Exception exception) {
             result.error("DEVICE_CREDENTIAL_READ_FAILED", "Stored device credential could not be decrypted.", null);
         }
@@ -197,21 +148,12 @@ public class MainActivity extends FlutterActivity {
             return;
         }
         try {
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, getDeviceCredentialKey());
-            byte[] iv = cipher.getIV();
-            byte[] ciphertext = cipher.doFinal(token.getBytes(StandardCharsets.UTF_8));
-            ByteBuffer payload = ByteBuffer.allocate(1 + iv.length + ciphertext.length);
-            payload.put((byte) iv.length).put(iv).put(ciphertext);
-            String encoded = Base64.encodeToString(payload.array(), Base64.NO_WRAP);
-            boolean saved = getSharedPreferences(DEVICE_CREDENTIAL_PREFS, MODE_PRIVATE)
-                    .edit()
-                    .putString(DEVICE_CREDENTIAL_KEY, encoded)
-                    .commit();
-            if (!saved) {
+            if (!DeviceCredentialVault.save(this, token)) {
                 result.error("DEVICE_CREDENTIAL_WRITE_FAILED", "Device credential could not be saved.", null);
                 return;
             }
+            // Upload anything the watch queued before this phone was paired.
+            WearQueueUploadWorker.schedule(this);
             result.success(true);
         } catch (Exception exception) {
             result.error("DEVICE_CREDENTIAL_WRITE_FAILED", "Device credential could not be encrypted.", null);
@@ -220,16 +162,7 @@ public class MainActivity extends FlutterActivity {
 
     private void clearDeviceCredential(MethodChannel.Result result) {
         try {
-            boolean removed = getSharedPreferences(DEVICE_CREDENTIAL_PREFS, MODE_PRIVATE)
-                    .edit()
-                    .remove(DEVICE_CREDENTIAL_KEY)
-                    .commit();
-            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-            keyStore.load(null);
-            if (keyStore.containsAlias(DEVICE_CREDENTIAL_KEY_ALIAS)) {
-                keyStore.deleteEntry(DEVICE_CREDENTIAL_KEY_ALIAS);
-            }
-            if (!removed) {
+            if (!DeviceCredentialVault.clear(this)) {
                 result.error("DEVICE_CREDENTIAL_DELETE_FAILED", "Device credential could not be removed.", null);
                 return;
             }
