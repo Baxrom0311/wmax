@@ -4,12 +4,22 @@ import uuid
 from datetime import datetime
 from typing import Any, Sequence
 
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from algo_interface import WEIGHTS
 from app.models.device_assignment import DeviceAssignment
 from app.models.reading import OrphanReading, Reading
+
+
+def usable_reading_clause():
+    """SQL twin of algo.signal.is_usable_window: worn and carrying a measurement."""
+    return and_(
+        Reading.worn.is_(True),
+        or_(Reading.worn_pct.is_(None), Reading.worn_pct != 0),
+        or_(*(getattr(Reading, param).is_not(None) for param in WEIGHTS)),
+    )
 
 
 class ReadingRepository:
@@ -49,6 +59,17 @@ class ReadingRepository:
         stmt = (
             select(Reading)
             .where(Reading.patient_id == patient_id)
+            .order_by(Reading.window_start.desc())
+            .limit(1)
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def get_latest_usable_reading(self, patient_id: uuid.UUID) -> Reading | None:
+        """Latest window that is evidence about the patient (not empty/unworn)."""
+        stmt = (
+            select(Reading)
+            .where(Reading.patient_id == patient_id, usable_reading_clause())
             .order_by(Reading.window_start.desc())
             .limit(1)
         )

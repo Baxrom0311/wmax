@@ -5,9 +5,11 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.clinical_scope import clinician_patient_ids
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models import PatientAccess, PatientConsent, PatientMembership, TenantMember
+from app.models import PatientAccess, PatientConsent
 from app.models.patient import Patient
+from app.services.monitoring_policy import family_history_visible
 from app.schemas.auth import CurrentUser
 
 
@@ -25,7 +27,9 @@ async def assert_patient_access(
             await session.execute(
                 select(PatientAccess.id)
                 .join(PatientConsent, PatientConsent.patient_id == PatientAccess.patient_id)
+                .join(Patient, Patient.id == PatientAccess.patient_id)
                 .where(
+                    family_history_visible(),
                     PatientAccess.patient_id == patient_id,
                     PatientAccess.account_id == principal.id,
                     PatientAccess.accepted_at.is_not(None),
@@ -48,19 +52,11 @@ async def assert_patient_access(
     if not principal.tenant_ids:
         raise ForbiddenException("Bu bemor bo'yicha amal bajarish huquqi yo'q")
 
-    membership_id = (
-        await session.execute(
-            select(PatientMembership.id).where(
-                PatientMembership.patient_id == patient_id,
-                PatientMembership.tenant_id.in_(principal.tenant_ids),
-                PatientMembership.revoked_at.is_(None),
-                select(TenantMember.id).where(
-                    TenantMember.tenant_id == PatientMembership.tenant_id,
-                    TenantMember.account_id == principal.id,
-                    TenantMember.left_at.is_(None),
-                ).exists(),
-            )
+    allowed = (await session.execute(
+        select(Patient.id).where(
+            Patient.id == patient_id,
+            Patient.id.in_(clinician_patient_ids(principal.id, principal.tenant_ids)),
         )
-    ).scalar_one_or_none()
-    if membership_id is None:
+    )).scalar_one_or_none()
+    if allowed is None:
         raise ForbiddenException("Bu bemor bo'yicha amal bajarish huquqi yo'q")

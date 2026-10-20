@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -23,7 +23,7 @@ def mock_session():
 
 
 @pytest.mark.asyncio
-async def test_raise_sos_creates_event_and_snapshots(mock_session):
+async def test_raise_sos_creates_event_and_snapshots(mock_session, monkeypatch):
     patient_id = uuid.uuid4()
     context = PatientContext(
         patient_id=patient_id,
@@ -38,6 +38,10 @@ async def test_raise_sos_creates_event_and_snapshots(mock_session):
 
     service = SosService(mock_session, dispatcher=dispatcher_mock)
     mock_session.get = AsyncMock(return_value=Patient(id=patient_id, full_name="Alisher Navoiy"))
+    mock_session.begin_nested = MagicMock(return_value=AsyncMock())
+    no_address = MagicMock()
+    no_address.scalar_one_or_none.return_value = None
+    mock_session.execute = AsyncMock(return_value=no_address)
     service.context_builder.build = AsyncMock(return_value=context)
 
     fake_event = SosEvent(
@@ -48,12 +52,16 @@ async def test_raise_sos_creates_event_and_snapshots(mock_session):
         raised_at=datetime.now(timezone.utc),
     )
     service.sos_repo.create_event = AsyncMock(return_value=fake_event)
-    service.sos_repo.add_notification = AsyncMock()
+    queue = AsyncMock(return_value=1)
+    monkeypatch.setattr("app.services.sos_service.queue_sos_notifications", queue)
 
     event = await service.raise_sos(patient_id, source="watch_button")
     assert event.id == fake_event.id
     assert event.status == "raised"
     dispatcher_mock.dispatch.assert_awaited_once()
+    # Delivery is queued durably with the SOS; see test_pg_delivery for the
+    # recipient and retry workflow against PostgreSQL.
+    queue.assert_awaited_once()
 
 
 @pytest.mark.asyncio

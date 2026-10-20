@@ -9,14 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ForbiddenException, NotFoundException, ValidationException
-from app.models import PatientMembership
+from app.models import PatientAddress, PatientMembership
 from app.models.patient import Patient
 from app.models.sos import SosEvent
 from app.repositories.sos_repo import SosRepository
 from app.services.emergency.dispatcher import EmergencyDispatcher, ManualDispatch
 from app.services.live_event_service import LiveEventService
 from app.services.patient_context import PatientContextBuilder
-from app.services.sms import send_sms_text
+from app.services.notification_service import queue_sos_notifications
 
 logger = logging.getLogger("wmax.sos.service")
 
@@ -45,30 +45,42 @@ class SosService:
         patient_record = await self.session.get(Patient, patient_id)
         if not patient_record or patient_record.deceased_at is not None:
             raise NotFoundException("Faol bemor profili topilmadi")
-        context = await self.context_builder.build(patient_id)
-        if not context:
-            raise NotFoundException("Bemor topilmadi")
+        # The snapshot helps responders but must never block the SOS itself:
+        # it is built inside a savepoint and degrades to the stored address.
+        context = None
+        try:
+            async with self.session.begin_nested():
+                context = await self.context_builder.build(patient_id)
+        except Exception:
+            logger.exception("SOS snapshot enrichment failed for patient %s; using minimal snapshot", patient_id)
 
         # Snapshot address
-        if context.primary_address:
-            address_snap = context.primary_address.model_dump()
+        if context is not None and context.primary_address:
+            address_snap = context.primary_address.model_dump(mode="json")
         else:
-            district = patient_record.district
+            address = (await self.session.execute(
+                select(PatientAddress).where(
+                    PatientAddress.patient_id == patient_id, PatientAddress.is_primary.is_(True),
+                )
+            )).scalar_one_or_none()
             address_snap = {
-                "region": "Xorazm",
-                "district": district,
-                "landmark": "Boshlang'ich manzil kiritilmagan",
+                "region": address.region if address else None,
+                "district": address.district if address else patient_record.district,
+                "mahalla": address.mahalla if address else None,
+                "street": address.street if address else None,
+                "house": address.house if address else None,
+                "landmark": address.landmark if address else "Boshlang'ich manzil kiritilmagan",
             }
 
         # Snapshot clinical profile
-        clinical_snap = {
+        clinical_snap = {} if context is None else {
             "blood_group": context.blood_group,
             "rh": context.rh,
-            "allergies": [a.model_dump() for a in context.allergies],
+            "allergies": [a.model_dump(mode="json") for a in context.allergies],
             "active_medications": [
-                m.model_dump() for m in context.medications if m.stopped_at is None
+                m.model_dump(mode="json") for m in context.medications if m.stopped_at is None
             ],
-            "conditions": [c.model_dump() for c in context.conditions if c.is_active],
+            "conditions": [c.model_dump(mode="json") for c in context.conditions if c.is_active],
         }
 
         # Create persistent event
@@ -77,7 +89,7 @@ class SosService:
             source=source,
             address_snapshot=address_snap,
             clinical_snapshot=clinical_snap,
-            vitals_snapshot=context.recent_vitals or None,
+            vitals_snapshot=(context.recent_vitals or None) if context is not None else None,
             device_lat=device_lat,
             device_lon=device_lon,
             device_accuracy_m=device_accuracy_m,
@@ -85,6 +97,8 @@ class SosService:
 
         # Trigger emergency dispatcher
         try:
+            if context is None:
+                raise RuntimeError("no dispatcher context")
             dispatch_result = await self.dispatcher.dispatch(event, context)
             if not dispatch_result.accepted:
                 event.dispatch_method = "unavailable"
@@ -94,36 +108,11 @@ class SosService:
             event.dispatch_method = "unavailable"
             event.dispatch_ref = "dispatch_error"
 
-        # Queue and deliver notifications for emergency contacts
-        for contact in context.emergency_contacts:
-            recipient_ref = str(contact.telegram_chat_id or contact.phone)
-            channel = "telegram" if contact.telegram_chat_id else "sms"
-            delivered = False
-            error = None
-            if channel == "sms" and contact.phone:
-                try:
-                    msg = f"DIQQAT! WMAX: Bemor {context.full_name} SOS favqulodda yordam signalini yoqdi!"
-                    delivered = await send_sms_text(phone=contact.phone, message=msg)
-                    if not delivered:
-                        error = "sms_provider_unavailable"
-                except Exception as ex:
-                    error = type(ex).__name__
-            elif channel == "telegram":
-                error = "telegram_delivery_not_configured_in_api"
+        # Durable per-recipient delivery in the same transaction as the SOS
+        # itself; the notifier worker sends, retries and escalates (I2).
+        await queue_sos_notifications(self.session, event, patient_record)
 
-            await self.sos_repo.add_notification(
-                sos_id=event.id,
-                recipient_kind="relative",
-                recipient_ref=recipient_ref,
-                channel=channel,
-                delivered=delivered,
-                error=error,
-            )
-
-        logger.warning(
-            f"🚨 SOS RAISED for Patient {context.full_name} ({patient_id}), "
-            f"event={event.id}, source={source}"
-        )
+        logger.warning("SOS raised for patient %s, event=%s, source=%s", patient_id, event.id, source)
         await LiveEventService(self.session).publish_sos(event, action="raised")
         return event
 

@@ -32,7 +32,9 @@ from app.models import (
     Account,
     Device,
     DeviceAssignment,
+    MemberTerritory,
     Patient,
+    PatientAddress,
     PatientAccess,
     PatientConsent,
     PatientMembership,
@@ -70,6 +72,17 @@ PATIENTS = [
     (uuid.UUID("33333333-3333-3333-3333-333333333333"), "Rustam Qurbonov", 1967, "m",
      "Miokard infarktidan keyingi holat", "Xonqa", "stable"),
 ]
+
+# IDEOLOGY B6: doctors and nurses see patients in their assigned mahallas.
+PATIENT_MAHALLA = {
+    PATIENTS[0][0]: "Navbahor",
+    PATIENTS[1][0]: "Gulshan",
+    PATIENTS[2][0]: "Bog'ishamol",
+}
+STAFF_MAHALLAS = {
+    DOC_ID: ("Navbahor", "Gulshan", "Bog'ishamol"),
+    NURSE_ID: ("Navbahor", "Gulshan"),
+}
 
 RELATIVES = [
     (uuid.UUID("aaaaaaaa-1111-1111-1111-111111111111"), PATIENTS[0][0],
@@ -204,11 +217,15 @@ async def seed(force: bool) -> None:
             Account(id=NURSE_ID, full_name="Hamshira Zilola Otajonova", phone="+998901234568",
                     password_hash=password_hash, is_active=True),
         ])
-        session.add_all([
+        members = [
             TenantMember(tenant_id=TENANT_ID, account_id=DOC_ID, role="doctor"),
             TenantMember(tenant_id=TENANT_ID, account_id=NURSE_ID, role="nurse"),
-        ])
+        ]
+        session.add_all(members)
         await session.flush()
+        for member in members:
+            for mahalla in STAFF_MAHALLAS[member.account_id]:
+                session.add(MemberTerritory(tenant_member_id=member.id, mahalla=mahalla))
 
         today = date.today()
         patient_devices: dict[uuid.UUID, uuid.UUID] = {}
@@ -263,13 +280,30 @@ async def seed(force: bool) -> None:
             ))
         await session.flush()
 
-        for pid, name, *_rest in PATIENTS:
+        for pid, name, _birth_year, _sex, _diagnosis, district, _traj in PATIENTS:
             dev_id = patient_devices[pid]
+            session.add(PatientAddress(
+                patient_id=pid,
+                region="Xorazm",
+                district=district,
+                mahalla=PATIENT_MAHALLA[pid],
+                is_primary=True,
+            ))
             session.add(PatientMembership(
                 patient_id=pid,
                 tenant_id=TENANT_ID,
                 kind="care",
                 granted_by=DOC_ID,
+            ))
+            # B4: verbal consent confirmed by the clinician is journaled.
+            session.add(PatientConsent(
+                patient_id=pid,
+                scope="clinical_monitoring",
+                granted=True,
+                method="verbal_by_clinician",
+                witnessed_by=DOC_ID,
+                target_tenant_id=TENANT_ID,
+                recorded_at=now_utc,
             ))
             session.add(DeviceAssignment(
                 id=uuid.uuid5(uuid.NAMESPACE_DNS, f"assign_{pid}"),

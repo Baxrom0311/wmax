@@ -561,15 +561,21 @@ export const App: React.FC = () => {
       ) : viewData ? (
         /* ── Main Dashboard ── */
         <main className="flex flex-col flex-1 py-2">
+          {/* J2: after death only the record remains, never a live status */}
+          {viewData.deceased_at && (
+            <div className="mx-4 mt-2 mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-[13px] text-slate-700">
+              {t("deceased.notice", lang, { name: viewData.patient_name })}
+            </div>
+          )}
+
           {/* Emergency SOS Banner (for RED alert level) */}
-          {viewData.level === "red" && (
+          {viewData.level === "red" && !viewData.deceased_at && (
             <SosEmergencyBanner
               patientName={viewData.patient_name || (patients.find((p) => p.id === activePatientId)?.full_name || "Otabek Rahimov")}
               relationship={patients.find((p) => p.id === activePatientId)?.relationship || "Otangiz"}
-              spo2={viewData.vitals?.spo2 || 85}
-              hr={viewData.vitals?.hr || 128}
-              doctorPhone={viewData.doctor_contact?.phone || "+998901234567"}
-              nursePhone="+998901234568"
+              spo2={viewData.vitals?.spo2 ?? null}
+              hr={viewData.vitals?.hr ?? null}
+              doctorPhone={viewData.doctor_contact?.phone ?? null}
               lang={lang}
             />
           )}
@@ -585,7 +591,8 @@ export const App: React.FC = () => {
           )}
 
           {/* 24h Hospital Discharge & Home Patrol Notice */}
-          {(activePatientId.includes("001") || (viewData.patient_name && viewData.patient_name.includes("Otabek")) || isDemo) && (
+          {/* Demo-only content: its nurse, facility and phone are fictional. */}
+          {isDemo && (
             <HandoffNoticeCard
               patientName={viewData.patient_name || (patients.find((p) => p.id === activePatientId)?.full_name || "Otabek Rahimov")}
               facilityName="Urganch Kardiologiya Dispanseri"

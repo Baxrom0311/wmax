@@ -26,6 +26,7 @@ from app.api.relatives import router as relatives_router
 from app.api.sos import router as sos_router
 from app.api.surveys import router as surveys_router
 from app.api.tasks import router as tasks_router
+from app.api.tenants import router as tenants_router
 from app.auth.router import router as auth_router
 from app.core.config import settings, validate_production_settings
 from app.core.db import check_db_connection
@@ -210,6 +211,7 @@ app.include_router(platform_router)
 app.include_router(realtime_router)
 app.include_router(sos_router)
 app.include_router(tasks_router)
+app.include_router(tenants_router)
 app.include_router(relatives_router)
 app.include_router(billing_router)
 app.include_router(billing_contract_router)

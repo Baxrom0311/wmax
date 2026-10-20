@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import timewin
 from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES
 from app.ai.clinical_ai import ClinicalAIService
+from algo.signal import is_usable_window
 from app.core.exceptions import NotFoundException, ValidationException
+from app.domain.status import current_level
 from app.models import PatientMembership
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
@@ -67,25 +69,20 @@ class PatientService:
         summaries: list[PatientSummary] = []
 
         for p in patients:
-            latest_reading = await self.reading_repo.get_latest_reading(p.id)
+            latest_reading = await self.reading_repo.get_latest_usable_reading(p.id)
             latest_alert = await self.alert_repo.get_latest(p.id)
             open_task_row = await self.task_repo.get_open_task(p.id)
 
             last_ts = reading_ts(latest_reading) if latest_reading else None
 
-            # Silence verification: >= 45 min is strictly no_data, never green
-            if timewin.is_no_data(last_ts, now):
-                cur_level: AlertLevel = "no_data"
+            # Silence, empty windows or nothing evaluated yet: no_data, never green.
+            cur_level: AlertLevel = current_level(last_ts, latest_alert, now)
+            if cur_level == "no_data" or latest_alert is None:
                 composite = 0.0
                 triggered = {}
-            elif latest_alert:
-                cur_level = latest_alert.level
+            else:
                 composite = latest_alert.composite_score
                 triggered = latest_alert.triggered_params
-            else:
-                cur_level = "green"
-                composite = 0.0
-                triggered = {}
 
             if level and cur_level != level:
                 continue
@@ -231,22 +228,18 @@ class PatientService:
                 )
             )
 
-        last_reading = readings[-1] if readings else None
+        usable = [r for r in readings if is_usable_window(to_reading_vec(r))]
+        last_reading = usable[-1] if usable else None
         last_ts = reading_ts(last_reading) if last_reading else None
         latest_alert = alerts_list[0] if alerts_list else None
 
-        if timewin.is_no_data(last_ts, now):
-            cur_level: AlertLevel = "no_data"
+        cur_level: AlertLevel = current_level(last_ts, latest_alert, now)
+        if cur_level == "no_data" or latest_alert is None:
             composite = 0.0
             triggered = {}
-        elif latest_alert:
-            cur_level = latest_alert.level
+        else:
             composite = latest_alert.composite_score
             triggered = latest_alert.triggered_params
-        else:
-            cur_level = "green"
-            composite = 0.0
-            triggered = {}
 
         baseline_entries = [
             BaselineEntry(

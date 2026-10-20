@@ -235,8 +235,12 @@ class PatientAddress(Base):
     entrance_note: Mapped[str | None] = mapped_column(Text)
     lat: Mapped[float | None] = mapped_column(Float)
     lon: Mapped[float | None] = mapped_column(Float)
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default="home")
+    geo_source: Mapped[str | None] = mapped_column(Text)
+    geo_accuracy_m: Mapped[float | None] = mapped_column(Float)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
 
 class Device(Base):
@@ -497,6 +501,12 @@ class Alert(Base):
     anomaly_score: Mapped[float | None] = mapped_column(Float)
     reason: Mapped[str | None] = mapped_column(Text)
     data_quality: Mapped[float | None] = mapped_column(Float)
+    # F2: action requested for this alert, decided from data quality.
+    task_kind: Mapped[str | None] = mapped_column(TaskKindEnum)
+    # not_required | routed | open_task_exists | unassigned. `unassigned` is
+    # retried by the escalation worker and stays visible to operators (D5).
+    task_routing_status: Mapped[str] = mapped_column(Text, nullable=False, server_default="not_required")
+    task_routing_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
@@ -608,14 +618,29 @@ class Payment(Base):
 
 
 class Notification(Base):
+    """One durable delivery job per recipient; attempts are logged separately."""
+
     __tablename__ = "notifications"
+    __table_args__ = (
+        Index("uq_notification_alert_recipient", "alert_id", "recipient_account_id", unique=True,
+              postgresql_where=text("alert_id IS NOT NULL AND recipient_account_id IS NOT NULL")),
+        Index("uq_notification_sos_recipient", "sos_event_id", "recipient_account_id", unique=True,
+              postgresql_where=text("sos_event_id IS NOT NULL AND recipient_account_id IS NOT NULL")),
+        Index("idx_notifications_due", "next_attempt_at", postgresql_where=text("delivery_status = 'pending'")),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
     recipient_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("accounts.id"))
     alert_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("alerts.id", ondelete="SET NULL"))
+    sos_event_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("sos_events.id", ondelete="CASCADE"))
     level: Mapped[str | None] = mapped_column(AlertLevelEnum)
     urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    message: Mapped[str | None] = mapped_column(Text)
+    # pending | delivered | acknowledged | failed | cancelled | no_recipient
+    delivery_status: Mapped[str] = mapped_column(Text, nullable=False, server_default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -629,6 +654,7 @@ class NotificationAttempt(Base):
     attempted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     delivered: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     error: Mapped[str | None] = mapped_column(Text)
+    provider_ref: Mapped[str | None] = mapped_column(Text)
 
 
 class RealtimeEventOutbox(Base):
@@ -770,6 +796,7 @@ class PatientRiskFactor(Base):
 
 class SosEvent(Base):
     __tablename__ = "sos_events"
+    __table_args__ = (Index("idx_sos_events_active", "raised_at", postgresql_where=text("status IN ('raised','acknowledged','dispatched')")),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
@@ -777,6 +804,24 @@ class SosEvent(Base):
     lat: Mapped[float | None] = mapped_column(Float)
     lon: Mapped[float | None] = mapped_column(Float)
     reason: Mapped[str | None] = mapped_column(Text)
+    # raised | acknowledged | dispatched | resolved | false_alarm | cancelled | legacy
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="raised")
+    raised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    address_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    clinical_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    vitals_snapshot: Mapped[dict | None] = mapped_column(JSONB)
+    device_lat: Mapped[float | None] = mapped_column(Float)
+    device_lon: Mapped[float | None] = mapped_column(Float)
+    device_accuracy_m: Mapped[float | None] = mapped_column(Float)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    acknowledged_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("accounts.id"))
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dispatch_method: Mapped[str | None] = mapped_column(Text)
+    dispatch_ref: Mapped[str | None] = mapped_column(Text)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("accounts.id"))
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

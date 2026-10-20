@@ -60,6 +60,9 @@ class CurrentUser(BaseModel):
     phone: str | None = None
     tenant_ids: list[UUID] = Field(default_factory=list)
     patient_ids: list[UUID] = Field(default_factory=list)
+    # Current per-clinic roles loaded from the database on every request; the
+    # token role is only a display hint and never authorizes a clinic action.
+    tenant_roles: dict[UUID, str] = Field(default_factory=dict)
 
 
 class LogoutResponse(BaseModel):

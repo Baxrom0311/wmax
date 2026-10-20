@@ -61,6 +61,9 @@ This is also an unresolved problem in the existing CI commands.
 
 Database validation needs a disposable PostgreSQL database: `alembic upgrade
 head`, `alembic check`, then downgrade/upgrade only in that disposable database.
+Workflow regressions (`backend/app/tests/test_pg_*.py`) run only when
+`WMAX_TEST_DATABASE_URL` points at that migrated disposable database; each test
+rolls back. Add one there for any authorization, delivery, consent or lifecycle fix.
 Production targets PostgreSQL 16. SQLite/mocks do not validate RLS, partitions,
 PostgreSQL constraints, or actual asyncpg SQL syntax.
 

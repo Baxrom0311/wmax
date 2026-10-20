@@ -5,8 +5,64 @@ import '../models/health_summary.dart';
 import '../models/models.dart';
 import '../services/session_service.dart';
 
+/// The stored session can no longer be refreshed; the user must sign in again.
+class SessionExpiredException implements Exception {
+  const SessionExpiredException();
+}
+
 class ApiService {
   static const String _ingestKey = String.fromEnvironment('WMAX_INGEST_KEY');
+
+  // One refresh at a time: the server rotates refresh tokens, so a second
+  // concurrent refresh with the old token would be rejected.
+  static Future<bool>? _refreshing;
+
+  static Future<bool> _refreshTokens() {
+    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  }
+
+  static Future<bool> _doRefresh() async {
+    final refreshToken = await SessionService.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+    try {
+      final baseUrl = await SessionService.getBaseUrl();
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/v1/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return false;
+      final data = jsonDecode(response.body);
+      if (data is! Map<String, dynamic> ||
+          data['access_token'] is! String ||
+          data['refresh_token'] is! String) {
+        return false;
+      }
+      await SessionService.updateTokens(
+        accessToken: data['access_token'] as String,
+        refreshToken: data['refresh_token'] as String,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Sends with the current access token and, on 401, refreshes once and
+  /// retries. Throws [SessionExpiredException] when the session is gone.
+  static Future<http.Response> _withAuth(
+    Future<http.Response> Function(String accessToken) send,
+  ) async {
+    final token = await SessionService.getAccessToken();
+    if (token == null || token.isEmpty) throw const SessionExpiredException();
+    final response = await send(token);
+    if (response.statusCode != 401) return response;
+    if (!await _refreshTokens()) throw const SessionExpiredException();
+    final fresh = await SessionService.getAccessToken();
+    return send(fresh!);
+  }
 
   static Future<String> claimDeviceEnrollment({
     required String deviceId,
@@ -293,7 +349,6 @@ class ApiService {
     required String patientName,
   }) async {
     final baseUrl = await SessionService.getBaseUrl();
-    final authToken = await SessionService.getAccessToken();
 
     if (patientAccessToken.isEmpty) {
       return _generateOfflineNoDataView(patientId, patientName);
@@ -303,21 +358,26 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/api/v1/relatives/$patientAccessToken/view',
       );
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (authToken != null && authToken.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $authToken';
-      }
-
-      final response = await http
-          .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 8));
+      final response = await _withAuth(
+        (token) => http
+            .get(
+              uri,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token',
+              },
+            )
+            .timeout(const Duration(seconds: 8)),
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         return RelativePatientView.fromJson(data);
-      } else {
-        return _generateOfflineNoDataView(patientId, patientName);
       }
+      return _generateOfflineNoDataView(patientId, patientName);
+    } on SessionExpiredException {
+      rethrow;
     } catch (_) {
       return _generateOfflineNoDataView(patientId, patientName);
     }
@@ -334,18 +394,20 @@ class ApiService {
     final baseUrl = await SessionService.getBaseUrl();
     final authToken = await SessionService.getAccessToken();
     if (authToken == null || authToken.isEmpty) {
-      throw StateError('Not signed in');
+      throw const SessionExpiredException();
     }
     final role = SessionService.roleFromAccessToken(authToken);
     final path = role == 'relative'
         ? '/api/v1/relatives/${Uri.encodeComponent(patient.accessToken)}/health-summary'
         : '/api/v1/patients/${Uri.encodeComponent(patient.id)}/health-summary';
-    final response = await http
-        .get(
-          Uri.parse('$baseUrl$path?days=$days'),
-          headers: {'Authorization': 'Bearer $authToken'},
-        )
-        .timeout(const Duration(seconds: 12));
+    final response = await _withAuth(
+      (token) => http
+          .get(
+            Uri.parse('$baseUrl$path?days=$days'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 12)),
+    );
     if (response.statusCode != 200) {
       throw StateError('Health summary HTTP ${response.statusCode}');
     }
@@ -361,34 +423,35 @@ class ApiService {
     required String patientId,
     double? latitude,
     double? longitude,
-    double? lat,
-    double? lon,
-    String? reason,
+    double? accuracyMeters,
   }) async {
     final baseUrl = await SessionService.getBaseUrl();
-    final authToken = await SessionService.getAccessToken();
 
     try {
       final uri = Uri.parse('$baseUrl/api/v1/sos');
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (authToken != null && authToken.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $authToken';
-      }
 
+      // Location only when a real fix exists; responders must never be sent
+      // to a placeholder address.
       final body = <String, dynamic>{
         'patient_id': patientId,
         'source': 'relative_portal',
-        'device_lat': lat ?? latitude,
-        'device_lon': lon ?? longitude,
-        'device_accuracy_m': 15.0,
+        'device_lat': ?latitude,
+        'device_lon': ?longitude,
+        'device_accuracy_m': ?accuracyMeters,
       };
-      if (reason != null) {
-        body['reason'] = reason;
-      }
 
-      final response = await http
-          .post(uri, headers: headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 6));
+      final response = await _withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token',
+              },
+              body: jsonEncode(body),
+            )
+            .timeout(const Duration(seconds: 8)),
+      );
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (_) {
@@ -452,21 +515,14 @@ class ApiService {
         riskProbabilityPct: null,
         summary: "Aloqa mavjud emas. Ko'rsatkichlar yangilanmadi.",
       ),
-      vitals: VitalsData(
-        hr: 0.0,
-        spo2: 0.0,
-        temp: 0.0,
-        rr: 0.0,
-        steps: 0,
-        sleepHours: 0.0,
-        battery: 0,
-      ),
-      doctorContact: DoctorContact(name: 'Navbatchi shifokor', phone: '103'),
+      // Unknown, not zero: nothing here may read as a measurement.
+      vitals: VitalsData(),
       problems: [
         ClinicalProblem(
           key: 'conn_lost',
           title: 'Aloqa uzilgan',
-          detail: "Server bilan bog'lanishda xatolik yuz berdi",
+          detail:
+              "Serverdan yangi ma'lumot olinmadi. Internetni tekshirib, yangilang.",
           severity: 'warning',
         ),
       ],

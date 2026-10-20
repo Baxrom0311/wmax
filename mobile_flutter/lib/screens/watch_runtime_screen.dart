@@ -115,7 +115,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
       final isFresh =
           latestAt != null &&
           DateTime.now().difference(latestAt).inMinutes <= 10;
-      final validHr = (isFresh &&
+      final validHr =
+          (isFresh &&
               bpm != null &&
               EdgeSensorFilter.isValidHeartRate(bpm.toDouble()))
           ? bpm
@@ -133,7 +134,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
       final spo2At = DateTime.tryParse('${status['latest_spo2_at']}');
       final spo2IsFresh =
           spo2At != null && DateTime.now().difference(spo2At).inHours <= 24;
-      final validSpo2 = (spo2IsFresh &&
+      final validSpo2 =
+          (spo2IsFresh &&
               spo2Val != null &&
               EdgeSensorFilter.isValidSpo2(spo2Val.toDouble()))
           ? spo2Val
@@ -143,7 +145,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
       final tempAt = DateTime.tryParse('${status['latest_skin_temp_at']}');
       final tempIsFresh =
           tempAt != null && DateTime.now().difference(tempAt).inHours <= 24;
-      final validTemp = (tempIsFresh &&
+      final validTemp =
+          (tempIsFresh &&
               tempVal != null &&
               EdgeSensorFilter.isValidSkinTemp(tempVal))
           ? tempVal
@@ -348,52 +351,11 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   }
 
   Future<void> _pairDevice() async {
-    final deviceIdController = TextEditingController();
-    final codeController = TextEditingController();
-    final pair = await showDialog<(String, String)>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          widget.isUzbek ? 'Qurilmani bog‘lash' : 'Привязать устройство',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: deviceIdController,
-              decoration: InputDecoration(
-                labelText: widget.isUzbek ? 'Qurilma ID' : 'ID устройства',
-              ),
-              autocorrect: false,
-            ),
-            TextField(
-              controller: codeController,
-              decoration: InputDecoration(
-                labelText: widget.isUzbek ? '6 xonali kod' : 'Код из 6 цифр',
-              ),
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              autocorrect: false,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(widget.isUzbek ? 'Bekor' : 'Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, (
-              deviceIdController.text.trim(),
-              codeController.text.trim(),
-            )),
-            child: Text(widget.isUzbek ? 'Bog‘lash' : 'Привязать'),
-          ),
-        ],
+    final pair = await Navigator.of(context).push<(String, String)>(
+      MaterialPageRoute(
+        builder: (_) => _WatchPairingPage(isUzbek: widget.isUzbek),
       ),
     );
-    deviceIdController.dispose();
-    codeController.dispose();
     if (pair == null || !mounted) return;
 
     setState(() => _sendState = _WatchSendState.sending);
@@ -441,10 +403,7 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
       );
     }
     if (!dispatched && _patientId.isNotEmpty) {
-      dispatched = await ApiService.triggerSos(
-        patientId: _patientId,
-        reason: 'Flutter Watch SOS',
-      );
+      dispatched = await ApiService.triggerSos(patientId: _patientId);
     }
     // If online delivery failed or offline, persist to local outbox
     if (!dispatched) {
@@ -490,12 +449,20 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
     final uz = widget.isUzbek;
     final configured =
         _patientId.isNotEmpty || (_deviceToken?.isNotEmpty ?? false);
-    final statusText = switch (_sendState) {
-      _WatchSendState.idle => uz ? 'Tayyor' : 'Готово',
-      _WatchSendState.sending => uz ? 'Yuborilmoqda' : 'Отправка',
-      _WatchSendState.sent => uz ? 'Monitoring yoqilgan' : 'Мониторинг включен',
-      _WatchSendState.failed => uz ? 'Xatolik' : 'Ошибка',
-    };
+    final enrolled = _deviceToken?.isNotEmpty ?? false;
+    // Without enrollment readings stay queued on the watch; say so instead
+    // of implying that anyone is monitoring them.
+    final statusText = !enrolled && _sendState != _WatchSendState.sending
+        ? (uz
+              ? 'Bog‘lanmagan: serverga yuborilmaydi'
+              : 'Не привязаны: данные не отправляются')
+        : switch (_sendState) {
+            _WatchSendState.idle => uz ? 'Tayyor' : 'Готово',
+            _WatchSendState.sending => uz ? 'Yuborilmoqda' : 'Отправка',
+            _WatchSendState.sent =>
+              uz ? 'Monitoring yoqilgan' : 'Мониторинг включен',
+            _WatchSendState.failed => uz ? 'Xatolik' : 'Ошибка',
+          };
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
@@ -511,232 +478,252 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
                   color: const Color(0xFF0F172A),
                   border: Border.all(color: const Color(0xFF1E293B), width: 3),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        configured
-                            ? statusText
-                            : (uz ? 'Enroll kerak' : 'Нужна привязка'),
-                        style: TextStyle(
-                          color: configured
-                              ? const Color(0xFF38BDF8)
-                              : const Color(0xFFF97316),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.favorite_rounded,
-                            color: Color(0xFFEF4444),
-                            size: 28,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _hr?.toString() ?? '--',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 42,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'bpm',
-                            style: TextStyle(color: Color(0xFF94A3B8)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _Pill(
-                            icon: Icons.battery_5_bar_rounded,
-                            text: _battery >= 0 ? '$_battery%' : '--%',
-                            iconColor: _battery >= 0 && _battery < 20
-                                ? const Color(0xFFEF4444)
-                                : null,
-                          ),
-                          _Pill(
-                            icon: Icons.watch_rounded,
-                            text: _hr == null ? 'NO DATA' : 'LIVE',
-                          ),
-                          if (_spo2 != null)
-                            _Pill(
-                              icon: Icons.air_rounded,
-                              text: '$_spo2%',
-                              textColor: _spo2! < 92
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFF38BDF8),
-                              iconColor: _spo2! < 92
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFF38BDF8),
-                            ),
-                          if (_skinTemp != null)
-                            _Pill(
-                              icon: Icons.thermostat_rounded,
-                              text: '${_skinTemp!.toStringAsFixed(1)}°C',
-                              textColor: const Color(0xFFF59E0B),
-                              iconColor: const Color(0xFFF59E0B),
-                            ),
-                          _Pill(
-                            icon: Icons.directions_walk_rounded,
-                            text: _dailySteps?.toString() ?? '--',
-                          ),
-                          if (_sleepState != null)
-                            _Pill(
-                              icon: Icons.bedtime_rounded,
-                              text: _sleepState!.toUpperCase(),
-                              textColor: const Color(0xFFA78BFA),
-                              iconColor: const Color(0xFFA78BFA),
-                            ),
-                          _Pill(
-                            icon: Icons.cloud_upload_rounded,
-                            text: '$_sentCount',
-                          ),
-                          if (_exerciseTypes.isNotEmpty)
-                            _Pill(
-                              icon: Icons.fitness_center_rounded,
-                              text: '${_exerciseTypes.length}',
-                            ),
-                        ],
-                      ),
-                      if (_exerciseTypes.isNotEmpty ||
-                          _passiveDataTypes.isNotEmpty)
-                        IconButton(
-                          tooltip: uz
-                              ? 'Soat imkoniyatlari'
-                              : 'Возможности часов',
-                          onPressed: _showCapabilities,
-                          icon: const Icon(
-                            Icons.sensors_rounded,
-                            color: Color(0xFF38BDF8),
+                // Round watch screens are ~225dp: the face scrolls rather than
+                // overflowing when status text, pills or buttons grow.
+                child: ClipOval(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: configured ? _syncHealthStreams : null,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF0284C7),
-                                foregroundColor: Colors.white,
+                        const SizedBox(height: 6),
+                        Text(
+                          configured
+                              ? statusText
+                              : (uz
+                                    ? 'Qurilmani bog‘lang'
+                                    : 'Привяжите устройство'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: configured
+                                ? const Color(0xFF38BDF8)
+                                : const Color(0xFFF97316),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.favorite_rounded,
+                                color: Color(0xFFEF4444),
+                                size: 28,
                               ),
-                              child: const Icon(Icons.sync_rounded, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                _hr?.toString() ?? '--',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'bpm',
+                                style: TextStyle(color: Color(0xFF94A3B8)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _Pill(
+                              icon: Icons.battery_5_bar_rounded,
+                              text: _battery >= 0 ? '$_battery%' : '--%',
+                              iconColor: _battery >= 0 && _battery < 20
+                                  ? const Color(0xFFEF4444)
+                                  : null,
+                            ),
+                            _Pill(
+                              icon: Icons.watch_rounded,
+                              text: _hr == null ? 'NO DATA' : 'LIVE',
+                            ),
+                            if (_spo2 != null)
+                              _Pill(
+                                icon: Icons.air_rounded,
+                                text: '$_spo2%',
+                                textColor: _spo2! < 92
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFF38BDF8),
+                                iconColor: _spo2! < 92
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFF38BDF8),
+                              ),
+                            if (_skinTemp != null)
+                              _Pill(
+                                icon: Icons.thermostat_rounded,
+                                text: '${_skinTemp!.toStringAsFixed(1)}°C',
+                                textColor: const Color(0xFFF59E0B),
+                                iconColor: const Color(0xFFF59E0B),
+                              ),
+                            _Pill(
+                              icon: Icons.directions_walk_rounded,
+                              text: _dailySteps?.toString() ?? '--',
+                            ),
+                            if (_sleepState != null)
+                              _Pill(
+                                icon: Icons.bedtime_rounded,
+                                text: _sleepState!.toUpperCase(),
+                                textColor: const Color(0xFFA78BFA),
+                                iconColor: const Color(0xFFA78BFA),
+                              ),
+                            _Pill(
+                              icon: Icons.cloud_upload_rounded,
+                              text: '$_sentCount',
+                            ),
+                            if (_exerciseTypes.isNotEmpty)
+                              _Pill(
+                                icon: Icons.fitness_center_rounded,
+                                text: '${_exerciseTypes.length}',
+                              ),
+                          ],
+                        ),
+                        if (_exerciseTypes.isNotEmpty ||
+                            _passiveDataTypes.isNotEmpty)
+                          IconButton(
+                            tooltip: uz
+                                ? 'Soat imkoniyatlari'
+                                : 'Возможности часов',
+                            onPressed: _showCapabilities,
+                            icon: const Icon(
+                              Icons.sensors_rounded,
+                              color: Color(0xFF38BDF8),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _exerciseActive
-                                ? FilledButton(
-                                    onPressed: _stopExercise,
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: const Color(0xFFB45309),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    child: const Icon(
-                                      Icons.stop_rounded,
-                                      size: 20,
-                                    ),
-                                  )
-                                : PopupMenuButton<String>(
-                                    tooltip: uz
-                                        ? 'Mashqni boshlash'
-                                        : 'Начать тренировку',
-                                    onSelected: _startExercise,
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'WALKING',
-                                        enabled: _supportsExercise('WALKING'),
-                                        child: Text(uz ? 'Yurish' : 'Ходьба'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'RUNNING',
-                                        enabled: _supportsExercise('RUNNING'),
-                                        child: Text(uz ? 'Yugurish' : 'Бег'),
-                                      ),
-                                    ],
-                                    child: Container(
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF047857),
-                                        borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: configured
+                                    ? _syncHealthStreams
+                                    : null,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0284C7),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Icon(Icons.sync_rounded, size: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _exerciseActive
+                                  ? FilledButton(
+                                      onPressed: _stopExercise,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFB45309,
+                                        ),
+                                        foregroundColor: Colors.white,
                                       ),
                                       child: const Icon(
-                                        Icons.fitness_center_rounded,
-                                        color: Colors.white,
+                                        Icons.stop_rounded,
                                         size: 20,
                                       ),
+                                    )
+                                  : PopupMenuButton<String>(
+                                      tooltip: uz
+                                          ? 'Mashqni boshlash'
+                                          : 'Начать тренировку',
+                                      onSelected: _startExercise,
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'WALKING',
+                                          enabled: _supportsExercise('WALKING'),
+                                          child: Text(uz ? 'Yurish' : 'Ходьба'),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'RUNNING',
+                                          enabled: _supportsExercise('RUNNING'),
+                                          child: Text(uz ? 'Yugurish' : 'Бег'),
+                                        ),
+                                      ],
+                                      child: Container(
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF047857),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.fitness_center_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: configured ? _startSosCountdown : null,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFDC2626),
-                                foregroundColor: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: configured
+                                    ? _startSosCountdown
+                                    : null,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDC2626),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text(
+                                  _sosCountdown > 0 ? '$_sosCountdown' : 'SOS',
+                                ),
                               ),
-                              child: Text(
-                                _sosCountdown > 0 ? '$_sosCountdown' : 'SOS',
+                            ),
+                          ],
+                        ),
+                        if (_exerciseActive)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              '${_activeExerciseType ?? 'WORKOUT'}${_exerciseHr == null ? '' : ' · $_exerciseHr bpm'}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF6EE7B7),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      if (_exerciseActive)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            '${_activeExerciseType ?? 'WORKOUT'}${_exerciseHr == null ? '' : ' · $_exerciseHr bpm'}',
+                        if (_exerciseError != null && !_exerciseActive)
+                          Text(
+                            _exerciseError!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Color(0xFF6EE7B7),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFFCA5A5),
+                              fontSize: 9,
                             ),
                           ),
-                        ),
-                      if (_exerciseError != null && !_exerciseActive)
-                        Text(
-                          _exerciseError!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            fontSize: 9,
+                        if (_deviceToken == null || _deviceToken!.isEmpty)
+                          TextButton(
+                            onPressed: _pairDevice,
+                            child: Text(
+                              uz
+                                  ? 'Qurilmani bog‘lash'
+                                  : 'Привязать устройство',
+                            ),
                           ),
-                        ),
-                      if (_deviceToken == null || _deviceToken!.isEmpty)
-                        TextButton(
-                          onPressed: _pairDevice,
-                          child: Text(
-                            uz ? 'Qurilmani bog‘lash' : 'Привязать устройство',
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                    ],
+                        const SizedBox(height: 8),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -783,6 +770,89 @@ class _Pill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Enrollment form sized for a round ~225dp screen with the keyboard open.
+class _WatchPairingPage extends StatefulWidget {
+  final bool isUzbek;
+
+  const _WatchPairingPage({required this.isUzbek});
+
+  @override
+  State<_WatchPairingPage> createState() => _WatchPairingPageState();
+}
+
+class _WatchPairingPageState extends State<_WatchPairingPage> {
+  final _deviceId = TextEditingController();
+  final _code = TextEditingController();
+
+  @override
+  void dispose() {
+    _deviceId.dispose();
+    _code.dispose();
+    super.dispose();
+  }
+
+  InputDecoration _field(String label) => InputDecoration(
+    labelText: label,
+    isDense: true,
+    counterText: '',
+    labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+    enabledBorder: const UnderlineInputBorder(
+      borderSide: BorderSide(color: Color(0xFF334155)),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final uz = widget.isUzbek;
+    const textStyle = TextStyle(color: Colors.white, fontSize: 12);
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          children: [
+            Text(
+              uz ? 'Qurilmani bog‘lash' : 'Привязать устройство',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            TextField(
+              controller: _deviceId,
+              style: textStyle,
+              autocorrect: false,
+              decoration: _field(uz ? 'Qurilma ID' : 'ID устройства'),
+            ),
+            TextField(
+              controller: _code,
+              style: textStyle,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              autocorrect: false,
+              decoration: _field(uz ? '6 xonali kod' : 'Код из 6 цифр'),
+            ),
+            const SizedBox(height: 10),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, (
+                _deviceId.text.trim(),
+                _code.text.trim(),
+              )),
+              child: Text(uz ? 'Bog‘lash' : 'Привязать'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(uz ? 'Bekor' : 'Отмена'),
+            ),
+          ],
+        ),
       ),
     );
   }

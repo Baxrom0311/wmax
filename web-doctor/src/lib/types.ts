@@ -212,7 +212,9 @@ export const API_BASE = "/api/v1";
 // V2 SOS & CLINICAL DOMAIN EXTENSIONS
 // =====================================================================
 
-export type SosStatus = "raised" | "acknowledged" | "dispatched_103" | "cancelled" | "resolved";
+// Mirrors backend SosEvent.status. "dispatched" records that staff called 103;
+// WMAX itself never calls an ambulance.
+export type SosStatus = "raised" | "acknowledged" | "dispatched" | "resolved" | "false_alarm" | "cancelled" | "legacy";
 export type SosSource = "watch_button" | "phone_app" | "relative_portal" | "auto_critical";
 
 export interface AddressItem {
@@ -325,7 +327,8 @@ export interface SosEventItem {
   device_lat?: number | null;
   device_lon?: number | null;
   dispatched_at?: string | null;
-  dispatch_ref_103?: string | null;
+  dispatch_method?: string | null;
+  dispatch_ref?: string | null;
   acknowledged_at?: string | null;
   resolved_at?: string | null;
   resolution_note?: string | null;

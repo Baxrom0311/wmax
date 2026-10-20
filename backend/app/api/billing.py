@@ -12,6 +12,7 @@ from app.auth.deps import CurrentUser, get_current_principal, require_clinician
 from app.billing.entitlements import PLAN_DETAILS
 from app.billing.service import BillingService
 from app.core.db import get_session
+from app.auth.scope import assert_patient_access
 from app.core.exceptions import ForbiddenException
 from app.models import BillingDay, Invoice, TenantLicence
 from app.services.payment_webhook_service import PaymentWebhookService
@@ -118,6 +119,7 @@ async def get_patient_subscription(
     current_user: CurrentUser = Depends(get_current_principal),
 ) -> dict[str, Any]:
     _assert_patient_billing_scope(current_user, id)
+    await assert_patient_access(session, current_user, id)
     service = BillingService(session)
     return await service.get_subscription(id)
 
@@ -130,6 +132,7 @@ async def checkout_patient_subscription(
     current_user: CurrentUser = Depends(get_current_principal),
 ) -> dict[str, Any]:
     _assert_patient_billing_scope(current_user, id)
+    await assert_patient_access(session, current_user, id)
     service = BillingService(session)
     try:
         return await service.upgrade_patient_plan(

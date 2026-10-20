@@ -243,7 +243,8 @@ class PatientContextBuilder:
         )
         alerts = list(alert_res.scalars().all())
         latest_alert = alerts[0] if alerts else None
-        current_level: AlertLevel = latest_alert.level if latest_alert else "green"
+        # Nothing evaluated yet is unknown, not healthy.
+        current_level: AlertLevel = latest_alert.level if latest_alert else "no_data"
         composite_score = latest_alert.composite_score if latest_alert else 0.0
         triggered_params = latest_alert.triggered_params if latest_alert else {}
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,18 +9,18 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.clinical_scope import TERRITORY_ROLES
 from app.auth.deps import CurrentUser, get_current_principal, require_clinician, require_doctor
 from app.auth.scope import assert_patient_access
 from app.core.db import get_session
 from app.core.exceptions import ForbiddenException, ValidationException
 from app.models import (
-    DeviceAssignment,
-    DeviceCredential,
-    PatientAccess,
+    MemberTerritory,
+    PatientAddress,
     PatientConsent,
     PatientMembership,
-    PatientSubscription,
-    Task,
+    Tenant,
+    TenantMember,
 )
 from app.models.baseline import Baseline
 from app.models.patient import Patient
@@ -29,6 +29,7 @@ from app.schemas.common import AlertLevel
 from app.schemas.health_summary import HealthSummary
 from app.schemas.patient import PatientDetail, PatientSummary
 from app.schemas.task import Task as TaskSchema
+from app.services import lifecycle_service
 from app.services.health_summary_service import HealthSummaryService
 from app.services.patient_relationship_service import PatientRelationshipService
 from app.services.patient_service import PatientService
@@ -44,6 +45,10 @@ class PatientCreateRequest(BaseModel):
     phone: str | None = None
     jshshir: str | None = None
     preferred_lang: str = "uz"
+    # Primary address mahalla decides which nurse/doctor is responsible (B6).
+    mahalla: str | None = Field(None, min_length=1)
+    region: str | None = None
+    district: str | None = None
 
 
 class PatientPatchRequest(BaseModel):
@@ -101,6 +106,19 @@ def _assert_tenant_scope(current_user: CurrentUser, tenant_id: uuid.UUID) -> Non
         raise ForbiddenException("Bu klinika bo'yicha amal bajarish huquqi yo'q")
 
 
+async def _member_territories(session: AsyncSession, account_id: uuid.UUID, tenant_id: uuid.UUID) -> set[str]:
+    rows = await session.execute(
+        select(MemberTerritory.mahalla)
+        .join(TenantMember, TenantMember.id == MemberTerritory.tenant_member_id)
+        .where(
+            TenantMember.account_id == account_id,
+            TenantMember.tenant_id == tenant_id,
+            TenantMember.left_at.is_(None),
+        )
+    )
+    return set(rows.scalars().all())
+
+
 def _resolve_create_tenant(current_user: CurrentUser, tenant_id: uuid.UUID | None) -> uuid.UUID:
     if tenant_id is not None:
         _assert_tenant_scope(current_user, tenant_id)
@@ -132,10 +150,27 @@ async def create_patient(
     current_user: CurrentUser = Depends(require_clinician),
 ) -> dict[str, Any]:
     tenant_id = _resolve_create_tenant(current_user, req.tenant_id)
-    patient_data = req.model_dump(exclude={"tenant_id"}, exclude_none=True)
+    mahalla = req.mahalla.strip() if req.mahalla else None
+    if current_user.tenant_roles.get(tenant_id) in TERRITORY_ROLES:
+        # A territory-scoped creator must place the patient in one of their
+        # own mahallas, otherwise nobody responsible would see the patient.
+        territories = await _member_territories(session, current_user.id, tenant_id)
+        if mahalla is None or mahalla not in territories:
+            raise ValidationException("Bemor manzili sizga biriktirilgan mahallalardan birida bo'lishi kerak")
+    patient_data = req.model_dump(exclude={"tenant_id", "mahalla", "region"}, exclude_none=True)
     patient = Patient(**patient_data)
     session.add(patient)
     await session.flush()
+    if mahalla is not None:
+        tenant = await session.get(Tenant, tenant_id)
+        session.add(PatientAddress(
+            patient_id=patient.id,
+            region=req.region or (tenant.region if tenant else ""),
+            district=req.district or (tenant.district if tenant else ""),
+            mahalla=mahalla,
+            is_primary=True,
+        ))
+        await session.flush()
     await PatientRelationshipService(session).create_membership(
         patient_id=patient.id,
         tenant_id=tenant_id,
@@ -284,48 +319,9 @@ async def mark_deceased(
     patient = await session.get(Patient, id)
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bemor topilmadi")
-    patient.deceased_at = datetime.now(timezone.utc)
-    patient.deceased_marked_by = current_user.id
-    now = patient.deceased_at
-    access_rows = (await session.execute(
-        select(PatientAccess).where(PatientAccess.patient_id == id, PatientAccess.revoked_at.is_(None))
-    )).scalars().all()
-    for access in access_rows:
-        access.revoked_at = now
-    consent_rows = (await session.execute(
-        select(PatientConsent).where(PatientConsent.patient_id == id, PatientConsent.revoked_at.is_(None))
-    )).scalars().all()
-    for consent in consent_rows:
-        consent.revoked_at = now
-    tasks = (await session.execute(
-        select(Task).where(Task.patient_id == id, Task.status.in_(("open", "acknowledged")))
-    )).scalars().all()
-    for task in tasks:
-        task.status = "cancelled"
-    subscriptions = (await session.execute(
-        select(PatientSubscription).where(PatientSubscription.patient_id == id)
-    )).scalars().all()
-    for subscription in subscriptions:
-        subscription.status = "lapsed"
-    assignments = (await session.execute(
-        select(DeviceAssignment).where(
-            DeviceAssignment.patient_id == id,
-            DeviceAssignment.released_at.is_(None),
-        )
-    )).scalars().all()
-    for assignment in assignments:
-        assignment.released_at = now
-        credentials = (await session.execute(
-            select(DeviceCredential).where(
-                DeviceCredential.device_id == assignment.device_id,
-                DeviceCredential.revoked_at.is_(None),
-            )
-        )).scalars().all()
-        for credential in credentials:
-            credential.revoked_at = now
-    await session.flush()
+    outcome = await lifecycle_service.mark_deceased(session, patient, actor_id=current_user.id)
     await session.commit()
-    return _patient_dict(patient)
+    return {**_patient_dict(patient), **outcome}
 
 
 @router.post(
@@ -499,6 +495,7 @@ async def revoke_consent(
     return await PatientRelationshipService(session).revoke_consent(
         patient_id=id,
         consent_id=cid,
+        actor_id=current_user.id,
     )
 
 

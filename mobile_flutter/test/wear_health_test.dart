@@ -209,5 +209,40 @@ void main() {
       // Verify SOS button exists
       expect(find.text('SOS'), findsOneWidget);
     });
+
+    testWidgets('pairing form fits a 450x450 watch with the keyboard open', (
+      WidgetTester tester,
+    ) async {
+      const channel = MethodChannel('wmax/native_health');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'getHealthPlatformStatus') {
+              return {'wear_os_device': true, 'battery_pct': 80};
+            }
+            if (methodCall.method == 'getWearExerciseStatus') {
+              return {'active': false, 'status': 'idle'};
+            }
+            return null;
+          });
+      tester.view.physicalSize = const Size(450, 450);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: WatchRuntimeScreen(isUzbek: true)),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Qurilmani bog‘lash'));
+      await tester.tap(find.text('Qurilmani bog‘lash'));
+      await tester.pumpAndSettle();
+
+      // On-screen keyboard takes over half of the round display.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+      await tester.showKeyboard(find.byType(TextField).first);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(TextField), findsNWidgets(2));
+    });
   });
 }

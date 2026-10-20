@@ -129,6 +129,7 @@ export interface RelativePatientItem {
   diagnosis: string;
   age: number;
   last_reading_at: string | null;
+  deceased_at?: string | null;
 }
 
 export interface PatientDetail extends PatientSummary {
@@ -148,6 +149,8 @@ export interface RelativeView {
   level_word_key: I18nKey;
   composite_score: number;
   last_reading_at: string | null;
+  /** Set during the 90-day family history window after death. */
+  deceased_at?: string | null;
   trend: Trend;
   prognosis: PrognosisInfo;
   problems: ProblemItem[];

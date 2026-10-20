@@ -15,6 +15,11 @@ from app.models.patient import Patient
 from app.models.reading import Reading
 from app.models.task import Task
 from app.repositories.alert_repo import AlertRepository
+from app.repositories.reading_repo import usable_reading_clause
+from app.services.live_event_service import LiveEventService
+from app.services.monitoring_policy import clinical_consent, monitoring_patient_ids
+from app.services.notification_service import queue_alert_notifications
+from app.services.task_routing import retry_unassigned, route_alert_task
 
 logger = logging.getLogger("wmax.workers.escalation")
 OPEN_TASK_STATUSES = ("open", "acknowledged")
@@ -33,6 +38,8 @@ async def check_task_escalations(session: AsyncSession) -> None:
         select(Task)
         .where(
             exists().where(Patient.id == Task.patient_id, Patient.deceased_at.is_(None)),
+            Task.kind == "clinical",
+            clinical_consent(Task.patient_id, Task.tenant_id),
             Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= remind_threshold,
             Task.due_at > now,
@@ -56,6 +63,8 @@ async def check_task_escalations(session: AsyncSession) -> None:
         select(Task)
         .where(
             exists().where(Patient.id == Task.patient_id, Patient.deceased_at.is_(None)),
+            Task.kind == "clinical",
+            clinical_consent(Task.patient_id, Task.tenant_id),
             Task.status.in_(OPEN_TASK_STATUSES),
             Task.due_at <= now,
             Task.escalated_at.is_(None),
@@ -78,46 +87,53 @@ async def check_task_escalations(session: AsyncSession) -> None:
 
 
 async def check_patient_silence(session: AsyncSession) -> None:
-    """Scans all active patients to ensure that missing readings (>=45 min) raise no_data alerts."""
+    """Raise one no_data alert (and a technical check task) when a monitored
+    patient's last *usable* reading is older than the silence threshold."""
     now = datetime.now(timezone.utc)
-    stmt_patients = select(Patient).where(Patient.deceased_at.is_(None))
-    res_p = await session.execute(stmt_patients)
-    patients = res_p.scalars().all()
+    stmt_patients = select(Patient).where(Patient.id.in_(monitoring_patient_ids()))
+    patients = (await session.execute(stmt_patients)).scalars().all()
 
     alert_repo = AlertRepository(session)
 
     for patient in patients:
-        stmt_reading = (
-            select(Reading)
-            .where(Reading.patient_id == patient.id)
+        last_reading_ts = (await session.execute(
+            select(Reading.window_start)
+            .where(Reading.patient_id == patient.id, usable_reading_clause())
             .order_by(Reading.window_start.desc())
             .limit(1)
+        )).scalar_one_or_none()
+        if not timewin.is_no_data(last_reading_ts, now):
+            continue
+
+        # Only the transition into silence is an event. Repeating it every
+        # cycle would re-notify the family about the same silent watch.
+        latest_alert = await alert_repo.get_latest(patient.id)
+        if latest_alert is not None and latest_alert.level == "no_data":
+            continue
+        logger.info("Patient %s has been silent since %s. Logging no_data alert.", patient.id, last_reading_ts)
+        alert = await alert_repo.insert_idempotent(
+            patient_id=patient.id,
+            ts=now,
+            result=AlertResult(
+                level="no_data",
+                composite_score=0.0,
+                triggered_params={},
+                reason="silence_no_data",
+            ),
         )
-        res_r = await session.execute(stmt_reading)
-        latest_reading = res_r.scalar_one_or_none()
+        if alert is not None:
+            await LiveEventService(session).publish_alert(alert)
+            await route_alert_task(session, alert, "technical")
+            await queue_alert_notifications(session, alert, patient)
+            alerts_total.labels(level="no_data").inc()
+    await session.commit()
 
-        last_reading_ts = latest_reading.window_start if latest_reading else None
 
-        if timewin.is_no_data(last_reading_ts, now):
-            # Check latest alert to avoid duplicate alerts within 15 minutes
-            latest_alert = await alert_repo.get_latest(patient.id)
-            if not latest_alert or (now - latest_alert.ts) > timedelta(minutes=15) or latest_alert.level != "no_data":
-                logger.info(
-                    "Patient %s has been silent since %s. Logging no_data alert.",
-                    patient.id,
-                    last_reading_ts,
-                )
-                await alert_repo.insert_idempotent(
-                    patient_id=patient.id,
-                    ts=now,
-                    result=AlertResult(
-                        level="no_data",
-                        composite_score=0.0,
-                        triggered_params={},
-                        reason="silence_no_data",
-                    ),
-                )
-                alerts_total.labels(level="no_data").inc()
+async def retry_unassigned_alerts(session: AsyncSession) -> None:
+    routed = await retry_unassigned(session)
+    if routed:
+        logger.info("Routed %s previously unassigned alerts", routed)
+    await session.commit()
 
 
 async def run_escalation_worker(interval_seconds: int = 60) -> None:
@@ -128,6 +144,7 @@ async def run_escalation_worker(interval_seconds: int = 60) -> None:
             async with get_db_context() as session:
                 await check_task_escalations(session)
                 await check_patient_silence(session)
+                await retry_unassigned_alerts(session)
         except asyncio.CancelledError:
             logger.info("Escalation worker received cancellation. Shutting down gracefully.")
             break

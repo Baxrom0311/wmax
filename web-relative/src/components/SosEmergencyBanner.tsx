@@ -6,23 +6,24 @@ import { t } from "../i18n";
 interface SosEmergencyBannerProps {
   patientName: string;
   relationship?: string;
-  spo2?: number;
-  hr?: number;
-  doctorPhone?: string;
-  nursePhone?: string;
+  // Last measured values; null when unknown. Never substitute example values.
+  spo2: number | null;
+  hr: number | null;
+  doctorPhone?: string | null;
   lang: Lang;
 }
 
 export const SosEmergencyBanner: React.FC<SosEmergencyBannerProps> = ({
   patientName,
   relationship = "Yaqiningiz",
-  spo2 = 85,
-  hr = 128,
-  doctorPhone = "+998901234567",
-  nursePhone = "+998901234568",
+  spo2,
+  hr,
+  doctorPhone,
   lang,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const spo2Text = spo2 == null ? "—" : `${spo2}%`;
+  const hrText = hr == null ? "—" : `${hr} bpm`;
 
   return (
     <>
@@ -42,7 +43,7 @@ export const SosEmergencyBanner: React.FC<SosEmergencyBannerProps> = ({
               </span>
             </div>
             <p className="text-[11.5px] text-red-100 font-medium leading-tight truncate">
-              {t("sos.hypoxia_tachy", lang, { spo2, hr })}
+              {t("sos.vitals_line", lang, { spo2: spo2Text, hr: hrText })}
             </p>
           </div>
         </div>
@@ -86,13 +87,13 @@ export const SosEmergencyBanner: React.FC<SosEmergencyBannerProps> = ({
             <div className="bg-red-50 border border-red-200/80 rounded-2xl p-3 flex justify-around text-center">
               <div>
                 <span className="text-[10px] font-bold text-red-700 uppercase">SpO2</span>
-                <p className="text-[20px] font-black text-red-600 leading-tight">{spo2}%</p>
+                <p className="text-[20px] font-black text-red-600 leading-tight">{spo2Text}</p>
                 <span className="text-[10px] text-red-600 font-bold">{t("vitals.risk", lang)}</span>
               </div>
               <div className="w-px bg-red-200" />
               <div>
                 <span className="text-[10px] font-bold text-red-700 uppercase">{t("metrics.tab_hr", lang)}</span>
-                <p className="text-[20px] font-black text-red-600 leading-tight">{hr} bpm</p>
+                <p className="text-[20px] font-black text-red-600 leading-tight">{hrText}</p>
                 <span className="text-[10px] text-red-600 font-bold">{t("vitals.attention", lang)}</span>
               </div>
             </div>
@@ -106,8 +107,8 @@ export const SosEmergencyBanner: React.FC<SosEmergencyBannerProps> = ({
               <span>{t("sos.call_103", lang)}</span>
             </a>
 
-            {/* Doctor & Nurse Direct Calls */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Direct call only to a number the clinic actually registered */}
+            {doctorPhone && (
               <a
                 href={`tel:${doctorPhone}`}
                 className="p-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold text-[12px] flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors"
@@ -115,14 +116,7 @@ export const SosEmergencyBanner: React.FC<SosEmergencyBannerProps> = ({
                 <Phone size={13} />
                 <span>{t("sos.call_doctor", lang)}</span>
               </a>
-              <a
-                href={`tel:${nursePhone}`}
-                className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-bold text-[12px] flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
-              >
-                <Phone size={13} />
-                <span>{t("sos.call_nurse", lang)}</span>
-              </a>
-            </div>
+            )}
 
             {/* First Aid Instructions */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[12px] text-slate-600 leading-relaxed flex flex-col gap-1.5">

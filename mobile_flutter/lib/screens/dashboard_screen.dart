@@ -5,7 +5,6 @@ import '../services/session_service.dart';
 import '../api/api_service.dart';
 import '../widgets/vitals_card.dart';
 import 'health_screen.dart';
-import '../widgets/watch_sheet.dart';
 import '../widgets/language_selector.dart';
 import '../services/health_auto_sync.dart';
 import '../services/native_health_bridge.dart';
@@ -146,6 +145,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
           }
         });
       }
+    } on SessionExpiredException {
+      _onSessionExpired();
     } catch (_) {
       if (mounted && !silent) {
         setState(() {
@@ -159,6 +160,23 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     }
   }
 
+  bool _sessionExpiredShown = false;
+
+  void _onSessionExpired() {
+    if (!mounted || _sessionExpiredShown) return;
+    _sessionExpiredShown = true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.isUzbek
+              ? "Sessiya muddati tugadi. Iltimos, qayta kiring."
+              : "Сессия истекла. Пожалуйста, войдите снова.",
+        ),
+      ),
+    );
+    widget.onLogout();
+  }
+
   void _onSelectPatient(int index) {
     if (_selectedPatientIndex == index) return;
     setState(() {
@@ -167,34 +185,12 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     _fetchCurrentPatientData();
   }
 
-  void _openWatchSimulatorModal() {
-    final p = currentPatient;
-    final view = _currentPatientView;
-    final hr = (view?.vitals.hr ?? 76).toInt();
-    final spo2 = (view?.vitals.spo2 ?? 97).toInt();
+  // The watch tab shows only what the real watch reported.
+  void _openDevicesTab() => setState(() => _currentTabIndex = 2);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => WearOsWatchSheet(
-        isUzbek: widget.isUzbek,
-        patientName: p.fullName,
-        currentHr: hr,
-        currentSpo2: spo2,
-        onTriggerSos: (source) => _triggerSos("Soatdan bosilgan SOS"),
-      ),
-    );
-  }
-
-  void _triggerSos([String? reason]) async {
+  void _triggerSos() async {
     final p = currentPatient;
-    final success = await ApiService.triggerSos(
-      patientId: p.id,
-      lat: _currentPatientView?.lat,
-      lon: _currentPatientView?.lon,
-      reason: reason ?? "Qarovchi mobil ilovasidan SOS signali berildi",
-    );
+    final success = await ApiService.triggerSos(patientId: p.id);
 
     if (success) {
       setState(() {
@@ -202,9 +198,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
           "titleUz": "🚨 Shoshilinch SOS chaqiruvi!",
           "titleRu": "🚨 Экстренный SOS вызов!",
           "descUz":
-              "${p.fullName} uchun 103 dispetcher va navbatchi shifokorga signal uzatildi.",
+              "${p.fullName} uchun SOS saqlandi; oila va mas'ul klinika xodimlariga xabar yuboriladi. 103 avtomatik chaqirilmaydi.",
           "descRu":
-              "Сигнал для ${p.fullName} передан в диспетчерскую 103 и дежурному врачу.",
+              "SOS для ${p.fullName} сохранён; семья и ответственный персонал клиники будут уведомлены. 103 автоматически не вызывается.",
           "time": "Hozirgina",
           "isCritical": true,
         });
@@ -215,8 +211,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
           SnackBar(
             content: Text(
               widget.isUzbek
-                  ? "🚨 SOS qabul qilindi! Shifokor va 103 ga yetkazildi."
-                  : "🚨 SOS принят! Сигнал передан врачу и 103.",
+                  ? "🚨 SOS qabul qilindi. Xabar yuborilmoqda — zarur bo'lsa 103 ga o'zingiz qo'ng'iroq qiling."
+                  : "🚨 SOS принят. Уведомления отправляются — при необходимости позвоните в 103 сами.",
             ),
             backgroundColor: const Color(0xFFDC2626),
             duration: const Duration(seconds: 4),
@@ -339,7 +335,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
             onPressed: () => _fetchCurrentPatientData(),
           ),
           InkWell(
-            onTap: _openWatchSimulatorModal,
+            onTap: _openDevicesTab,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -477,6 +473,24 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     );
   }
 
+  /// Plain measurement wording against general ranges (D1: no diagnosis).
+  /// A missing value is reported as missing, never as normal.
+  String _rangeStatus(
+    double? value, {
+    double? low,
+    double? high,
+    required bool uz,
+  }) {
+    if (value == null) return uz ? "Ma'lumot yo'q" : "Нет данных";
+    if (high != null && value > high) {
+      return uz ? "Odatiydan yuqori" : "Выше обычного";
+    }
+    if (low != null && value < low) {
+      return uz ? "Odatiydan past" : "Ниже обычного";
+    }
+    return uz ? "Odatiy oraliqda" : "В обычном диапазоне";
+  }
+
   Widget _buildMonitoringView(bool uz) {
     if (_isLoadingView && _currentPatientView == null) {
       return const Center(
@@ -505,30 +519,32 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
         badgeBorder = const Color(0xFFFECACA);
         badgeText = const Color(0xFFB91C1C);
         badgeTitle = uz
-            ? "I Daraja (Shoshilinch dekompensatsiya)"
-            : "I Уровень (Острая декомпенсация)";
+            ? "Qizil signal: ko'rsatkichlar shaxsiy normadan sezilarli farq qilmoqda"
+            : "Красный сигнал: показатели заметно отличаются от личной нормы";
         break;
       case AlertLevel.amber:
         badgeBg = const Color(0xFFFFFBEB);
         badgeBorder = const Color(0xFFFDE68A);
         badgeText = const Color(0xFFB45309);
         badgeTitle = uz
-            ? "II Daraja (Klinik kuzatuv)"
-            : "II Уровень (Наблюдение)";
+            ? "Sariq signal: ko'rsatkichlarda o'zgarish kuzatilmoqda"
+            : "Жёлтый сигнал: в показателях есть изменения";
         break;
       case AlertLevel.green:
         badgeBg = const Color(0xFFF0FDF4);
         badgeBorder = const Color(0xFFBBF7D0);
         badgeText = const Color(0xFF166534);
         badgeTitle = uz
-            ? "III Daraja (Barqaror remissiya)"
-            : "III Уровень (Стабильно)";
+            ? "Ko'rsatkichlar shaxsiy norma doirasida"
+            : "Показатели в пределах личной нормы";
         break;
       case AlertLevel.noData:
         badgeBg = const Color(0xFFF8FAFC);
         badgeBorder = const Color(0xFFE2E8F0);
         badgeText = const Color(0xFF64748B);
-        badgeTitle = uz ? "Telemetriya uzilgan" : "Нет связи с датчиком";
+        badgeTitle = uz
+            ? "Ma'lumot yo'q — holatni baholab bo'lmaydi"
+            : "Нет данных — состояние оценить нельзя";
         break;
     }
 
@@ -614,27 +630,6 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                     fontSize: 12.5,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
-                      color: Color(0xFF94A3B8),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        view.address,
-                        style: const TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 11,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -655,9 +650,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                 unit: 'bpm',
                 icon: Icons.favorite_rounded,
                 color: const Color(0xFFEF4444),
-                status: (vitals.hr != null && vitals.hr! > 100)
-                    ? (uz ? 'Taxikardiya' : 'Тахикардия')
-                    : (uz ? 'Normada (60-90)' : 'В норме'),
+                status: _rangeStatus(vitals.hr, low: 55, high: 100, uz: uz),
                 isAlert:
                     vitals.hr != null && (vitals.hr! > 100 || vitals.hr! < 55),
               ),
@@ -667,9 +660,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                 unit: '%',
                 icon: Icons.air_rounded,
                 color: const Color(0xFF0284C7),
-                status: (vitals.spo2 != null && vitals.spo2! < 92)
-                    ? (uz ? 'Past (Gipoksemiya)' : 'Низкий!')
-                    : (uz ? 'Normada (>95%)' : 'В норме'),
+                status: _rangeStatus(vitals.spo2, low: 92, uz: uz),
                 isAlert: vitals.spo2 != null && vitals.spo2! < 92,
               ),
               MetricCard(
@@ -680,9 +671,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                 unit: '°C',
                 icon: Icons.thermostat_rounded,
                 color: const Color(0xFFF59E0B),
-                status: vitals.temp != null
-                    ? '${vitals.temp!.toStringAsFixed(1)} °C'
-                    : '--',
+                status: _rangeStatus(vitals.temp, high: 37.5, uz: uz),
                 isAlert: vitals.temp != null && vitals.temp! > 37.5,
               ),
               MetricCard(
@@ -691,9 +680,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                 unit: uz ? 'm/daq' : 'в/мин',
                 icon: Icons.waves_rounded,
                 color: const Color(0xFF10B981),
-                status: (vitals.rr != null && vitals.rr! > 22)
-                    ? (uz ? 'Tezlashgan' : 'Учащенное')
-                    : (uz ? 'Normada (14-18)' : 'В норме'),
+                status: _rangeStatus(vitals.rr, high: 22, uz: uz),
                 isAlert: vitals.rr != null && vitals.rr! > 22,
               ),
             ],
@@ -742,16 +729,24 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                       decoration: BoxDecoration(
                         color: view.prognosis.riskLevel == 'high'
                             ? const Color(0xFFFEE2E2)
+                            : view.prognosis.riskLevel == 'unknown'
+                            ? const Color(0xFFF1F5F9)
                             : const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "${uz ? 'Signal' : 'Сигнал'}: ${view.prognosis.riskLevel}",
+                        view.prognosis.riskLevel == 'unknown'
+                            ? (uz
+                                  ? "Ma'lumot yetarli emas"
+                                  : "Недостаточно данных")
+                            : "${uz ? 'Signal' : 'Сигнал'}: ${view.prognosis.riskLevel}",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: view.prognosis.riskLevel == 'high'
                               ? const Color(0xFFDC2626)
+                              : view.prognosis.riskLevel == 'unknown'
+                              ? const Color(0xFF64748B)
                               : const Color(0xFF16A34A),
                         ),
                       ),
@@ -1020,15 +1015,14 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
               Expanded(
                 flex: 3,
                 child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _triggerSos("Qarovchi tugmasi orqali tezkor SOS"),
+                  onPressed: () => _triggerSos(),
                   icon: const Icon(
                     Icons.sos_rounded,
                     color: Colors.white,
                     size: 22,
                   ),
                   label: Text(
-                    uz ? "TEZKOR SOS (103)" : "ЭКСТРЕННЫЙ SOS",
+                    uz ? "TEZKOR SOS" : "ЭКСТРЕННЫЙ SOS",
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -1061,7 +1055,10 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              doc?.name ?? "Dr. Alimov Bahrom",
+                              doc?.name ??
+                                  (uz
+                                      ? "Klinika kontakti kiritilmagan"
+                                      : "Контакт клиники не указан"),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -1069,7 +1066,10 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              doc?.phone ?? "+998 90 123 45 67",
+                              doc?.phone ??
+                                  (uz
+                                      ? "Shoshilinch holatda 103 ga qo'ng'iroq qiling."
+                                      : "В экстренном случае звоните 103."),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF0284C7),
@@ -1082,13 +1082,15 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                             onPressed: () => Navigator.pop(ctx),
                             child: Text(uz ? "Yopish" : "Закрыть"),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              makePhoneCall(doc?.phone ?? '+998901234567');
-                            },
-                            child: Text(uz ? "Qo'ng'iroq" : "Позвонить"),
-                          ),
+                          // Only a number the clinic registered, never a placeholder.
+                          if (doc?.phone != null)
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                makePhoneCall(doc!.phone);
+                              },
+                              child: Text(uz ? "Qo'ng'iroq" : "Позвонить"),
+                            ),
                         ],
                       ),
                     );
@@ -1122,12 +1124,23 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
     );
   }
 
+  String _formatLastSeen(DateTime at, bool uz) {
+    final local = at.toLocal();
+    final minutes = DateTime.now().difference(local).inMinutes;
+    if (minutes < 1) return uz ? "Hozirgina" : "Только что";
+    if (minutes < 60) {
+      return uz ? "$minutes daqiqa oldin" : "$minutes мин назад";
+    }
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return "${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')} $hh:$mm";
+  }
+
   Widget _buildDevicesView(bool uz) {
     final p = currentPatient;
     final view =
         _currentPatientView ??
         ApiService.generateFallbackView(p.id, p.fullName);
-    final deviceModel = view.deviceModel;
     final battery = view.deviceBattery;
     final lastReadingAt = view.lastReadingAt;
     final isOnline =
@@ -1167,7 +1180,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          deviceModel,
+                          uz ? "Soat" : "Часы",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -1177,8 +1190,8 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                         Text(
                           isOnline
                               ? (uz
-                                    ? "Faol • Flutter soat telemetriyasi"
-                                    : "Активен • Flutter телеметрия часов")
+                                    ? "Faol • ma'lumot kelmoqda"
+                                    : "Активны • данные поступают")
                               : (uz
                                     ? "Telemetriya uzilgan"
                                     : "Телеметрия отключена"),
@@ -1212,7 +1225,7 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          "$battery%",
+                          battery == null ? "—" : "$battery%",
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -1255,9 +1268,14 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                       color: Color(0xFF64748B),
                     ),
                   ),
-                  const Text(
-                    "Bugun, bir necha soniya oldin",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF0284C7)),
+                  Text(
+                    lastReadingAt == null
+                        ? (uz ? "Ma'lumot yo'q" : "Нет данных")
+                        : _formatLastSeen(lastReadingAt, uz),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF0284C7),
+                    ),
                   ),
                 ],
               ),
@@ -1268,22 +1286,6 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
 
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _openWatchSimulatorModal,
-                icon: const Icon(Icons.watch_rounded, size: 18),
-                label: Text(uz ? "Flutter soat" : "Flutter часы"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0284C7),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => _fetchCurrentPatientData(),
@@ -1491,16 +1493,17 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _currentPatientView?.doctor?.name ?? "Dr. Alimov Bahrom",
+                      _currentPatientView?.doctor?.name ??
+                          (uz
+                              ? "Klinika kontakti kiritilmagan"
+                              : "Контакт клиники не указан"),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13.5,
                       ),
                     ),
                     Text(
-                      uz
-                          ? "Kardiolog • ${_currentPatientView?.doctor?.phone ?? '+998 90 123 45 67'}"
-                          : "Кардиолог • ${_currentPatientView?.doctor?.phone ?? '+998 90 123 45 67'}",
+                      _currentPatientView?.doctor?.phone ?? "—",
                       style: const TextStyle(
                         fontSize: 11.5,
                         color: Color(0xFF64748B),
@@ -1510,11 +1513,9 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  final ph =
-                      _currentPatientView?.doctor?.phone ?? "+998901234567";
-                  makePhoneCall(ph);
-                },
+                onPressed: _currentPatientView?.doctor?.phone == null
+                    ? null
+                    : () => makePhoneCall(_currentPatientView!.doctor!.phone),
                 icon: const Icon(
                   Icons.phone_rounded,
                   color: Color(0xFF0284C7),

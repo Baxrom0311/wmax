@@ -58,12 +58,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Soat o'lchaydi",
       step1Desc: "Galaxy Watch 5 har 5 daqiqada yurak urishi, qondagi kislorod va harakatni tahlil qiladi.",
       step2Title: "2. Shifokor kuzatadi",
-      step2Desc: "Kardiolog stansiyasida AI xavfni 48 soat oldin aniqlaydi va zarur bo'lsa dori dozasini to'g'irlaydi.",
+      step2Desc: "Shifokor panelida bemorning shaxsiy normasidan og'ishlar ko'rinadi; klinik qaror shifokorda qoladi.",
       step3Title: "3. Oila xotirjam",
       step3Desc: "Farzandlar o'z telefonlarida ota-onasining tinch va barqaror ekanligini ko'rib turadi.",
 
       plansTitle: "Shakllantirilgan Tariflar",
-      plansSub: "Oila a'zolari va tibbiyot markazlari uchun qulay yechimlar",
+      plansSub: "Oila a'zolari va tibbiyot markazlari uchun qulay yechimlar. SOS tugmasi va qizil signal xabari obunadan qat'i nazar har doim ishlaydi; 103 avtomatik chaqirilmaydi.",
       plan1Title: "Oila / Oddiy",
       plan1Price: "190,000 so'm",
       plan1Per: "/ oyiga",
@@ -79,8 +79,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Galaxy Watch 5 soati taqdim etiladi",
         "Shaxsiy kardiolog doimiy nazorati",
-        "Tez tibbiy yordam (103) avtomatik chaqiruv",
-        "AI erta dekompensatsiya prognozi",
+        "Shifokor bilan kelishilgan kuzatuv rejasi",
+        "O‘lchovlar va kuzatilgan og‘ishlar xulosasi",
       ],
       plan3Title: "Klinikalar uchun",
       plan3Price: "Kelishuv asosida",
@@ -136,12 +136,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Часы измеряют",
       step1Desc: "Galaxy Watch 5 каждые 5 минут оценивает пульс, кислород в крови и двигательную активность.",
       step2Title: "2. Врач наблюдает",
-      step2Desc: "В рабочей станции кардиолога ИИ выявляет риски за 48 часов до кризиса.",
+      step2Desc: "В рабочей станции врача видны отклонения от личной нормы пациента; клиническое решение принимает врач.",
       step3Title: "3. Семья спокойна",
       step3Desc: "Дети в мобильном приложении видят статус 'Все в порядке' и спокойны за родителей.",
 
       plansTitle: "Тарифные Планы",
-      plansSub: "Удобные решения для семей и медицинских учреждений",
+      plansSub: "Удобные решения для семей и медицинских учреждений. Кнопка SOS и красные сигналы работают всегда, независимо от подписки; 103 автоматически не вызывается.",
       plan1Title: "Семья (Базовый)",
       plan1Price: "190 000 сум",
       plan1Per: "/ месяц",
@@ -157,8 +157,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Предоставляются часы Galaxy Watch 5",
         "Персональный врач-кардиолог",
-        "Автовызов скорой помощи (103)",
-        "ИИ прогноз декомпенсации за 48 часов",
+        "План наблюдения, согласованный с врачом",
+        "Сводка измерений и отклонений",
       ],
       plan3Title: "Для Клиник",
       plan3Price: "По договору",
@@ -214,12 +214,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       step1Title: "1. Watch Measures",
       step1Desc: "Galaxy Watch 5 reads heart rate, oxygen saturation, and activity every 5 minutes.",
       step2Title: "2. Clinician Observes",
-      step2Desc: "Our AI engine predicts decompensation up to 48 hours in advance for early intervention.",
+      step2Desc: "The clinician sees deviations from the patient's personal baseline; clinical decisions stay with the clinician.",
       step3Title: "3. Family Reassured",
       step3Desc: "Children see real-time 'All Good' status and can check on their parents anytime.",
 
       plansTitle: "Membership Plans",
-      plansSub: "Tailored for families and healthcare institutions",
+      plansSub: "Tailored for families and healthcare institutions. The SOS button and red alerts always work regardless of subscription; 103 is never called automatically.",
       plan1Title: "Family (Standard)",
       plan1Price: "190,000 UZS",
       plan1Per: "/ month",
@@ -235,8 +235,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       plan2Feat: [
         "Galaxy Watch 5 device included",
         "Dedicated cardiologist supervision",
-        "Ambulance (103) dispatch coordination",
-        "AI early decompensation prediction",
+        "Monitoring plan agreed with the clinician",
+        "Summary of measurements and deviations",
       ],
       plan3Title: "For Clinics",
       plan3Price: "Custom quote",
@@ -278,8 +278,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       spo2: '98%',
       pressure: '120 / 80',
       temp: '36.6 °C',
-      doctorAction: lang === 'uz' ? "Doimiy avtomatik monitoring davom etmoqda. Shifokor aralashuvi talab etilmaydi." : lang === 'ru' ? "Мониторинг в норме. Вмешательство врача не требуется." : "Routine telemetry active. No clinical intervention needed.",
-      familyNotice: lang === 'uz' ? "Otangiz o'zini yaxshi his qilmoqda. Xavf yo'q." : lang === 'ru' ? "Родители чувствуют себя хорошо. Рисков нет." : "Your parent is feeling well. All vitals normal."
+      doctorAction: lang === 'uz' ? "Monitoring davom etmoqda. Shaxsiy normadan og'ish qayd etilmadi." : lang === 'ru' ? "Мониторинг продолжается. Отклонений от личной нормы не зафиксировано." : "Monitoring active. No deviation from the personal baseline recorded.",
+      familyNotice: lang === 'uz' ? "Ko'rsatkichlar shaxsiy norma doirasida." : lang === 'ru' ? "Показатели в пределах личной нормы." : "Readings are within the personal baseline."
     },
     amber: {
       image: '/images/3d/watch-amber.webp',
@@ -289,8 +289,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       spo2: '93%',
       pressure: '145 / 92',
       temp: '37.2 °C',
-      doctorAction: lang === 'uz' ? "Kardiologga bildirishnoma yuborildi. Dori ichish jadvali tekshirilmoqda." : lang === 'ru' ? "Уведомление врачу отправлено. Проверяется график приема лекарств." : "Cardiologist notified. Medication adherence being verified.",
-      familyNotice: lang === 'uz' ? "Puls biroz ko'tarilgan. Shifokor xabardor qilindi." : lang === 'ru' ? "Пульс немного повышен. Врач уже в курсе." : "Slight pulse elevation. Doctor already notified."
+      doctorAction: lang === 'uz' ? "Mas'ul hamshira navbatiga tekshirish vazifasi tushadi." : lang === 'ru' ? "Ответственной медсестре назначается задача проверки." : "A check task is assigned to the responsible nurse.",
+      familyNotice: lang === 'uz' ? "Puls shaxsiy normadan biroz yuqori. Bemor bilan bog'lanib ahvolini so'rang." : lang === 'ru' ? "Пульс немного выше личной нормы. Свяжитесь с пациентом." : "Pulse slightly above the personal baseline. Check in with your parent."
     },
     red: {
       image: '/images/3d/watch-red.webp',
@@ -300,8 +300,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       spo2: '86%',
       pressure: '180 / 110',
       temp: '38.1 °C',
-      doctorAction: lang === 'uz' ? "Reanimatolog navbatchiligiga qizil signal uzatildi. Tez yordam (103) chaqiruvga tayyor." : lang === 'ru' ? "Красная тревога дежурному реаниматологу. Скорая 103 готова к выезду." : "Red alert sent to ICU staff. 103 ambulance standby triggered.",
-      familyNotice: lang === 'uz' ? "Bemorga zudlik bilan shifokor jalb etildi. Telefon orqali bog'lanilmoqda." : lang === 'ru' ? "Врач срочно подключается. Идет вызов пациенту." : "Immediate doctor intervention. Contacting patient now."
+      doctorAction: lang === 'uz' ? "Demo: jiddiy og‘ish qayd etildi. Zarur bo‘lsa 103 ga o‘zingiz qo‘ng‘iroq qiling." : lang === 'ru' ? "Демо: обнаружено значительное отклонение. При необходимости позвоните 103." : "Demo: a significant deviation was recorded. Call 103 yourself if needed.",
+      familyNotice: lang === 'uz' ? "Demo: oilaga va mas'ul hamshiraga xabar yuboriladi. Bemor bilan darhol bog'laning." : lang === 'ru' ? "Демо: семье и ответственной медсестре отправляется сообщение. Срочно свяжитесь с пациентом." : "Demo: the family and the responsible nurse are messaged. Contact your parent now."
     }
   }[simState];
 

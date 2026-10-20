@@ -21,7 +21,7 @@ export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }
         if (isMounted) {
           // Filter raised or uncompleted events
           const unresolved = events.filter(
-            (e) => e.status === "raised" || e.status === "acknowledged" || e.status === "dispatched_103"
+            (e) => e.status === "raised" || e.status === "acknowledged" || e.status === "dispatched"
           );
           setActiveEvents(unresolved);
           setConnectionLost(false);
@@ -77,7 +77,7 @@ export const SosBanner: React.FC<SosBannerProps> = ({ onOpenDispatcher, isDemo }
             )}
           </div>
           <span className="sos-banner-sub">
-            Bemor zudlik bilan tibbiy yordam va 103 dispetcherlik aralashuvini talab qiladi.
+            Bemor SOS bosdi. WMAX 103 ni avtomatik chaqirmaydi: zarur bo'lsa qo'ng'iroq qiling va dispetcherda qayd eting.
           </span>
         </div>
       </div>

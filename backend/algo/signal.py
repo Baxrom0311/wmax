@@ -113,6 +113,15 @@ def is_auto_critical_sos(
     return all(is_auto_critical_reading(r) for r in recent_readings[:2])
 
 
+def has_measurements(reading: ReadingVec) -> bool:
+    """True when at least one signal that the alert score uses is present."""
+    return any(getattr(reading, param, None) is not None for param in WEIGHTS)
+
+
+def is_usable_window(reading: ReadingVec) -> bool:
+    return bool(reading.worn) and has_measurements(reading)
+
+
 def evaluate_alert(
     reading: ReadingVec,
     baselines: list[BaselineEntry],
@@ -128,6 +137,17 @@ def evaluate_alert(
             composite_score=0.0,
             triggered_params={},
             reason="not_worn",
+            anomaly_score=anomaly_score,
+        )
+
+    # A window with no physiological values says nothing about the patient;
+    # it must never be scored as green.
+    if not has_measurements(reading):
+        return AlertResult(
+            level="no_data",
+            composite_score=0.0,
+            triggered_params={},
+            reason="missing_measurements",
             anomaly_score=anomaly_score,
         )
 

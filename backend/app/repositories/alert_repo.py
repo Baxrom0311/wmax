@@ -39,8 +39,13 @@ class AlertRepository:
         return res.scalars().all()
 
     async def insert_idempotent(
-        self, patient_id: uuid.UUID, ts: datetime, result: AlertResult
+        self,
+        patient_id: uuid.UUID,
+        ts: datetime,
+        result: AlertResult,
+        data_quality: float | None = None,
     ) -> Alert | None:
+        """Insert once per (patient, ts); returns None when it already existed."""
         stmt = (
             insert(Alert)
             .values(
@@ -51,9 +56,12 @@ class AlertRepository:
                 triggered_params=result.triggered_params,
                 anomaly_score=result.anomaly_score,
                 reason=result.reason,
+                data_quality=data_quality,
             )
             .on_conflict_do_nothing(index_elements=["patient_id", "ts"])
+            .returning(Alert.id)
         )
-        await self.session.execute(stmt)
-        await self.session.flush()
-        return await self.get_latest(patient_id)
+        alert_id = (await self.session.execute(stmt)).scalar_one_or_none()
+        if alert_id is None:
+            return None
+        return await self.session.get(Alert, alert_id)

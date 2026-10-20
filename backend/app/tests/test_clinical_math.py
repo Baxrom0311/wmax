@@ -440,6 +440,6 @@ def test_alert_repo_signature_matches_pipeline_call():
     from app.repositories.alert_repo import AlertRepository
 
     params = inspect.signature(AlertRepository.insert_idempotent).parameters
-    assert set(params) == {"self", "patient_id", "ts", "result"}, (
+    assert set(params) == {"self", "patient_id", "ts", "result", "data_quality"}, (
         "call sites pass result=AlertResult(...); keep the signature in sync"
     )

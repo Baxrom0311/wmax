@@ -7,23 +7,25 @@ from collections.abc import Sequence
 from itertools import pairwise
 from typing import Any
 
-from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
 from algo.baseline import compute_baselines, compute_zscores
-from algo.signal import evaluate_alert
+from algo.signal import evaluate_alert, is_usable_window
 from algo_interface import AlertResult, BaselineEntry
 from app.core.metrics import alerts_total, readings_ingested_total
-from app.models.schema import PatientMembership, TenantMember
+from app.domain.quality import assess as assess_quality
+from app.domain.quality import task_kind
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reading_repo import ReadingRepository
-from app.repositories.task_repo import TaskRepository
 from app.schemas.reading import IngestAck, IngestBatch, IngestResult
 from app.services.compat import to_reading_vec
 from app.services.live_event_service import LiveEventService
+from app.services.monitoring_policy import monitoring_allowed
+from app.services.notification_service import queue_alert_notifications
+from app.services.task_routing import route_alert_task
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,6 @@ class PipelineService:
         self.reading_repo = ReadingRepository(session)
         self.baseline_repo = BaselineRepository(session)
         self.alert_repo = AlertRepository(session)
-        self.task_repo = TaskRepository(session)
 
     async def ingest_batch(
         self, batch: IngestBatch, device_id: uuid.UUID | None = None
@@ -79,6 +80,7 @@ class PipelineService:
         orphaned: list[datetime] = []
         rejected: list[IngestAck] = []
         patient_ids: set[uuid.UUID] = set()
+        allowed_by_patient: dict[uuid.UUID, bool] = {}
 
         for reading in batch.readings:
             window_start = reading.window_start
@@ -119,6 +121,13 @@ class PipelineService:
                     target.append(window_start)
                 else:
                     rejected.append(IngestAck(window_start=window_start, reason="device_required"))
+                continue
+
+            if patient_id not in allowed_by_patient:
+                allowed_by_patient[patient_id] = await monitoring_allowed(self.session, patient_id)
+            if not allowed_by_patient[patient_id]:
+                # B5/J2: no consented clinic or caregiver (or deceased) — not stored.
+                rejected.append(IngestAck(window_start=window_start, reason="consent_missing_or_revoked"))
                 continue
 
             clock_offset_ms = None
@@ -202,23 +211,33 @@ class PipelineService:
         now = datetime.now(timezone.utc)
         since = now - timedelta(days=7)
 
-        # Read last 7 days of readings
+        # Read last 7 days of readings. Only worn windows that carry at least
+        # one measurement are evidence; empty or unworn windows never make a
+        # patient look healthy and never refresh the "last seen" time.
         readings = await self.reading_repo.get_readings_since(patient_id, since)
-        if not readings:
+        all_vecs = [to_reading_vec(reading) for reading in readings]
+        usable_index = [i for i, vec in enumerate(all_vecs) if is_usable_window(vec)]
+        usable_set = set(usable_index)
+        if not usable_index:
             return AlertResult(
                 level="no_data",
                 composite_score=0.0,
                 triggered_params={},
-                reason="no_readings",
+                reason="no_usable_readings" if readings else "no_readings",
             )
+        usable_readings = [readings[i] for i in usable_index]
+        vecs = [all_vecs[i] for i in usable_index]
 
-        latest_reading = readings[-1]
+        latest_reading = usable_readings[-1]
+        latest_ts = getattr(latest_reading, "window_start", getattr(latest_reading, "ts", None)) or now
+        # F2: judged around the evaluated window, so a late offline upload is
+        # not penalised for its delivery delay.
+        quality = assess_quality(
+            [(vec.ts, i in usable_set) for i, vec in enumerate(all_vecs)],
+            latest_ts + timedelta(minutes=5),
+        )
 
         # 45 minutes of silence -> no_data, not green
-        latest_ts = getattr(latest_reading, "window_start", getattr(latest_reading, "ts", None))
-        if latest_ts is None:
-            latest_ts = now
-
         if timewin.is_no_data(latest_ts, now):
             no_data_result = AlertResult(
                 level="no_data",
@@ -230,18 +249,13 @@ class PipelineService:
                 patient_id=patient_id,
                 ts=latest_ts,
                 result=no_data_result,
+                data_quality=quality.score,
             )
             if alert:
                 await LiveEventService(self.session).publish_alert(alert)
-            return AlertResult(
-                level="no_data",
-                composite_score=0.0,
-                triggered_params={},
-                reason="silence_no_data",
-            )
-
-        # Convert to ReadingVec for pure clinical functions
-        vecs = [to_reading_vec(reading) for reading in readings]
+                await route_alert_task(self.session, alert, "technical")
+                await queue_alert_notifications(self.session, alert, patient)
+            return no_data_result
 
         # Personal baseline — learned, then frozen.
         #
@@ -252,10 +266,6 @@ class PipelineService:
         # deteriorating patient, so their new and worse state quietly becomes
         # "normal" and the signal never fires. That is the exact failure this
         # system exists to prevent.
-        #
-        # The repository reads attributes off BaselineEntry directly, so the
-        # old dict conversion here raised AttributeError on every call —
-        # baselines were never persisted at all.
         stored = await self.baseline_repo.get_by_patient(patient_id)
         if patient.baseline_approved_at is not None and stored:
             baselines = [
@@ -273,7 +283,7 @@ class PipelineService:
             await self.baseline_repo.upsert_baselines(patient_id, baselines)
 
         # Recent z-scores for 15-minute persistence check
-        recent_readings = _previous_consecutive_windows(readings)
+        recent_readings = _previous_consecutive_windows(usable_readings)
         recent_vecs = vecs[-1 - len(recent_readings):-1] if recent_readings else []
         recent_zscores = [compute_zscores(rv, baselines) for rv in recent_vecs]
 
@@ -285,103 +295,22 @@ class PipelineService:
             phase=patient.phase,
         )
 
-        # Persist alert idempotently
+        # Persist alert idempotently; a window already evaluated is not
+        # re-published, re-tasked or re-notified.
         alert = await self.alert_repo.insert_idempotent(
             patient_id=patient_id,
             ts=latest_ts,
             result=alert_result,
+            data_quality=quality.score,
         )
         if alert:
             await LiveEventService(self.session).publish_alert(alert)
             if alert_result.level in {"amber", "red"}:
-                await self._create_alert_task(patient=patient, alert=alert, result=alert_result)
+                await route_alert_task(self.session, alert, task_kind(quality, alert_result.level))
+                await queue_alert_notifications(self.session, alert, patient)
         alerts_total.labels(level=alert_result.level).inc()
 
         return alert_result
-
-    async def _create_alert_task(
-        self, patient: Any, alert: Any, result: AlertResult
-    ) -> None:
-        try:
-            open_task = await self.task_repo.get_open_task(patient.id)
-            if open_task:
-                return
-
-            membership = (
-                await self.session.execute(
-                    select(PatientMembership).where(
-                        PatientMembership.patient_id == patient.id,
-                        PatientMembership.kind == "care",
-                        PatientMembership.revoked_at.is_(None),
-                    )
-                )
-            ).scalar_one_or_none()
-
-            tenant_id = membership.tenant_id if membership else getattr(patient, "tenant_id", None)
-            if not tenant_id:
-                return
-
-            # 1. First priority: patient's explicitly assigned doctor or care owner
-            assignee_id = getattr(patient, "doctor_id", None)
-            if assignee_id:
-                eligible = (
-                    await self.session.execute(
-                        select(TenantMember.id).where(
-                            TenantMember.account_id == assignee_id,
-                            TenantMember.tenant_id == tenant_id,
-                            TenantMember.left_at.is_(None),
-                            TenantMember.role.in_(["doctor", "head_doctor"]),
-                        ).limit(1)
-                    )
-                ).scalar_one_or_none()
-                if eligible is None:
-                    logger.warning(
-                        "Assigned doctor %s is not an active eligible member of tenant %s for patient %s",
-                        assignee_id,
-                        tenant_id,
-                        patient.id,
-                    )
-                    assignee_id = None
-
-            # 2. Second priority: active clinician (doctor, nurse, head_doctor) in the tenant
-            if not assignee_id:
-                clinician_member = (
-                    await self.session.execute(
-                        select(TenantMember).where(
-                            TenantMember.tenant_id == tenant_id,
-                            TenantMember.left_at.is_(None),
-                            TenantMember.role.in_(["doctor", "nurse", "head_doctor"]),
-                        ).order_by(
-                            case(
-                                (TenantMember.role == "doctor", 0),
-                                (TenantMember.role == "head_doctor", 1),
-                                (TenantMember.role == "nurse", 2),
-                                else_=3,
-                            ),
-                            TenantMember.joined_at.asc(),
-                        ).limit(1)
-                    )
-                ).scalar_one_or_none()
-                if clinician_member:
-                    assignee_id = clinician_member.account_id
-
-            if not assignee_id:
-                logger.warning("No eligible clinician found in tenant %s for alert on patient %s", tenant_id, patient.id)
-                return
-
-            now = datetime.now(timezone.utc)
-            due_at = now + (timedelta(hours=2) if result.level == "red" else timedelta(hours=24))
-            await self.task_repo.create_task(
-                patient_id=patient.id,
-                tenant_id=tenant_id,
-                assignee_account_id=assignee_id,
-                due_at=due_at,
-                kind="clinical",
-                alert_id=getattr(alert, "id", None),
-                note=f"Avtomatik klinik signal: {result.level.upper()}",
-            )
-        except Exception as e:
-            logger.warning(f"Could not create task for alert on patient {patient.id}: {e}")
 
 
 # Backward compatibility wrapper

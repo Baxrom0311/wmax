@@ -8,12 +8,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.clinical_scope import install_clinical_scope, primary_clinician_role, token_role
 from app.core.db import get_session
 from app.core.rls import set_rls_context
 from app.core.security import decode_token
-from app.models import PatientAccess, PatientConsent, TenantMember
+from app.models import Account, Patient, PatientAccess, PatientConsent, TenantMember
 from app.schemas.auth import CurrentUser
 from app.schemas.common import CLINICIAN_ROLES
+from app.services.monitoring_policy import family_history_visible
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -94,12 +96,22 @@ async def _apply_rls_context(
         )
         if principal.role in CLINICIAN_ROLES:
             rows = await db.execute(
-                select(TenantMember.tenant_id).where(
+                select(TenantMember).join(Account, Account.id == TenantMember.account_id).where(
                     TenantMember.account_id == principal.id,
                     TenantMember.left_at.is_(None),
+                    Account.is_active.is_(True),
                 )
             )
-            principal.tenant_ids = list(rows.scalars().all())
+            memberships = list(rows.scalars().all())
+            # A removed or demoted clinician loses access on the next request,
+            # not when the signed token expires.
+            role = primary_clinician_role(memberships)
+            if role is None:
+                raise CREDENTIALS_EXCEPTION
+            principal.role = role
+            principal.tenant_ids = [member.tenant_id for member in memberships]
+            principal.tenant_roles = {member.tenant_id: member.role for member in memberships}
+            install_clinical_scope(db, principal.id, principal.tenant_ids)
         elif principal.role == "relative":
             rows = await db.execute(
                 select(PatientAccess.patient_id)
@@ -107,7 +119,9 @@ async def _apply_rls_context(
                     PatientConsent,
                     PatientConsent.patient_id == PatientAccess.patient_id,
                 )
+                .join(Patient, Patient.id == PatientAccess.patient_id)
                 .where(
+                    family_history_visible(),
                     PatientAccess.account_id == principal.id,
                     PatientAccess.accepted_at.is_not(None),
                     PatientAccess.revoked_at.is_(None),
@@ -184,15 +198,48 @@ async def get_current_patient(
 
 
 def require_role(*roles: Role):
-    """FastAPI dependency factory enforcing RBAC rules: Depends(require_role('doctor'))."""
+    """FastAPI dependency factory enforcing RBAC rules: Depends(require_role('doctor')).
 
-    async def _dep(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
-        if current_user.role not in roles:
+    The role is checked per clinic. Being a doctor in clinic A does not grant
+    doctor actions for patients of clinic B where the same account is a nurse:
+    the principal's tenant scope is narrowed to the clinics where it holds one
+    of the required roles, and patient checks then run inside that scope.
+    """
+
+    async def _dep(
+        current_user: CurrentUser = Depends(get_current_user),
+        session: AsyncSession = Depends(get_session),
+    ) -> CurrentUser:
+        if current_user.tenant_roles:
+            allowed_tenants = [
+                tenant_id
+                for tenant_id, tenant_role in current_user.tenant_roles.items()
+                if token_role(tenant_role) in roles
+            ]
+        else:
+            # No database-backed roles (offline unit use): only the token role.
+            allowed_tenants = list(current_user.tenant_ids) if current_user.role in roles else []
+            if current_user.role in roles and not allowed_tenants:
+                return current_user
+        if not allowed_tenants:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Ushbu amalni bajarish uchun yetarli huquq yo'q",
             )
-        return current_user
+        if set(allowed_tenants) == set(current_user.tenant_ids):
+            return current_user
+        narrowed = current_user.model_copy(update={
+            "tenant_ids": allowed_tenants,
+            "tenant_roles": {
+                tenant_id: tenant_role
+                for tenant_id, tenant_role in current_user.tenant_roles.items()
+                if tenant_id in allowed_tenants
+            },
+        })
+        if hasattr(session, "execute"):
+            install_clinical_scope(session, narrowed.id, allowed_tenants)
+            await set_rls_context(session, account_id=narrowed.id, tenant_ids=allowed_tenants)
+        return narrowed
 
     return _dep
 

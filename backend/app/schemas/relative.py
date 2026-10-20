@@ -22,6 +22,7 @@ class RelativePatientItem(BaseModel):
     diagnosis: str
     age: int
     last_reading_at: datetime | None = None
+    deceased_at: datetime | None = None
 
 
 class DoctorContact(BaseModel):
@@ -46,6 +47,8 @@ class RelativeView(BaseModel):
     level_word_key: str
     composite_score: float
     last_reading_at: datetime | None = None
+    # Set during the 90-day family history window after death (J2).
+    deceased_at: datetime | None = None
     trend: Trend
     prognosis: PrognosisInfo
     problems: list[ProblemItem] = []

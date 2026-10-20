@@ -43,12 +43,7 @@ void main() {
     expect(view.doctor?.name, isNotNull);
 
     // 4. Live SOS trigger test
-    final sosOk = await ApiService.triggerSos(
-      patientId: patient.id,
-      lat: 41.5562,
-      lon: 60.6311,
-      reason: 'Flutter test SOS verification',
-    );
+    final sosOk = await ApiService.triggerSos(patientId: patient.id);
     expect(sosOk, isTrue);
   }, skip: enableLive ? false : 'Requires an explicitly disposable server and synthetic account.');
 }

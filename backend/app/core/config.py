@@ -74,6 +74,10 @@ _DEFAULTS: dict[str, object] = {
     "TELEGRAM_BOT_TOKEN": os.getenv("TELEGRAM_BOT_TOKEN", ""),
     "PAYMENT_WEBHOOK_SECRET": os.getenv("PAYMENT_WEBHOOK_SECRET", ""),
     "SMS_PROVIDER": os.getenv("SMS_PROVIDER", "log"),
+    "ESKIZ_TOKEN": os.getenv("ESKIZ_TOKEN", ""),
+    "ESKIZ_EMAIL": os.getenv("ESKIZ_EMAIL", ""),
+    "ESKIZ_PASSWORD": os.getenv("ESKIZ_PASSWORD", ""),
+    "ESKIZ_SENDER": os.getenv("ESKIZ_SENDER", "4546"),
     # ── AI assistant ─────────────────────────────────────────────────────────
     # Which LLM backs the clinical prognosis and the Telegram assistant.
     # "deepseek" | "gemini"
@@ -131,6 +135,10 @@ try:
         TELEGRAM_BOT_TOKEN: str = _DEFAULTS["TELEGRAM_BOT_TOKEN"]  # type: ignore[assignment]
         PAYMENT_WEBHOOK_SECRET: str = _DEFAULTS["PAYMENT_WEBHOOK_SECRET"]  # type: ignore[assignment]
         SMS_PROVIDER: str = _DEFAULTS["SMS_PROVIDER"]  # type: ignore[assignment]
+        ESKIZ_TOKEN: str = _DEFAULTS["ESKIZ_TOKEN"]  # type: ignore[assignment]
+        ESKIZ_EMAIL: str = _DEFAULTS["ESKIZ_EMAIL"]  # type: ignore[assignment]
+        ESKIZ_PASSWORD: str = _DEFAULTS["ESKIZ_PASSWORD"]  # type: ignore[assignment]
+        ESKIZ_SENDER: str = _DEFAULTS["ESKIZ_SENDER"]  # type: ignore[assignment]
 
         AI_PROVIDER: Literal["deepseek", "gemini"] = _DEFAULTS["AI_PROVIDER"]  # type: ignore[assignment]
         DEEPSEEK_API_KEY: str = _DEFAULTS["DEEPSEEK_API_KEY"]  # type: ignore[assignment]
@@ -188,6 +196,10 @@ def validate_production_settings(cfg: Settings = settings) -> None:
         problems.append("INGEST_API_KEY is required to authenticate device uploads")
     if getattr(cfg, "SMS_PROVIDER", "log") == "log":
         problems.append("SMS_PROVIDER must point to a real provider in production")
+    if getattr(cfg, "SMS_PROVIDER", "") == "eskiz" and not (
+        getattr(cfg, "ESKIZ_TOKEN", "") or (getattr(cfg, "ESKIZ_EMAIL", "") and getattr(cfg, "ESKIZ_PASSWORD", ""))
+    ):
+        problems.append("SMS_PROVIDER=eskiz requires ESKIZ_TOKEN or ESKIZ_EMAIL and ESKIZ_PASSWORD")
     if getattr(cfg, "REALTIME_TRANSPORT", "memory") == "memory":
         problems.append("REALTIME_TRANSPORT must be redis_streams in production")
     if getattr(cfg, "REALTIME_TRANSPORT", "memory") == "redis_streams" and not getattr(cfg, "REDIS_URL", ""):

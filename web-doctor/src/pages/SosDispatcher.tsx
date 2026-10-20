@@ -163,7 +163,7 @@ export const SosDispatcher: React.FC<SosDispatcherProps> = ({ onClose, isDemo, l
                         ? t("sos.status_raised", lang)
                         : evt.status === "acknowledged"
                         ? t("sos.status_ack", lang)
-                        : evt.status === "dispatched_103"
+                        : evt.status === "dispatched"
                         ? t("sos.status_dispatched", lang)
                         : evt.status}
                     </span>

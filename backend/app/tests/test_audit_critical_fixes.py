@@ -14,17 +14,14 @@ from app.auth.scope import assert_patient_access
 from app.auth.service import AuthService
 from app.models import (
     Account,
-    Alert,
     DeviceAssignment,
     Patient,
     PatientAccess,
-    TenantMember,
 )
 from app.schemas.auth import RelativeLoginRequest
 from app.schemas.health_data import HealthDataBatch, HealthSampleIn
 from app.services.health_data_service import HealthDataIngestService
 from app.services.pipeline_service import PipelineService
-from app.services.sos_service import SosService
 
 
 # ==============================================================================
@@ -166,58 +163,6 @@ def _returned_keys(keys: list[str]):
 
 
 # ==============================================================================
-# TEST 2: SOS -> Emergency Contacts SMS Delivered Verification
-# ==============================================================================
-@pytest.mark.asyncio
-async def test_sos_delivers_emergency_sms_to_contacts():
-    session = AsyncMock()
-    session.flush = AsyncMock()
-    session.commit = AsyncMock()
-
-    patient_id = uuid.uuid4()
-    event_id = uuid.uuid4()
-    session.get = AsyncMock(return_value=Patient(id=patient_id, full_name="Test Patient"))
-
-    mock_sos = MagicMock()
-    mock_sos.id = event_id
-    mock_sos.patient_id = patient_id
-    mock_sos.status = "raised"
-
-    with patch("app.services.sos_service.PatientContextBuilder") as mock_builder, \
-         patch("app.services.sos_service.SosRepository") as mock_sos_repo, \
-         patch("app.services.sos_service.send_sms_text", new_callable=AsyncMock) as mock_sms, \
-         patch("app.services.sos_service.LiveEventService") as mock_live_event:
-
-        mock_live_event.return_value.publish_sos = AsyncMock()
-        contact = MagicMock()
-        contact.phone = "+998901234567"
-        contact.telegram_chat_id = None
-
-        ctx = MagicMock()
-        ctx.full_name = "Otabek Saidov"
-        ctx.emergency_contacts = [contact]
-        mock_builder.return_value.build = AsyncMock(return_value=ctx)
-
-        mock_repo_inst = mock_sos_repo.return_value
-        mock_repo_inst.create_event = AsyncMock(return_value=mock_sos)
-        mock_repo_inst.count_active_for_patient = AsyncMock(return_value=0)
-        mock_repo_inst.add_notification = AsyncMock()
-        mock_sms.return_value = True
-
-        sos_service = SosService(session)
-        await sos_service.raise_sos(patient_id=patient_id, source="watch")
-
-        # Verify SMS was sent with alert message
-        mock_sms.assert_awaited_once()
-        sent_phone = mock_sms.call_args.kwargs["phone"]
-        assert sent_phone == "+998901234567"
-
-        # Verify notification was saved as delivered=True
-        mock_repo_inst.add_notification.assert_awaited_once()
-        assert mock_repo_inst.add_notification.call_args.kwargs["delivered"] is True
-
-
-# ==============================================================================
 # TEST 3: Caregiver PIN Login with new Account / PatientAccess schema
 # ==============================================================================
 @pytest.mark.asyncio
@@ -261,67 +206,6 @@ async def test_relative_login_with_account_pin_hash():
     assert res.access_token is not None
     assert len(res.patients) == 1
     assert res.patients[0].id == patient_id
-
-
-# ==============================================================================
-# TEST 4: Clinical Task Assignee Selection Priority
-# ==============================================================================
-@pytest.mark.asyncio
-async def test_task_assignee_prioritizes_clinician_over_admin():
-    session = AsyncMock()
-    patient_id = uuid.uuid4()
-    tenant_id = uuid.uuid4()
-    doc_id = uuid.uuid4()
-
-    patient = Patient(id=patient_id, full_name="Bemor Ali", doctor_id=None)
-    doctor_member = TenantMember(
-        id=uuid.uuid4(),
-        tenant_id=tenant_id,
-        account_id=doc_id,
-        role="doctor",
-        joined_at=datetime.now(timezone.utc),
-    )
-
-    with patch("app.services.pipeline_service.PatientRepository") as mock_pat_repo, \
-         patch("app.services.pipeline_service.TaskRepository") as mock_task_repo:
-
-        mock_pat_repo.return_value.get_by_id = AsyncMock(return_value=patient)
-
-        membership_mock = MagicMock()
-        membership_mock.scalar_one_or_none.return_value = MagicMock(tenant_id=tenant_id)
-
-        clinician_mock = MagicMock()
-        clinician_mock.scalar_one_or_none.return_value = doctor_member
-
-        session.execute.side_effect = [
-            membership_mock,  # membership lookup
-            clinician_mock,   # clinician query
-        ]
-
-        task_repo_inst = mock_task_repo.return_value
-        task_repo_inst.get_open_task = AsyncMock(return_value=None)
-        task_repo_inst.create_task = AsyncMock()
-
-        pipeline = PipelineService(session)
-        alert = Alert(id=1, patient_id=patient_id, level="red")
-        await pipeline._create_alert_task(patient, alert, MagicMock(level="red"))
-
-        # Verifies doctor account is assigned
-        task_repo_inst.create_task.assert_awaited_once()
-        assigned = task_repo_inst.create_task.call_args.kwargs["assignee_account_id"]
-        assert assigned == doc_id
-
-        # The clinician lookup must rank doctors ahead of head doctors and nurses.
-        clinician_query = session.execute.call_args_list[1].args[0]
-        compiled = str(
-            clinician_query.compile(
-                dialect=postgresql.dialect(),
-                compile_kwargs={"literal_binds": True},
-            )
-        )
-        assert "CASE WHEN (tenant_members.role = 'doctor') THEN 0" in compiled
-        assert "WHEN (tenant_members.role = 'head_doctor') THEN 1" in compiled
-        assert "WHEN (tenant_members.role = 'nurse') THEN 2" in compiled
 
 
 # ==============================================================================

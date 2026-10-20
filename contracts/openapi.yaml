@@ -2329,6 +2329,8 @@ paths:
               schema:
                 type: object
                 title: Response Realtime Status Api V1 Realtime Status Get
+      security:
+      - HTTPBearer: []
   /api/v1/realtime/events:
     get:
       tags:
@@ -2391,21 +2393,12 @@ paths:
       description: Raises an emergency SOS from smart watch, companion phone, or patient
         portal.
       operationId: raise_sos_endpoint_api_v1_sos_post
-      parameters:
-      - name: X-Ingest-Key
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Ingest-Key
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SosRaiseRequest'
+        required: true
       responses:
         '201':
           description: Successful Response
@@ -3175,7 +3168,7 @@ paths:
     post:
       tags:
       - devices
-      summary: Create one-time enrollment code
+      summary: Create one-time device enrollment code
       operationId: enroll_device_api_v1_devices_enroll_post
       requestBody:
         content:
@@ -3212,13 +3205,11 @@ paths:
         required: true
       responses:
         '200':
-          description: Device credential issued
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceClaimResponse'
-        '401':
-          description: Code is invalid, expired, consumed, or locked
         '422':
           description: Validation Error
           content:
@@ -3584,6 +3575,95 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/tenants/{tenant_id}/members/{account_id}/territories:
+    get:
+      tags:
+      - tenants
+      summary: Staff member's assigned mahallas
+      operationId: get_member_territories_api_v1_tenants__tenant_id__members__account_id__territories_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Tenant Id
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Account Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                title: Response Get Member Territories Api V1 Tenants  Tenant Id  Members  Account
+                  Id  Territories Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - tenants
+      summary: Replace staff member's assigned mahallas
+      operationId: put_member_territories_api_v1_tenants__tenant_id__members__account_id__territories_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Tenant Id
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Account Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerritoryUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                title: Response Put Member Territories Api V1 Tenants  Tenant Id  Members  Account
+                  Id  Territories Put
         '422':
           description: Validation Error
           content:
@@ -4337,6 +4417,13 @@ components:
             format: uuid
           type: array
           title: Patient Ids
+        tenant_roles:
+          additionalProperties:
+            type: string
+          propertyNames:
+            format: uuid
+          type: object
+          title: Tenant Roles
       type: object
       required:
       - id
@@ -4426,15 +4513,19 @@ components:
         device_id:
           type: string
           format: uuid
+          title: Device Id
         enrollment_id:
           type: string
           format: uuid
+          title: Enrollment Id
         code:
           type: string
           pattern: '^\d{6}$'
+          title: Code
         expires_at:
           type: string
           format: date-time
+          title: Expires At
       type: object
       required:
       - device_id
@@ -4447,11 +4538,13 @@ components:
         device_id:
           type: string
           format: uuid
+          title: Device Id
         code:
           type: string
-          minLength: 6
           maxLength: 6
+          minLength: 6
           pattern: '^\d{6}$'
+          title: Code
       type: object
       required:
       - device_id
@@ -4462,8 +4555,10 @@ components:
         device_id:
           type: string
           format: uuid
+          title: Device Id
         device_token:
           type: string
+          title: Device Token
       type: object
       required:
       - device_id
@@ -4486,7 +4581,7 @@ components:
         refund_deposit:
           type: boolean
           title: Refund Deposit
-          default: true
+          default: false
       type: object
       title: DeviceReturnRequest
     DeviceSosRequest:
@@ -5257,9 +5352,10 @@ components:
           title: Vital Flags
           default: []
         confidence_score:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Confidence Score
-          default: 0.95
         evidence_citations:
           items:
             type: string
@@ -5501,6 +5597,22 @@ components:
           type: string
           title: Preferred Lang
           default: uz
+        mahalla:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Mahalla
+        region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Region
+        district:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: District
       type: object
       required:
       - full_name
@@ -6073,10 +6185,14 @@ components:
           - high
           title: Risk Level
         risk_probability_pct:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Risk Probability Pct
         early_warning_hours:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Early Warning Hours
         summary:
           type: string
@@ -6091,9 +6207,10 @@ components:
           title: Evidence Citations
           default: []
         confidence_score:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Confidence Score
-          default: 0.92
         uncertainty_note:
           anyOf:
           - type: string
@@ -6102,8 +6219,6 @@ components:
       type: object
       required:
       - risk_level
-      - risk_probability_pct
-      - early_warning_hours
       - summary
       - recommendation
       title: PrognosisInfo
@@ -6335,6 +6450,12 @@ components:
             format: date-time
           - type: 'null'
           title: Last Reading At
+        deceased_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deceased At
       type: object
       required:
       - id
@@ -6379,6 +6500,12 @@ components:
             format: date-time
           - type: 'null'
           title: Last Reading At
+        deceased_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deceased At
         trend:
           $ref: '#/components/schemas/Trend'
         prognosis:
@@ -7115,10 +7242,14 @@ components:
           - high
           title: Risk Level
         risk_probability_pct:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Risk Probability Pct
         early_warning_hours:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Early Warning Hours
         summary:
           type: string
@@ -7133,9 +7264,10 @@ components:
           title: Evidence Citations
           default: []
         confidence_score:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Confidence Score
-          default: 0.92
         uncertainty_note:
           anyOf:
           - type: string
@@ -7165,8 +7297,6 @@ components:
       type: object
       required:
       - risk_level
-      - risk_probability_pct
-      - early_warning_hours
       - summary
       - recommendation
       title: TwinPrognosisInfo
@@ -7701,6 +7831,16 @@ components:
       required:
       - daily
       title: VitalSummary
+    TerritoryUpdate:
+      properties:
+        mahallas:
+          items:
+            type: string
+          type: array
+          maxItems: 200
+          title: Mahallas
+      type: object
+      title: TerritoryUpdate
   securitySchemes:
     HTTPBearer:
       type: http

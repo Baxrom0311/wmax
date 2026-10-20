@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.clinical_scope import primary_clinician_role
 from app.core.config import settings
 from app.core.exceptions import AuthenticationException
 from app.core.security import (
@@ -77,18 +78,9 @@ SMS_CODE_TTL_SECONDS = 300
 _SMS_CODES: dict[str, tuple[str, datetime]] = {}
 
 
-# Highest-privilege membership wins so a multi-clinic account always gets the
-# same role; head doctors carry doctor permissions in the token.
-_TENANT_ROLE_PRIORITY = ("admin", "head_doctor", "doctor", "dispatcher", "nurse")
-_TENANT_ROLE_TO_TOKEN_ROLE = {"head_doctor": "doctor"}
-
-
-def _primary_clinician_role(tenant_roles: list[Any]) -> str | None:
-    roles = {member.role for member in tenant_roles}
-    for candidate in _TENANT_ROLE_PRIORITY:
-        if candidate in roles:
-            return _TENANT_ROLE_TO_TOKEN_ROLE.get(candidate, candidate)
-    return None
+# The token role is a display hint only; per-clinic authorization uses the
+# current memberships loaded in app.auth.deps.
+_primary_clinician_role = primary_clinician_role
 
 
 async def _store_sms_code(phone: str, code: str, ttl: int = SMS_CODE_TTL_SECONDS) -> None:
@@ -418,6 +410,12 @@ class AuthService:
         phone = payload.get("phone")
         tenant_ids = [uuid.UUID(item) for item in payload.get("tenant_ids", [])]
         patient_ids = [uuid.UUID(item) for item in payload.get("patient_ids", [])]
+        if role in CLINICIAN_ROLES:
+            memberships = await self.user_repo.accounts.get_active_tenant_roles(user_id)
+            role = _primary_clinician_role(memberships)
+            if role is None:
+                raise AuthenticationException("Klinik ruxsat bekor qilingan")
+            tenant_ids = [member.tenant_id for member in memberships]
 
         return await self._issue_token_pair(
             user_id=user_id,

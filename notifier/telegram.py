@@ -737,6 +737,23 @@ async def _send_linked_status(chat_id: int | str) -> None:
     await send_telegram_message(chat_id, format_status_response(_esc(patient_name), vitals))
 
 
+async def _acknowledge_notification(chat_id: int | str, cb_data: str) -> None:
+    """Stops the urgent escalation chain for this recipient (IDEOLOGY I2)."""
+    from app.core.db import get_db_context
+    from app.services.notification_service import acknowledge_by_telegram
+
+    try:
+        notification_id = int(cb_data.split(":", 1)[1])
+    except (IndexError, ValueError):
+        return
+    async with get_db_context() as session:
+        acknowledged = await acknowledge_by_telegram(session, notification_id, str(chat_id))
+    await send_telegram_message(
+        chat_id,
+        "✅ Qabul qilindi. Rahmat." if acknowledged else "⛔️ Bu xabarni tasdiqlash huquqi yo'q.",
+    )
+
+
 async def answer_callback_query(callback_query_id: str, text: str = "") -> None:
     """Answer a callback query to remove loading indicator."""
     if not TELEGRAM_BOT_TOKEN:
@@ -780,7 +797,9 @@ async def poll_telegram_messages() -> None:
 
                         await answer_callback_query(callback["id"])
 
-                        if cb_data == "cmd_status":
+                        if cb_data.startswith("ntf_ack:"):
+                            await _acknowledge_notification(cb_chat_id, cb_data)
+                        elif cb_data == "cmd_status":
                             await _send_linked_status(cb_chat_id)
                         elif cb_data == "cmd_help":
                             await send_telegram_message(cb_chat_id, HELP_TEXT)

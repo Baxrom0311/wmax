@@ -157,6 +157,20 @@ jobs:
           alembic check
           alembic downgrade base
           alembic upgrade head
+      - name: Install workflow test dependencies
+        run: |
+          pip install -r backend/algo/requirements.txt -r notifier/requirements.txt
+          pip install pytest pytest-asyncio httpx
+      - name: PostgreSQL workflow regressions
+        # Authorization, delivery, consent and lifecycle workflows need real
+        # PostgreSQL SQL, constraints and partial indexes; mocks cannot show them.
+        env:
+          WMAX_TEST_DATABASE_URL: postgresql+asyncpg://wmax:ci@localhost:5432/wmax
+          PYTHONPATH: .:./backend:./contracts
+          ENV: testing
+          ENABLE_WORKERS: "false"
+          JWT_SECRET: test_secret_32_bytes_long_string_12345
+        run: pytest -q backend/app/tests/test_pg_authorization.py backend/app/tests/test_pg_realtime.py backend/app/tests/test_pg_workflows.py
 
   # -------------------------------------------------------------
   # Job 3: Production container build

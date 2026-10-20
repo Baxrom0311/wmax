@@ -8,9 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import timewin
+from algo.signal import is_usable_window
 from algo_interface import AlertLevel, BaselineEntry, MIN_BASELINE_SAMPLES, TrendResult
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
+from app.domain.status import current_level
 from app.models import Account, Patient, PatientConsent, PatientMembership, TenantMember
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.baseline_repo import BaselineRepository
@@ -41,6 +43,7 @@ from app.services.compat import (
     task_type,
     to_reading_vec,
 )
+from app.services.monitoring_policy import FAMILY_HISTORY_AFTER_DEATH
 
 def is_access_token_expired(created_at: datetime | None) -> bool:
     """Caregiver deep-link tokens age out after RELATIVE_TOKEN_TTL_DAYS."""
@@ -109,7 +112,8 @@ class RelativeService:
         patient = await self.patient_repo.get_by_id(relative.patient_id)
         if not patient:
             raise NotFoundException(message="Bemor topilmadi", resource_name="Patient")
-        if patient.deceased_at is not None:
+        if patient.deceased_at is not None and patient.deceased_at <= datetime.now(timezone.utc) - FAMILY_HISTORY_AFTER_DEATH:
+            # J2: the family keeps read-only history for 90 days after death.
             raise ForbiddenException("Bemor profili yopilgan")
         return relative, patient
 
@@ -199,20 +203,18 @@ class RelativeService:
                 rng = max_v - min_v if max_v != min_v else 1.0
                 sparkline = [round((v - min_v) / rng, 2) for v in daily_means][-7:]
 
-        # Current Level & Silence
-        last_reading_at = reading_ts(readings[-1]) if readings else None
+        # Current Level & Silence: only usable windows count as evidence.
+        usable = [r for r in readings if is_usable_window(to_reading_vec(r))]
+        last_reading_at = reading_ts(usable[-1]) if usable else None
         latest_alert = alerts[0] if alerts else None
-        if timewin.is_no_data(last_reading_at, now):
-            cur_level: AlertLevel = "no_data"
-            composite = 0.0
-        elif latest_alert:
-            cur_level = latest_alert.level
-            composite = latest_alert.composite_score
-        else:
-            cur_level = "green"
+        cur_level: AlertLevel = current_level(last_reading_at, latest_alert, now)
+        composite = latest_alert.composite_score if latest_alert and cur_level != "no_data" else 0.0
+        if patient.deceased_at is not None:
+            # J2: never a live status after death, only the record.
+            cur_level = "no_data"
             composite = 0.0
 
-        level_word_key = LEVEL_WORD_MAP.get(cur_level, "state.good")
+        level_word_key = LEVEL_WORD_MAP.get(cur_level, "state.no_data")
 
         baseline_entries = [
             BaselineEntry(
@@ -238,7 +240,7 @@ class RelativeService:
         # Root-cause breakdown needs the latest reading vector and the patient's
         # own baselines; the prognosis then grades it against the current level.
         # Both must run after `cur_level` and `trend` exist.
-        latest_reading = readings[-1] if readings else None
+        latest_reading = usable[-1] if usable else None
         latest_vec = to_reading_vec(latest_reading) if latest_reading else None
         problems = detect_problems_pure(latest_vec, baseline_entries) if latest_vec else []
         prognosis = compute_prognosis_pure(
@@ -252,7 +254,7 @@ class RelativeService:
             problems,
         )
 
-        latest_r = readings[-1] if readings else None
+        latest_r = usable[-1] if usable else None
         vitals = RelativeVitals(
             hr=reading_value(latest_r, "hr_mean") if latest_r else None,
             spo2=reading_value(latest_r, "spo2") if latest_r else None,
@@ -270,6 +272,7 @@ class RelativeService:
             level_word_key=level_word_key,
             composite_score=composite,
             last_reading_at=last_reading_at,
+            deceased_at=patient.deceased_at,
             trend=trend,
             prognosis=prognosis,
             problems=problems,
@@ -334,19 +337,18 @@ class RelativeService:
 
         for rel, patient in relatives:
             p = patient
-            if p.deceased_at is not None or rel.accepted_at is None or rel.revoked_at is not None:
+            if rel.accepted_at is None or rel.revoked_at is not None:
+                continue
+            if p.deceased_at is not None and p.deceased_at <= now - FAMILY_HISTORY_AFTER_DEATH:
                 continue
 
-            latest_reading = await self.reading_repo.get_latest_reading(p.id)
+            latest_reading = await self.reading_repo.get_latest_usable_reading(p.id)
             latest_alert = await self.alert_repo.get_latest(p.id)
 
             last_ts = reading_ts(latest_reading) if latest_reading else None
-            if timewin.is_no_data(last_ts, now):
-                level: AlertLevel = "no_data"
-            elif latest_alert:
-                level = latest_alert.level
-            else:
-                level = "green"
+            level: AlertLevel = current_level(last_ts, latest_alert, now)
+            if p.deceased_at is not None:
+                level = "no_data"
 
             items.append(
                 RelativePatientItem(
@@ -355,6 +357,7 @@ class RelativeService:
                     relationship=rel.relationship,
                     level=level,
                     last_reading_at=last_ts,
+                    deceased_at=p.deceased_at,
                     access_token=rel.access_token,
                     diagnosis=p.diagnosis or "",
                     age=p.age or 0,

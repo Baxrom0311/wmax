@@ -160,7 +160,8 @@ const translations: Record<Lang, Record<string, string>> = {
     // SOS & Emergency
     "sos.attention": "DIQQAT:",
     "sos.critical": "KRITIK HOLAT",
-    "sos.hypoxia_tachy": "Kislorod: {spo2}% (gipoksiya) · Puls: {hr} bpm · Zudlik bilan yordam talab etiladi!",
+    "sos.vitals_line": "Oxirgi o'lchov — SpO₂: {spo2} · Puls: {hr}. Bemor bilan darhol bog'laning.",
+    "deceased.notice": "{name} vafot etgan deb belgilangan. Kuzatuv va xabarlar to'xtatildi; tarix 90 kun davomida ko'rinadi.",
     "sos.action_btn": "Yordam ko'rsatish →",
     "sos.modal_title": "Kritik holat — Favqulodda yordam",
     "sos.call_103": "🚑 103 Tez Tibbiy Yordamga qo'ng'iroq qilish",
@@ -382,7 +383,8 @@ const translations: Record<Lang, Record<string, string>> = {
     // SOS & Emergency
     "sos.attention": "ВНИМАНИЕ:",
     "sos.critical": "КРИТИЧЕСКОЕ СОСТОЯНИЕ",
-    "sos.hypoxia_tachy": "Кислород: {spo2}% (гипоксия) · Пульс: {hr} уд/мин · Требуется экстренная помощь!",
+    "sos.vitals_line": "Последнее измерение — SpO₂: {spo2} · Пульс: {hr}. Срочно свяжитесь с пациентом.",
+    "deceased.notice": "{name} отмечен(а) как умерший(ая). Наблюдение и уведомления остановлены; история доступна 90 дней.",
     "sos.action_btn": "Оказать помощь →",
     "sos.modal_title": "Критическое состояние — Экстренная помощь",
     "sos.call_103": "🚑 Вызвать скорую помощь 103",
@@ -604,7 +606,8 @@ const translations: Record<Lang, Record<string, string>> = {
     // SOS & Emergency
     "sos.attention": "ATTENTION:",
     "sos.critical": "CRITICAL STATE",
-    "sos.hypoxia_tachy": "Oxygen: {spo2}% (hypoxia) · Heart rate: {hr} bpm · Immediate intervention required!",
+    "sos.vitals_line": "Last measurement — SpO₂: {spo2} · Heart rate: {hr}. Contact your relative now.",
+    "deceased.notice": "{name} has been recorded as deceased. Monitoring and notifications have stopped; history stays visible for 90 days.",
     "sos.action_btn": "Provide assistance →",
     "sos.modal_title": "Critical Emergency Assistance",
     "sos.call_103": "🚑 Call 103 Emergency Ambulance",

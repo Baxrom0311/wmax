@@ -8,7 +8,7 @@ from sqlalchemy import desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PatientMembership
-from app.models.sos import SosEvent, SosNotification
+from app.models.sos import SosEvent
 
 
 class SosRepository:
@@ -83,24 +83,3 @@ class SosRepository:
         )
         res = await self.session.execute(stmt)
         return res.scalar_one() or 0
-
-    async def add_notification(
-        self,
-        sos_id: uuid.UUID,
-        recipient_kind: str,
-        recipient_ref: str,
-        channel: str,
-        delivered: bool = False,
-        error: str | None = None,
-    ) -> SosNotification:
-        notification = SosNotification(
-            sos_id=sos_id,
-            recipient_kind=recipient_kind,
-            recipient_ref=recipient_ref,
-            channel=channel,
-            delivered=delivered,
-            error=error,
-        )
-        self.session.add(notification)
-        await self.session.flush()
-        return notification

@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException
-from app.models import Account, Patient, PatientAccess, PatientConsent, PatientMembership, Tenant
+from app.models import Account, Patient, PatientAccess, PatientConsent, PatientMembership, ProfileAudit, Task, Tenant
+from app.services.live_event_service import LiveEventService
 
 
 class PatientRelationshipService:
@@ -170,15 +171,57 @@ class PatientRelationshipService:
         return {"id": str(consent.id), "scope": consent.scope, "granted": consent.granted}
 
     async def revoke_consent(
-        self, *, patient_id: uuid.UUID, consent_id: uuid.UUID
+        self,
+        *,
+        patient_id: uuid.UUID,
+        consent_id: uuid.UUID,
+        actor_id: uuid.UUID | None = None,
+        actor_kind: str = "clinician",
     ) -> dict[str, Any]:
+        """B5: revoking clinical monitoring is a refusal of care, not a flag.
+
+        The care membership closes, open tasks are cancelled, pending clinical
+        deliveries stop, and the clinic is told through a live event. Ingest
+        and workers consult the same consent rules (monitoring_policy), so no
+        transport keeps processing the patient for that clinic afterwards.
+        """
         consent = await self.session.get(PatientConsent, consent_id)
         if not consent or consent.patient_id != patient_id:
             raise NotFoundException("Rozilik", consent_id)
-        if consent.revoked_at is None:
-            consent.revoked_at = datetime.now(timezone.utc)
-            await self.session.flush()
-            await self.session.commit()
+        if consent.revoked_at is not None:
+            return {"id": str(consent_id), "revoked_at": consent.revoked_at.isoformat()}
+
+        now = datetime.now(timezone.utc)
+        consent.revoked_at = now
+        events = LiveEventService(self.session)
+        if consent.scope == "clinical_monitoring":
+            stmt = select(PatientMembership).where(
+                PatientMembership.patient_id == patient_id,
+                PatientMembership.revoked_at.is_(None),
+            )
+            if consent.target_tenant_id is not None:
+                stmt = stmt.where(PatientMembership.tenant_id == consent.target_tenant_id)
+            for membership in (await self.session.execute(stmt)).scalars().all():
+                membership.revoked_at = now
+                membership.revoked_reason = "clinical_consent_revoked"
+                tasks = (await self.session.execute(select(Task).where(
+                    Task.patient_id == patient_id,
+                    Task.tenant_id == membership.tenant_id,
+                    Task.status.in_(("open", "acknowledged", "overdue")),
+                ))).scalars().all()
+                for task in tasks:
+                    task.status = "cancelled"
+                    await events.publish_task(task, action="cancelled")
+                await events.publish("patient.monitoring_revoked", {
+                    "patient_id": str(patient_id), "tenant_id": str(membership.tenant_id),
+                })
+        self.session.add(ProfileAudit(
+            patient_id=patient_id, actor_kind=actor_kind, actor_id=actor_id,
+            entity="consent", entity_id=str(consent_id), action="revoke",
+            changes={"scope": consent.scope},
+        ))
+        await self.session.flush()
+        await self.session.commit()
         return {"id": str(consent_id), "revoked_at": consent.revoked_at.isoformat()}
 
     def _membership_dict(self, membership: PatientMembership) -> dict[str, Any]:

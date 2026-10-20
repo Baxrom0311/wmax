@@ -5,7 +5,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,14 +14,14 @@ from app.models import (
     DeviceSyncEvent,
     ExerciseSession,
     HealthSample,
-    PatientConsent,
-    PatientMembership,
+    Patient,
     Reading,
     SleepSession,
 )
 from app.repositories.reading_repo import ReadingRepository
 from app.schemas.health_data import HealthDataBatch, HealthDataIngestResult
 from app.services.pipeline_service import PipelineService
+from app.services.monitoring_policy import monitoring_patient_ids
 
 
 class HealthDataIngestService:
@@ -62,19 +61,7 @@ class HealthDataIngestService:
         consented_patient_ids: set[uuid.UUID] = set()
         if assigned_patient_ids:
             consent_result = await self.session.execute(
-                select(PatientConsent.patient_id)
-                .join(PatientMembership, PatientMembership.patient_id == PatientConsent.patient_id)
-                .where(
-                    PatientConsent.patient_id.in_(assigned_patient_ids),
-                    PatientConsent.scope == "clinical_monitoring",
-                    PatientConsent.granted.is_(True),
-                    PatientConsent.revoked_at.is_(None),
-                    PatientMembership.kind == "care",
-                    PatientMembership.revoked_at.is_(None),
-                    (PatientConsent.target_tenant_id.is_(None)
-                     | (PatientConsent.target_tenant_id == PatientMembership.tenant_id)),
-                )
-                .distinct()
+                monitoring_patient_ids().where(Patient.id.in_(assigned_patient_ids))
             )
             consented_patient_ids = set(consent_result.scalars().all())
 

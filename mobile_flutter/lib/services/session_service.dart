@@ -101,6 +101,15 @@ class SessionService {
     }
   }
 
+  static Future<void> updateTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAccessToken, accessToken);
+    await prefs.setString(_keyRefreshToken, refreshToken);
+  }
+
   static Future<List<PatientSummary>> getSavedPatients() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyPatientsJson);

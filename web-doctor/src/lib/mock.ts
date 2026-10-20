@@ -355,9 +355,10 @@ export function mockAcknowledgeSos(sosId: string): SosEventItem {
 export function mockDispatchSos103(sosId: string, ref?: string): SosEventItem {
   const item = MOCK_SOS_EVENTS.find((e) => e.id === sosId);
   if (!item) throw new Error("SOS hodisasi topilmadi");
-  item.status = "dispatched_103";
+  item.status = "dispatched";
   item.dispatched_at = new Date().toISOString();
-  item.dispatch_ref_103 = ref || `103-BRIGADE-${Math.floor(1000 + Math.random() * 9000)}`;
+  item.dispatch_method = "manual_call_103";
+  item.dispatch_ref = ref || null;
   return { ...item };
 }
 

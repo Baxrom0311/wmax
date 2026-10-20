@@ -13,6 +13,7 @@ from app.auth.deps import (
     CurrentUser,
     get_current_principal,
     require_clinician,
+    _apply_rls_context,
 )
 from app.auth.scope import assert_patient_access
 from app.core.db import get_session
@@ -91,6 +92,7 @@ async def raise_sos_endpoint(
     # A shared ingest key proves the app installation, not which patient the
     # caller may act for. SOS requires a user token with patient-level scope.
     principal = _principal_from_authorization(request.headers.get("Authorization"))
+    principal = await _apply_rls_context(principal, db)
     await assert_patient_access(db, principal, req.patient_id)
 
     service = SosService(db)
@@ -228,15 +230,18 @@ from app.core.db import get_db_context
     summary="SSE live stream for active SOS events (Architecture V2 Section 10.4)",
 )
 async def stream_sos_events_endpoint(
+    request: Request,
     clinician: CurrentUser = Depends(require_clinician),
 ) -> StreamingResponse:
     """Streams active SOS updates using Server-Sent Events."""
     async def sse_generator():
         while True:
             try:
+                fresh = _principal_from_authorization(request.headers.get("Authorization"))
                 async with get_db_context() as session:
+                    fresh = await _apply_rls_context(fresh, session)
                     service = SosService(session)
-                    active = await service.get_active_sos(tenant_ids=_tenant_scope(clinician))
+                    active = await service.get_active_sos(tenant_ids=_tenant_scope(fresh))
                 # Serialize to SSE
                 clean_data = [
                     {k: str(v) if isinstance(v, uuid.UUID) else v for k, v in item.items()}
@@ -244,7 +249,7 @@ async def stream_sos_events_endpoint(
                 ]
                 yield f"data: {json.dumps(clean_data, default=str)}\n\n"
             except Exception:
-                yield "data: []\n\n"
+                return
             await asyncio.sleep(5)
 
     return StreamingResponse(

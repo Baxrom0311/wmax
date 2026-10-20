@@ -24,9 +24,12 @@ class AccountRepository:
 
     async def get_active_tenant_roles(self, account_id: uuid.UUID) -> list[TenantMember]:
         res = await self.session.execute(
-            select(TenantMember).where(
+            select(TenantMember)
+            .join(Account, Account.id == TenantMember.account_id)
+            .where(
                 TenantMember.account_id == account_id,
                 TenantMember.left_at.is_(None),
+                Account.is_active.is_(True),
             )
         )
         return list(res.scalars().all())

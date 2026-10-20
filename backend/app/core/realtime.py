@@ -8,10 +8,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from collections.abc import Callable
 from typing import Any
-
-from fastapi import WebSocket
 
 from app.core.config import settings
 
@@ -208,20 +205,3 @@ class RealtimeHub:
 
 realtime_hub = RealtimeHub()
 
-
-async def send_websocket_events(
-    websocket: WebSocket,
-    topic: str,
-    event_filter: Callable[[RealtimeEvent], bool] | None = None,
-    subprotocol: str | None = None,
-) -> None:
-    queue = await realtime_hub.subscribe(topic)
-    try:
-        await websocket.accept(subprotocol=subprotocol)
-        while True:
-            event = await queue.get()
-            if event_filter is None or event_filter(event):
-                await websocket.send_json(event.as_dict())
-            queue.task_done()
-    finally:
-        await realtime_hub.unsubscribe(topic, queue)

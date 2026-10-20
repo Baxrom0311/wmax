@@ -538,12 +538,8 @@ class RelativePatientView {
   });
 
   DoctorContact? get doctor => doctorContact;
-  String get deviceModel => "Samsung Galaxy Watch 5";
-  int get deviceBattery => vitals.battery ?? 90;
-  bool get isDeviceOnline => level != AlertLevel.noData;
-  String get address => "Urganch sh., Al-Xorazmiy ko'chasi";
-  double get lat => 41.5562;
-  double get lon => 60.6311;
+  // Last battery level the watch reported; null when unknown.
+  int? get deviceBattery => vitals.battery;
 
   factory RelativePatientView.fromJson(Map<String, dynamic> json) {
     DateTime? lastReading;
@@ -579,15 +575,15 @@ class RelativePatientView {
       patientName: json['patient_name'] ?? 'Bemor',
       relationship: json['relationship'] ?? 'Oila a\'zosi',
       level: parseAlertLevel(json['level']),
-      levelWordKey: json['level_word_key'] ?? 'state.good',
+      levelWordKey: json['level_word_key'] ?? 'state.no_data',
       compositeScore: (json['composite_score'] as num?)?.toDouble() ?? 0.0,
       lastReadingAt: lastReading,
       prognosis: json['prognosis'] is Map<String, dynamic>
           ? PrognosisData.fromJson(json['prognosis'])
           : PrognosisData(
-              riskLevel: 'low',
-              riskProbabilityPct: 15,
-              summary: 'Holat barqaror.',
+              riskLevel: 'unknown',
+              riskProbabilityPct: null,
+              summary: "Xulosa uchun ma'lumot yetarli emas.",
             ),
       vitals: json['vitals'] is Map<String, dynamic>
           ? VitalsData.fromJson(json['vitals'])
