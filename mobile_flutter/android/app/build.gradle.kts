@@ -77,6 +77,6 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     add("wearImplementation", "androidx.health:health-services-client:1.1.0-rc02")
     add("wearImplementation", "com.google.guava:guava:32.0.1-android")
-    add("wearImplementation", "androidx.work:work-runtime-ktx:2.12.0")
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
