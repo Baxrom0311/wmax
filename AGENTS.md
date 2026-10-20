@@ -17,7 +17,8 @@ actually works.
 - `backend/algo/`, `contracts/`: physiological signal calculations, shared types,
   time windows, and OpenAPI contract.
 - `notifier/`: Telegram delivery and bot administration.
-- `web-doctor/`, `web-relative/`: separate React/TypeScript/Vite applications.
+- `web/`: one React/TypeScript/Vite + shadcn/ui app with role-based sections
+  (`/doctor` clinic, `/r` family portal and Telegram Mini App, `/aifu` Pitch Day).
 - `mobile_flutter/`: Flutter UI with Android phone/Wear OS and iOS native bridges.
 - `landing/`: static marketing page.
 - `docker/compose/docker-compose.yml`, `scripts/`: canonical release tooling
@@ -49,7 +50,7 @@ ENV=testing ENABLE_WORKERS=false .venv/bin/python -m pytest -q backend/app/tests
 ruff check backend/ notifier/ contracts/timewin.py
 ```
 
-Each web application has `npm run lint` and `npm run build`.
+The web app (`web/`) has `npm run lint` and `npm run build`.
 For mobile, run `flutter analyze --fatal-infos` and targeted offline widget tests.
 Compile Android with `flutter build apk --debug --flavor phone` and
 `flutter build apk --debug --flavor wear`.

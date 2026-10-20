@@ -140,9 +140,7 @@ class ApiService {
     }
     final rejected = decoded['rejected'];
     if (rejected is List && rejected.isNotEmpty) {
-      throw StateError(
-        'Server rejected ${rejected.length} health data records.',
-      );
+      throw HealthIngestRejected(rejected.length);
     }
     return decoded;
   }
@@ -529,4 +527,15 @@ class ApiService {
       sparkline: const [],
     );
   }
+}
+
+/// The server stored the batch but refused some records (for example no
+/// device assignment or revoked consent). Resending cannot change that answer.
+class HealthIngestRejected implements Exception {
+  final int count;
+
+  const HealthIngestRejected(this.count);
+
+  @override
+  String toString() => 'Server rejected $count health data records.';
 }

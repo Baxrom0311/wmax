@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.security.MessageDigest;
-import java.nio.charset.StandardCharsets;
 import org.json.JSONObject;
 
 public class WmaxWearDataListenerService extends WearableListenerService {
@@ -95,7 +94,10 @@ public class WmaxWearDataListenerService extends WearableListenerService {
                 SQLiteDatabase db = database(context);
                 long inserted = db.insertWithOnConflict(
                         "wear_payloads", null, values, SQLiteDatabase.CONFLICT_IGNORE);
-                if (inserted >= 0) return true;
+                if (inserted >= 0) {
+                    scheduleUpload(context);
+                    return true;
+                }
                 try (android.database.Cursor cursor = db.query(
                         "wear_payloads",
                         new String[]{"payload"},
@@ -111,6 +113,15 @@ public class WmaxWearDataListenerService extends WearableListenerService {
                 android.util.Log.e("WmaxWearData", "Invalid wearable health payload", error);
                 return false;
             }
+        }
+    }
+
+    /** Deliver even when the Flutter UI is not running; the row is already stored. */
+    private static void scheduleUpload(Context context) {
+        try {
+            WearQueueUploadWorker.schedule(context);
+        } catch (Exception error) {
+            android.util.Log.e("WmaxWearData", "Could not schedule health upload", error);
         }
     }
 

@@ -165,38 +165,15 @@ services:
       - monitoring_net
 
   # -------------------------------------------------------------
-  # 5. Doctor Clinical Dashboard (Web-Doctor)
+  # 5. Web frontend: landing, Pitch Day (/aifu), clinic (/doctor), family portal (/r)
   # -------------------------------------------------------------
-  web-doctor:
-    image: wmax/web-doctor:${RELEASE_TAG:-local}
+  web:
+    image: wmax/web:${RELEASE_TAG:-local}
     build:
-      context: ../../web-doctor
+      context: ../../web
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:8091:80"
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: ${WEB_MEM:-48M}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - frontend_net
-
-  # -------------------------------------------------------------
-  # 6. Patient Relative Portal (Web-Relative at /r/)
-  # -------------------------------------------------------------
-  web-relative:
-    image: wmax/web-relative:${RELEASE_TAG:-local}
-    build:
-      context: ../../web-relative
-      dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:8092:80"
     restart: always
     deploy:
       resources:
@@ -233,9 +210,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      web-doctor:
-        condition: service_started
-      web-relative:
+      web:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/healthz || exit 1"]

@@ -158,7 +158,8 @@ must be assigned before production launch; missing ownership blocks release.
   pytest's default discovery is intentionally not relied upon by CI.
 - Monitoring services are optional Compose profile `monitoring`; edge health
   checks must not require them unless that profile is deployed.
-- `web-relative` remains a separately deployed app until a product/API migration
-  is implemented and reviewed; architecture intent alone does not remove it.
+- The clinic workstation and the family portal ship as one web app (`web/`,
+  Compose service `web`); the family portal keeps its own session and is
+  served under `/r/` with `noindex`.
 - Wear OS and phone app code share `mobile_flutter`; native platform bridges
   still require device-level validation for Health Connect/HealthKit behavior.

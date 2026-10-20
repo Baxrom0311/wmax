@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mobile_flutter/app_mode.dart';
 import 'package:mobile_flutter/screens/health_device_screen.dart';
+import 'package:mobile_flutter/services/native_health_bridge.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -62,6 +67,69 @@ void main() {
       expect(calls, contains('getWearDataLayerQueue'));
 
       await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('syncQueuedWearData', () {
+    const channel = MethodChannel('wmax/native_health');
+    final payload = jsonEncode({
+      'batch_id': '11111111-1111-4111-8111-111111111111',
+      'source': 'wear_health_services',
+      'samples': [
+        {
+          'metric': 'fall_detected',
+          'recorded_at': '2026-10-20T03:00:00Z',
+          'value_text': 'fall_detected',
+        },
+      ],
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    Future<List<String>> runSync(http.Response Function() respond) async {
+      SharedPreferences.setMockInitialValues({});
+      final acked = <String>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'getWearDataLayerQueue') return [payload];
+            if (call.method == 'ackWearDataLayerQueue') {
+              acked.addAll((call.arguments['payloads'] as List).cast());
+              return true;
+            }
+            return null;
+          });
+      await http.runWithClient(() async {
+        try {
+          await NativeHealthBridge.syncQueuedWearData(deviceToken: 'synthetic');
+        } catch (_) {}
+      }, () => MockClient((_) async => respond()));
+      return acked;
+    }
+
+    test('a batch the server stored with rejected records leaves the queue', () async {
+      final acked = await runSync(
+        () => http.Response(
+          jsonEncode({
+            'server_time': '2026-10-20T03:00:01Z',
+            'batch_id': '11111111-1111-4111-8111-111111111111',
+            'accepted': 0,
+            'duplicate': 0,
+            'rejected': [
+              {'kind': 'sample', 'index': '0', 'reason': 'orphan_device'},
+            ],
+          }),
+          200,
+        ),
+      );
+      expect(acked, [payload]);
+    });
+
+    test('a server error keeps the batch queued for retry', () async {
+      final acked = await runSync(() => http.Response('unavailable', 503));
+      expect(acked, isEmpty);
     });
   });
 }

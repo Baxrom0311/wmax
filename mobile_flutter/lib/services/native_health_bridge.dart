@@ -161,6 +161,11 @@ class NativeHealthBridge {
           );
           acknowledged.add(payload);
           uploaded++;
+        } on HealthIngestRejected catch (error) {
+          // Stored server-side with a final verdict; keeping it queued would
+          // resend it forever.
+          acknowledged.add(payload);
+          firstError ??= error;
         } catch (error) {
           firstError ??= error;
         }

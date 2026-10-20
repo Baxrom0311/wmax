@@ -26,7 +26,7 @@ if [ ! -s "${LAST_SUCCESS}" ]; then
   if [ -s "${ROOT_DIR}/.deploy_state/release_started.txt" ] \
     || [ -s "${ROOT_DIR}/.deploy_state/candidate_release.txt" ]; then
     echo "[-] No prior release image exists; stopping candidate app services and preserving data services."
-    compose stop api worker web-doctor web-relative nginx
+    compose stop api worker web nginx
     rm -f "${ROOT_DIR}/.deploy_state/release_started.txt" \
       "${ROOT_DIR}/.deploy_state/candidate_release.txt" \
       "${ROOT_DIR}/.deploy_state/deploying_release.txt"
