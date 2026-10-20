@@ -1,8 +1,8 @@
 // =====================================================================
 // WMAX — frontend contract. FROZEN.
-// Mirrors contracts/openapi.yaml. A3 (web-doctor) and A4 (web-relative)
-// COPY this file into their own src/ (no cross-folder imports) and must
-// not change the shapes.
+// Mirrors contracts/openapi.yaml. The web app copies this file into
+// web/src/lib/types.ts (no cross-folder imports) and must not change the
+// shapes.
 // =====================================================================
 
 export type AlertLevel = "green" | "amber" | "red" | "no_data";

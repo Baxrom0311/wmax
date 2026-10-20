@@ -9,8 +9,7 @@ caregivers and a Telegram bot are alerted when a patient deteriorates.
 | `backend/` | FastAPI API, signal pipeline, AI prognosis, SOS, billing, workers (`backend/app`), algorithms (`backend/algo`), Alembic migrations |
 | `contracts/` | OpenAPI spec and shared types/time windows |
 | `notifier/` | Telegram alert delivery and bot (runs from the backend image) |
-| `web-doctor/` | Clinician and SOS dispatcher web app (React + Vite) |
-| `web-relative/` | Caregiver portal / Telegram Mini App, served under `/r/` |
+| `web/` | Single React + shadcn/ui web app: landing, Pitch Day (`/aifu`), clinic workstation and SOS dispatcher (`/doctor`), caregiver portal / Telegram Mini App (`/r`) |
 | `mobile_flutter/` | Caregiver phone app and Wear OS watch runtime |
 | `landing/` | Static marketing page |
 | `docker/`, `scripts/` | Production compose stack, nginx, monitoring, deploy/backup scripts |
@@ -24,9 +23,8 @@ pip install -r backend/requirements.txt -r backend/algo/requirements.txt -r noti
 pip install pytest-asyncio aiosqlite httpx
 ENV=testing PYTHONPATH=.:backend:contracts pytest -q backend/app/tests backend/algo/tests notifier/tests
 
-# Web apps
-(cd web-doctor && npm ci && npm run lint && npm run build)
-(cd web-relative && npm ci && npm run lint && npm run build)
+# Web app
+(cd web && npm ci && npm run lint && npm run build)
 
 # Mobile
 (cd mobile_flutter && flutter pub get && flutter analyze && flutter test)

@@ -65,7 +65,7 @@ rsync -az --delete -e "$RSYNC_SSH" \
 echo "[4/6] Build & Ishga tushirish: Docker konteynerlar yangilanmoqda..."
 $SSH_CMD "$TARGET" "cd $REMOTE_DIR && \
   docker compose --env-file .env -f docker/compose/docker-compose.yml build && \
-  docker rm -f compose-web-doctor-1 compose-web-relative-1 compose-api-1 compose-notifier-1 compose-postgres-1 6031c705d8f7 2>/dev/null || true; \
+  docker rm -f compose-web-1 compose-web-doctor-1 compose-web-relative-1 compose-api-1 compose-notifier-1 compose-postgres-1 6031c705d8f7 2>/dev/null || true; \
   docker compose --env-file .env -f docker/compose/docker-compose.yml up -d && \
   docker compose --env-file .env -f docker/compose/docker-compose.yml ps"
 

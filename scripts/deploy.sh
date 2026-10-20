@@ -76,7 +76,7 @@ rm -f "${STATE_DIR}/candidate_release.txt"
 if [ ! -s "${LAST_SUCCESS}" ]; then
   BASELINE_TAG="baseline-${RELEASE_TAG:0:12}"
   BASELINE_READY=true
-  for service in api web-doctor web-relative; do
+  for service in api web; do
     container_id="$(compose ps -q "${service}" | head -n 1)"
     if [ -z "${container_id}" ]; then
       BASELINE_READY=false
@@ -85,7 +85,7 @@ if [ ! -s "${LAST_SUCCESS}" ]; then
     image_id="$(docker inspect --format '{{.Image}}' "${container_id}")"
     case "${service}" in
       api|nginx) image_name="wmax/${service}" ;;
-      web-doctor|web-relative) image_name="wmax/${service}" ;;
+      web) image_name="wmax/${service}" ;;
     esac
     docker tag "${image_id}" "${image_name}:${BASELINE_TAG}"
   done
