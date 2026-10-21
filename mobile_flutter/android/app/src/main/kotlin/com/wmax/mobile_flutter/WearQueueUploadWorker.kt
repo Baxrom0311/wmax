@@ -27,6 +27,11 @@ class WearQueueUploadWorker(
     params: WorkerParameters,
 ) : Worker(context, params) {
     override fun doWork(): Result {
+        try {
+            WmaxWearDataListenerService.recoverPendingDataItems(applicationContext)
+        } catch (_: Exception) {
+            // No Data Layer (no Play services, no paired node): the queue is still uploaded.
+        }
         val token = try {
             DeviceCredentialVault.read(applicationContext)
         } catch (_: Exception) {

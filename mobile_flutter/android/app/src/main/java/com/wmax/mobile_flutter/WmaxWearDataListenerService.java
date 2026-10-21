@@ -7,10 +7,15 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 
+import com.google.android.gms.tasks.Tasks;
+import com.google.android.gms.wearable.DataClient;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
 
@@ -18,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.security.MessageDigest;
 import org.json.JSONObject;
 
@@ -44,6 +50,39 @@ public class WmaxWearDataListenerService extends WearableListenerService {
         } finally {
             events.release();
         }
+    }
+
+    /**
+     * Data items the listener never saw (phone app installed after the watch
+     * queued them, process killed mid-delivery) stay in the Data Layer and get
+     * no second event. Move them into the queue. Blocking: call off the main thread.
+     */
+    static int recoverPendingDataItems(Context context) throws Exception {
+        String localNode = Tasks.await(
+                Wearable.getNodeClient(context).getLocalNode(), 10, TimeUnit.SECONDS).getId();
+        Uri prefix = new Uri.Builder()
+                .scheme(PutDataRequest.WEAR_URI_SCHEME)
+                .path(HEALTH_DATA_PATH + "/")
+                .build();
+        DataClient client = Wearable.getDataClient(context);
+        DataItemBuffer items = Tasks.await(
+                client.getDataItems(prefix, DataClient.FILTER_PREFIX), 20, TimeUnit.SECONDS);
+        int recovered = 0;
+        try {
+            for (DataItem item : items) {
+                Uri uri = item.getUri();
+                // Our own outgoing items are the other side's to collect.
+                if (localNode.equals(uri.getHost())) continue;
+                String payload = DataMapItem.fromDataItem(item).getDataMap().getString("payload");
+                if (payload != null && !payload.trim().isEmpty() && enqueuePayload(context, payload)) {
+                    Tasks.await(client.deleteDataItems(uri), 10, TimeUnit.SECONDS);
+                    recovered++;
+                }
+            }
+        } finally {
+            items.release();
+        }
+        return recovered;
     }
 
     static ArrayList<String> getQueuedPayloads(Context context) {

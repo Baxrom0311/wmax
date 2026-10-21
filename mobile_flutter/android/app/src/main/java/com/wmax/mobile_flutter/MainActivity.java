@@ -41,7 +41,8 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
-        if (!getWearQueue().isEmpty()) WearQueueUploadWorker.schedule(this);
+        // Always: the worker also collects watch batches the listener missed.
+        WearQueueUploadWorker.schedule(this);
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {
@@ -152,8 +153,9 @@ public class MainActivity extends FlutterActivity {
                 result.error("DEVICE_CREDENTIAL_WRITE_FAILED", "Device credential could not be saved.", null);
                 return;
             }
-            // Upload anything the watch queued before this phone was paired.
+            // Upload anything queued before this device was paired.
             WearQueueUploadWorker.schedule(this);
+            WearHealthServices.flushOutbox(this);
             result.success(true);
         } catch (Exception exception) {
             result.error("DEVICE_CREDENTIAL_WRITE_FAILED", "Device credential could not be encrypted.", null);
