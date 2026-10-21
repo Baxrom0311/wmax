@@ -87,8 +87,31 @@ object WearHealthOutbox {
             }
         }
 
+        // A paired watch uploads with its own device token (Wear OS reaches the
+        // internet through Wi-Fi, LTE or the phone's Bluetooth proxy). The
+        // phone app is then optional; the Data Layer is only the fallback for
+        // an unpaired watch whose phone holds the token.
+        val paired = try {
+            !DeviceCredentialVault.read(context).isNullOrBlank()
+        } catch (_: Exception) {
+            false
+        }
+
         var completed = true
         for ((batchId, body) in pending) {
+            if (paired) {
+                // Moved into the upload queue, which keeps it until the server answers.
+                if (WmaxWearDataListenerService.enqueuePayload(context, body)) {
+                    database(context).writableDatabase.delete(
+                        TABLE,
+                        "$COLUMN_BATCH_ID = ?",
+                        arrayOf(batchId),
+                    )
+                } else {
+                    completed = false
+                }
+                continue
+            }
             try {
                 val request = PutDataMapRequest.create("/wmax/health-data/$batchId")
                     .apply { dataMap.putString("payload", body) }

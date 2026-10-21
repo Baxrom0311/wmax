@@ -125,4 +125,8 @@ object WearHealthServices {
             Executor { command -> command.run() },
         )
     }
+
+    /** Re-route readings queued before pairing to the watch's own upload. */
+    @JvmStatic
+    fun flushOutbox(context: Context) = WearHealthOutbox.scheduleFlush(context)
 }

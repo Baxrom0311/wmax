@@ -14,4 +14,8 @@ object WearHealthServices {
     fun register(context: Context, callback: WearHealthRegistrationCallback) {
         callback.onComplete(false, "NOT_WEAR_BUILD")
     }
+
+    /** No watch outbox on the phone build. */
+    @JvmStatic
+    fun flushOutbox(context: Context) = Unit
 }
