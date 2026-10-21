@@ -19,6 +19,8 @@ class WatchRuntimeScreen extends StatefulWidget {
 
 enum _WatchSendState { idle, sending, sent, failed }
 
+enum _SosOutcome { sending, sent, queued, failed }
+
 class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   static const _patientId = String.fromEnvironment('WMAX_PATIENT_ID');
   String? _deviceToken;
@@ -45,6 +47,9 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   _WatchSendState _sendState = _WatchSendState.idle;
   int _sentCount = 0;
   int _sosCountdown = 0;
+  _SosOutcome? _sosOutcome;
+  // Started with the countdown so the fix is usually ready when it ends.
+  Future<SosLocation?>? _sosLocation;
 
   @override
   void initState() {
@@ -365,6 +370,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
         code: pair.$2,
       );
       await DeviceCredentialStore.save(token);
+      // Asked now, not during an emergency, so an SOS can carry a position.
+      await NativeHealthBridge.requestLocationPermission();
       if (!mounted) return;
       setState(() {
         _deviceToken = token;
@@ -379,8 +386,22 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   void _startSosCountdown() {
     final configured =
         _patientId.isNotEmpty || (_deviceToken?.isNotEmpty ?? false);
-    if (!configured || _sosCountdown > 0) return;
-    setState(() => _sosCountdown = 5);
+    if (!configured || _sosOutcome == _SosOutcome.sending) return;
+    if (_sosCountdown > 0) {
+      // A second tap during the countdown cancels an accidental press.
+      _sosTimer?.cancel();
+      _sosLocation = null;
+      setState(() {
+        _sosCountdown = 0;
+        _sosOutcome = null;
+      });
+      return;
+    }
+    _sosLocation = NativeHealthBridge.getSosLocation();
+    setState(() {
+      _sosCountdown = 5;
+      _sosOutcome = null;
+    });
     _sosTimer?.cancel();
     _sosTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted) return;
@@ -395,16 +416,38 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   }
 
   Future<void> _dispatchSos() async {
+    setState(() => _sosOutcome = _SosOutcome.sending);
+    SosLocation? location;
+    try {
+      // Never hold the SOS for long waiting on a fix.
+      location = await (_sosLocation ?? Future<SosLocation?>.value()).timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+    } catch (_) {
+      location = null;
+    }
+    _sosLocation = null;
+
     bool dispatched = false;
     if (_deviceToken != null && _deviceToken!.isNotEmpty) {
       dispatched = await ApiService.triggerDeviceSos(
         deviceToken: _deviceToken!,
         source: 'watch_button',
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        accuracy: location?.accuracyMeters,
       );
     }
     if (!dispatched && _patientId.isNotEmpty) {
-      dispatched = await ApiService.triggerSos(patientId: _patientId);
+      dispatched = await ApiService.triggerSos(
+        patientId: _patientId,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        accuracyMeters: location?.accuracyMeters,
+      );
     }
+    var outcome = dispatched ? _SosOutcome.sent : _SosOutcome.failed;
     // If online delivery failed or offline, persist to local outbox
     if (!dispatched) {
       try {
@@ -437,12 +480,32 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
           metadata: {
             'emergency_sos': true,
             'dispatched_at': DateTime.now().toIso8601String(),
+            if (location != null) ...{
+              'device_lat': location.latitude,
+              'device_lon': location.longitude,
+              'device_accuracy_m': ?location.accuracyMeters,
+            },
           },
         );
-        await NativeHealthBridge.enqueueWearDataBatch(emergencyBatch);
+        if (await NativeHealthBridge.enqueueWearDataBatch(emergencyBatch)) {
+          outcome = _SosOutcome.queued;
+        }
       } catch (_) {}
     }
+    if (mounted) setState(() => _sosOutcome = outcome);
   }
+
+  String? _sosOutcomeText(bool uz) => switch (_sosOutcome) {
+    null =>
+      _sosCountdown > 0
+          ? (uz ? 'Bekor qilish uchun bosing' : 'Нажмите для отмены')
+          : null,
+    _SosOutcome.sending => uz ? 'SOS yuborilmoqda' : 'SOS отправляется',
+    _SosOutcome.sent => uz ? 'SOS yuborildi' : 'SOS отправлен',
+    _SosOutcome.queued =>
+      uz ? 'Aloqa yo‘q: SOS navbatda' : 'Нет связи: SOS в очереди',
+    _SosOutcome.failed => uz ? 'SOS yuborilmadi' : 'SOS не отправлен',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -688,6 +751,22 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
                             ),
                           ],
                         ),
+                        if (_sosOutcomeText(uz) case final sosText?)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              sosText,
+                              key: const ValueKey('sos-status'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: _sosOutcome == _SosOutcome.sent
+                                    ? const Color(0xFF6EE7B7)
+                                    : const Color(0xFFFCA5A5),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                         if (_exerciseActive)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),

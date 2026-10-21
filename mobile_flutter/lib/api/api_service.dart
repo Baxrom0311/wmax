@@ -485,7 +485,12 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 8));
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        return false;
+      }
+      // An unassigned watch gets 201 with accepted: false; nobody is alerted.
+      final decoded = jsonDecode(response.body);
+      return decoded is! Map || decoded['accepted'] != false;
     } catch (_) {
       return false;
     }
