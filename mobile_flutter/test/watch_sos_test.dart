@@ -141,5 +141,34 @@ void main() {
         }),
       );
     });
+
+    testWidgets('an unassigned watch says so instead of claiming it queued', (
+      tester,
+    ) async {
+      mockWatch();
+      await http.runWithClient(
+        () async {
+          await pumpWatch(tester);
+          await tester.ensureVisible(find.text('SOS'));
+          await tester.tap(find.text('SOS'));
+          for (var second = 0; second < 6; second++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+          await tester.pump();
+          expect(find.text('Soat bemorga biriktirilmagan'), findsOneWidget);
+          expect(calls, isNot(contains('enqueueWearPayload')));
+          await tester.pumpWidget(const SizedBox());
+        },
+        () => MockClient((request) async {
+          if (request.url.path.endsWith('/ingest/sos')) {
+            return http.Response(
+              jsonEncode({'accepted': false, 'reason': 'orphan_device'}),
+              201,
+            );
+          }
+          return http.Response('{}', 200);
+        }),
+      );
+    });
   });
 }

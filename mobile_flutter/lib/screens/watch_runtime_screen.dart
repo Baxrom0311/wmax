@@ -19,7 +19,7 @@ class WatchRuntimeScreen extends StatefulWidget {
 
 enum _WatchSendState { idle, sending, sent, failed }
 
-enum _SosOutcome { sending, sent, queued, failed }
+enum _SosOutcome { sending, sent, queued, unassigned, failed }
 
 class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
   static const _patientId = String.fromEnvironment('WMAX_PATIENT_ID');
@@ -430,14 +430,17 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
     _sosLocation = null;
 
     bool dispatched = false;
+    var refused = false;
     if (_deviceToken != null && _deviceToken!.isNotEmpty) {
-      dispatched = await ApiService.triggerDeviceSos(
+      final result = await ApiService.sendDeviceSos(
         deviceToken: _deviceToken!,
         source: 'watch_button',
         latitude: location?.latitude,
         longitude: location?.longitude,
         accuracy: location?.accuracyMeters,
       );
+      dispatched = result == DeviceSosResult.accepted;
+      refused = result == DeviceSosResult.refused;
     }
     if (!dispatched && _patientId.isNotEmpty) {
       dispatched = await ApiService.triggerSos(
@@ -447,9 +450,14 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
         accuracyMeters: location?.accuracyMeters,
       );
     }
-    var outcome = dispatched ? _SosOutcome.sent : _SosOutcome.failed;
-    // If online delivery failed or offline, persist to local outbox
-    if (!dispatched) {
+    var outcome = dispatched
+        ? _SosOutcome.sent
+        : refused
+        ? _SosOutcome.unassigned
+        : _SosOutcome.failed;
+    // Offline: keep it for the upload queue. A refused SOS would be refused
+    // again, so the watch says so instead of claiming it is queued.
+    if (!dispatched && !refused) {
       try {
         final emergencyBatch = HealthDataBatch(
           batchId: NativeHealthBridge.newBatchId(),
@@ -504,6 +512,8 @@ class _WatchRuntimeScreenState extends State<WatchRuntimeScreen> {
     _SosOutcome.sent => uz ? 'SOS yuborildi' : 'SOS отправлен',
     _SosOutcome.queued =>
       uz ? 'Aloqa yo‘q: SOS navbatda' : 'Нет связи: SOS в очереди',
+    _SosOutcome.unassigned =>
+      uz ? 'Soat bemorga biriktirilmagan' : 'Часы не привязаны к пациенту',
     _SosOutcome.failed => uz ? 'SOS yuborilmadi' : 'SOS не отправлен',
   };
 
