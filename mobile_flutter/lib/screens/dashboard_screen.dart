@@ -5,6 +5,7 @@ import '../services/session_service.dart';
 import '../api/api_service.dart';
 import '../widgets/vitals_card.dart';
 import 'health_screen.dart';
+import 'health_device_screen.dart';
 import '../widgets/language_selector.dart';
 import '../services/health_auto_sync.dart';
 import '../services/native_health_bridge.dart';
@@ -1303,8 +1304,102 @@ class _CaregiverMainDashboardState extends State<CaregiverMainDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: 14),
+        _buildPhonePairingCard(uz),
       ],
     );
+  }
+
+  /// Pairs this phone with the patient's device so it can upload what the
+  /// watch hands it over Bluetooth and what Health Connect holds.
+  Widget _buildPhonePairingCard(bool uz) {
+    final paired = _wearDeviceToken?.isNotEmpty ?? false;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                paired ? Icons.phonelink_ring_rounded : Icons.link_off_rounded,
+                color: paired
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF94A3B8),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  paired
+                      ? (uz ? "Bu telefon bog'langan" : "Этот телефон привязан")
+                      : (uz
+                            ? "Bu telefon bog'lanmagan"
+                            : "Этот телефон не привязан"),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            paired
+                ? (uz
+                      ? "Soatdan va Health Connect'dan kelgan ma'lumotlar shu telefon orqali serverga yuboriladi."
+                      : "Данные с часов и из Health Connect отправляются на сервер через этот телефон.")
+                : (uz
+                      ? "Soat yoki Samsung Health ma'lumotlarini shu telefon orqali yuborish uchun klinika bergan qurilma ID va kod bilan bog'lang."
+                      : "Чтобы отправлять данные часов или Samsung Health через этот телефон, привяжите его по ID устройства и коду от клиники."),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const ValueKey('phone-pairing-button'),
+              onPressed: _openPhonePairing,
+              icon: Icon(
+                paired ? Icons.sync_rounded : Icons.link_rounded,
+                size: 18,
+              ),
+              label: Text(
+                paired
+                    ? (uz
+                          ? "Sinxronlash va sozlash"
+                          : "Синхронизация и настройка")
+                    : (uz ? "Telefonni bog'lash" : "Привязать телефон"),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0284C7),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openPhonePairing() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => HealthDeviceScreen(isUzbek: widget.isUzbek),
+      ),
+    );
+    // Pick up a token saved (or replaced) on the pairing screen.
+    await _loadWearDeviceCredential();
   }
 
   Widget _buildAlertsView(bool uz) {
