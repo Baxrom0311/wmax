@@ -5,8 +5,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
@@ -31,12 +36,18 @@ public class MainActivity extends FlutterActivity {
     private static final int BODY_SENSOR_PERMISSION_REQUEST_CODE = 7302;
     private static final int BACKGROUND_SENSOR_PERMISSION_REQUEST_CODE = 7303;
     private static final int ACTIVITY_RECOGNITION_PERMISSION_REQUEST_CODE = 7304;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 7305;
+    // A fix older than this would send responders to where the patient was.
+    private static final long MAX_SOS_LOCATION_AGE_MS = 30L * 60 * 1000;
+    private static final long FRESH_SOS_LOCATION_AGE_MS = 2L * 60 * 1000;
+    private static final long SOS_LOCATION_TIMEOUT_MS = 8000;
     private final ActivityResultContract<Set<String>, Set<String>> healthPermissionContract =
             PermissionController.createRequestPermissionResultContract();
     private MethodChannel.Result pendingHealthPermissionResult;
     private MethodChannel.Result pendingWearHealthResult;
     private boolean pendingWearPermissionOnly;
     private boolean activityRecognitionRequestAttempted;
+    private MethodChannel.Result pendingLocationPermissionResult;
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -92,6 +103,12 @@ public class MainActivity extends FlutterActivity {
                                 result.error("INVALID_PAYLOAD", "Payload cannot be empty", null);
                             }
                             break;
+                        case "requestLocationPermission":
+                            requestLocationPermission(result);
+                            break;
+                        case "getSosLocation":
+                            getSosLocation(result);
+                            break;
                         case "openHealthConnectSettings":
                             openHealthConnectSettings();
                             result.success(true);
@@ -133,6 +150,114 @@ public class MainActivity extends FlutterActivity {
                             result.notImplemented();
                     }
                 });
+    }
+
+    private boolean hasLocationPermission() {
+        return checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestLocationPermission(MethodChannel.Result result) {
+        if (hasLocationPermission()) {
+            result.success(true);
+            return;
+        }
+        if (pendingLocationPermissionResult != null) {
+            result.error("LOCATION_PERMISSION_IN_PROGRESS", "Location permission request is already in progress.", null);
+            return;
+        }
+        pendingLocationPermissionResult = result;
+        requestPermissions(
+                new String[]{
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                },
+                LOCATION_PERMISSION_REQUEST_CODE);
+    }
+
+    /**
+     * Best location for an SOS, or null. Never shows a permission dialog: an
+     * emergency must not wait on one. Uses a recent cached fix, otherwise asks
+     * for a current one and falls back to an older cached fix on timeout.
+     */
+    private void getSosLocation(MethodChannel.Result result) {
+        if (!hasLocationPermission()) {
+            result.success(null);
+            return;
+        }
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (manager == null) {
+            result.success(null);
+            return;
+        }
+        Location cached = null;
+        try {
+            for (String provider : manager.getProviders(true)) {
+                Location candidate = manager.getLastKnownLocation(provider);
+                if (candidate != null && (cached == null || candidate.getTime() > cached.getTime())) {
+                    cached = candidate;
+                }
+            }
+        } catch (SecurityException ignored) {
+            cached = null;
+        }
+        long cachedAge = cached == null ? Long.MAX_VALUE : System.currentTimeMillis() - cached.getTime();
+        final Location fallback = cachedAge <= MAX_SOS_LOCATION_AGE_MS ? cached : null;
+        if (cachedAge > FRESH_SOS_LOCATION_AGE_MS && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requestCurrentSosLocation(manager, fallback, result);
+            return;
+        }
+        result.success(locationMap(fallback));
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
+    private void requestCurrentSosLocation(
+            LocationManager manager, Location fallback, MethodChannel.Result result) {
+        String provider = null;
+        if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                && checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            provider = LocationManager.GPS_PROVIDER;
+        } else if (manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            provider = LocationManager.NETWORK_PROVIDER;
+        }
+        if (provider == null) {
+            result.success(locationMap(fallback));
+            return;
+        }
+        CancellationSignal cancel = new CancellationSignal();
+        Handler handler = new Handler(Looper.getMainLooper());
+        boolean[] answered = {false};
+        Runnable timeout = () -> {
+            if (answered[0]) return;
+            answered[0] = true;
+            cancel.cancel();
+            result.success(locationMap(fallback));
+        };
+        handler.postDelayed(timeout, SOS_LOCATION_TIMEOUT_MS);
+        try {
+            manager.getCurrentLocation(provider, cancel, getMainExecutor(), location -> {
+                if (answered[0]) return;
+                answered[0] = true;
+                handler.removeCallbacks(timeout);
+                result.success(locationMap(location != null ? location : fallback));
+            });
+        } catch (RuntimeException error) {
+            handler.removeCallbacks(timeout);
+            if (!answered[0]) {
+                answered[0] = true;
+                result.success(locationMap(fallback));
+            }
+        }
+    }
+
+    private static Map<String, Object> locationMap(Location location) {
+        if (location == null) return null;
+        Map<String, Object> map = new HashMap<>();
+        map.put("latitude", location.getLatitude());
+        map.put("longitude", location.getLongitude());
+        if (location.hasAccuracy()) map.put("accuracy_m", (double) location.getAccuracy());
+        map.put("age_s", Math.max(0L, (System.currentTimeMillis() - location.getTime()) / 1000));
+        return map;
     }
 
     private void readDeviceCredential(MethodChannel.Result result) {
@@ -401,6 +526,10 @@ public class MainActivity extends FlutterActivity {
             }
         } else if (requestCode == ACTIVITY_RECOGNITION_PERMISSION_REQUEST_CODE) {
             requestBackgroundPermissionOrRegister();
+        } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            MethodChannel.Result pending = pendingLocationPermissionResult;
+            pendingLocationPermissionResult = null;
+            if (pending != null) pending.success(hasLocationPermission());
         }
     }
 

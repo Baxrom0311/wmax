@@ -24,6 +24,33 @@ class NativeHealthBridge {
     return raw ?? <String, dynamic>{};
   }
 
+  /// Asks once for location access so an SOS can carry a position.
+  static Future<bool> requestLocationPermission() async {
+    try {
+      return await _channel.invokeMethod<bool>('requestLocationPermission') ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Current or recent position for an SOS, or null when there is none.
+  /// Never shows a permission dialog.
+  static Future<SosLocation?> getSosLocation() async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, dynamic>(
+        'getSosLocation',
+      );
+      return raw == null ? null : SosLocation.fromMap(raw);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> getWearHealthCapabilities() async {
     final raw = await _channel.invokeMapMethod<String, dynamic>(
       'getWearHealthCapabilities',
@@ -320,6 +347,29 @@ class NativeHealthBridge {
           .map((point) => point.cast<String, dynamic>())
           .toList(),
       metadata: (json['metadata'] as Map?)?.cast<String, dynamic>() ?? const {},
+    );
+  }
+}
+
+class SosLocation {
+  final double latitude;
+  final double longitude;
+  final double? accuracyMeters;
+
+  const SosLocation({
+    required this.latitude,
+    required this.longitude,
+    this.accuracyMeters,
+  });
+
+  static SosLocation? fromMap(Map<String, dynamic> map) {
+    final lat = (map['latitude'] as num?)?.toDouble();
+    final lon = (map['longitude'] as num?)?.toDouble();
+    if (lat == null || lon == null) return null;
+    return SosLocation(
+      latitude: lat,
+      longitude: lon,
+      accuracyMeters: (map['accuracy_m'] as num?)?.toDouble(),
     );
   }
 }

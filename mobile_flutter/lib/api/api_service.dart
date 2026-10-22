@@ -10,6 +10,14 @@ class SessionExpiredException implements Exception {
   const SessionExpiredException();
 }
 
+enum DeviceSosResult {
+  accepted,
+
+  /// The server answered but alerted nobody (watch not assigned to a patient).
+  refused,
+  unreachable,
+}
+
 class ApiService {
   static const String _ingestKey = String.fromEnvironment('WMAX_INGEST_KEY');
 
@@ -464,6 +472,22 @@ class ApiService {
     double? latitude,
     double? longitude,
     double? accuracy,
+  }) async =>
+      await sendDeviceSos(
+        deviceToken: deviceToken,
+        source: source,
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+      ) ==
+      DeviceSosResult.accepted;
+
+  static Future<DeviceSosResult> sendDeviceSos({
+    required String deviceToken,
+    String source = 'watch_button',
+    double? latitude,
+    double? longitude,
+    double? accuracy,
   }) async {
     final baseUrl = await SessionService.getBaseUrl();
     try {
@@ -485,9 +509,16 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 8));
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        return DeviceSosResult.unreachable;
+      }
+      // An unassigned watch gets 201 with accepted: false; nobody is alerted.
+      final decoded = jsonDecode(response.body);
+      return decoded is Map && decoded['accepted'] == false
+          ? DeviceSosResult.refused
+          : DeviceSosResult.accepted;
     } catch (_) {
-      return false;
+      return DeviceSosResult.unreachable;
     }
   }
 
